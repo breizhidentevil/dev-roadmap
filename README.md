@@ -1,77 +1,86 @@
-# Roadmap Full Stack 2026 — prototype React
+<div align="center">
 
-## État
+# Roadmap Full Stack 2026
 
-Prototype de migration aligné sur l’inventaire **V41**. Les fichiers de catalogue et tutoriels proviennent de V40 ; le manifeste V41 confirme que l’index, les 174 pages pédagogiques et la feuille de style sont identiques. Les tests React, le typecheck et le build local passent ; le parcours navigateur et le déploiement réel restent à valider.
+### Un parcours de compétences web, du premier concept à la mise en production.
 
-## Déploiement GitHub Pages
+[![GitHub Actions](https://github.com/breizhidentevil/dev-roadmap/actions/workflows/deploy.yml/badge.svg)](https://github.com/breizhidentevil/dev-roadmap/actions/workflows/deploy.yml)
+![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-7-646cff?logo=vite&logoColor=white)
 
-Le dépôt inclut un workflow GitHub Actions dans `.github/workflows/deploy.yml`. Après avoir poussé le projet sur GitHub :
+</div>
 
-1. Ouvrir **Settings → Pages** dans le dépôt.
-2. Dans **Build and deployment**, choisir **GitHub Actions** comme source.
-3. Pousser un commit sur la branche `main` (ou lancer le workflow manuellement depuis l’onglet **Actions**).
-4. Attendre la fin du workflow, puis ouvrir l’URL Pages affichée par GitHub.
+> **Prototype en cours de migration.** Le catalogue et les tutoriels sont disponibles ; la progression, les favoris et la validation complète avant livraison restent à réaliser.
 
-Le workflow installe les dépendances avec npm, exécute la validation du catalogue, le contrôle TypeScript et les tests, construit `dist/` et déploie ce dossier. Les routes utilisent un `HashRouter` afin que les liens profonds fonctionnent sans règle de réécriture serveur. Les URL des ressources sont relatives, pour fonctionner sous le préfixe `/<nom-du-depot>/` de GitHub Pages.
+## Le parcours en chiffres
 
-Si la branche par défaut du dépôt n’est pas `main`, modifier le déclencheur `push.branches` dans `.github/workflows/deploy.yml` ou utiliser le lancement manuel.
+| Chapitres | Compétences | Projets | Tutoriels HTML |
+|:---:|:---:|:---:|:---:|
+| **25** | **169** | **5** | **174** |
 
-## Prérequis
+## Ce que l’application propose
 
-- Node.js LTS et npm
+- Recherche tolérante à la casse et aux accents.
+- Filtre séparé pour les compétences et les projets.
+- Lecture des tutoriels HTML conservés dans une iframe sandboxée.
+- Thème clair ou sombre, mémorisé et appliqué aussi aux tutoriels.
+- Mise en page adaptée au mobile, à la tablette et au navigateur desktop.
+- Routes HashRouter et workflow GitHub Actions prêts pour GitHub Pages.
 
-## Commandes
+## Démarrage rapide
+
+Prérequis : Node.js LTS et npm.
 
 ```bash
-npm install
+git clone https://github.com/breizhidentevil/dev-roadmap.git
+cd dev-roadmap
+npm ci
 npm run dev
-npm run typecheck
-npm test
-npm run build
-npm run preview
 ```
 
-## Contenu
+Vite affiche l’adresse locale dans le terminal, généralement <http://localhost:5173>.
 
-- `public/lessons/` conserve les pages HTML source sans réécriture.
-- `src/data/catalog.json` conserve le catalogue extrait de l’index V40, confirmé identique dans le manifeste V41.
-- `src/App.tsx` fournit un index React avec recherche, filtres compétences/projets, thème clair/sombre mémorisé et page de lecture isolée.
-- `docs/source-reference/` conserve l’index, le CSS et la documentation source de V41.
+## Commandes utiles
+
+| Commande | Action |
+|---|---|
+| `npm run dev` | Démarre le serveur local |
+| `npm test` | Exécute les tests Vitest |
+| `npm run typecheck` | Vérifie les types TypeScript |
+| `npm run validate:catalog` | Vérifie les entrées et fichiers du catalogue |
+| `npm run build` | Produit le site dans `dist/` |
+| `npm run preview` | Sert le build localement |
 
 ## Vues responsive
 
-- **Mobile, jusqu’à 600 px :** une colonne de cartes, marges compactes et navigation de leçon sur plusieurs lignes.
-- **Tablette, de 601 à 1023 px :** deux colonnes de cartes et en-tête de leçon en grille.
-- **Navigateur desktop, dès 1024 px :** trois colonnes de cartes et conteneur centré.
-- Contrôlé localement à 390, 768 et 1280 px ; les pages testées ne débordent pas horizontalement.
+| Vue | Largeur | Présentation |
+|---|---:|---|
+| Mobile | Jusqu’à 600 px | Une colonne, marges compactes, navigation empilée |
+| Tablette | 601 à 1023 px | Deux colonnes, en-tête de leçon en grille |
+| Desktop | Dès 1024 px | Trois colonnes dans un conteneur centré |
 
-## Contrôles effectués depuis le prototype initial
+Contrôlé localement à 390, 768 et 1280 px sans débordement horizontal.
 
-- Le validateur du catalogue vérifie maintenant la présence de `public/style.css`, les 174 pages, l’absence des anciens liens `../index.html` et les liens HTML locaux entre tutoriels.
-- La feuille de style source a été copiée à `public/style.css` afin de résoudre les références `../style.css` des tutoriels.
-- Les liens de retour au catalogue ont été redirigés vers la route React `/` avec `target="_top"`. L’iframe autorise cette navigation uniquement après une action utilisateur (`allow-top-navigation-by-user-activation`).
-- `node scripts/validate-catalog.mjs` passe après ces changements.
-- Smoke test navigateur local réussi : filtres à 5 projets/169 compétences et chargement de la fiche Projet 1 dans l’iframe sur sa route HashRouter.
-- Le bouton soleil/lune mémorise le choix du thème et le synchronise avec les pages HTML dans l’iframe.
+## Déploiement
 
-## Limites connues de ce premier incrément
+Le workflow [Build and deploy to GitHub Pages](.github/workflows/deploy.yml) valide le catalogue, exécute le typecheck et les tests, construit `dist/` puis publie l’artefact. Dans les paramètres du dépôt, sélectionner **Settings → Pages → GitHub Actions**.
 
-- Le catalogue compte 169 compétences et 5 projets, classifiés depuis le chapitre source `24-projets-pratiques` et contrôlés par le validateur. La comparaison exhaustive de toutes les entrées avec l’archive reste à compléter.
-- Le rendu des tutoriels en iframe reste à tester sur un échantillon représentatif et dans le build de production. Le smoke test local ne couvre qu’une fiche projet. L’attribut `sandbox` reste restrictif : les scripts des pages héritées ne sont pas autorisés. La navigation vers le catalogue parent est permise uniquement après un clic utilisateur.
-- `npm test` (7 tests), `npm run typecheck` et `npm run build` passent après installation des dépendances locales. `package-lock.json` est généré pour permettre les installations reproductibles avec `npm ci`.
-- Le déploiement GitHub Pages est configuré par GitHub Actions ; il reste à vérifier sur un dépôt GitHub réel après publication.
-- La progression et les favoris ne sont pas encore implémentés.
+Le déploiement réel et le rendu complet sur GitHub Pages restent à confirmer. Voir le [guide de publication](docs/GITHUB_PAGES.md).
 
-## Source
+## État de la migration
 
-Archive utilisée pour ce prototype : `Roadmap_Full_Stack_2026_V41.zip`. Voir le rapport `migration_inventory_v41.json` à la racine de l’archive de travail livrée.
+Les contrôles locaux actuels passent : **7 tests**, typecheck, build de production et validation de 25 chapitres, 174 entrées et 174 fichiers pédagogiques.
 
+Avant de considérer la migration complète :
 
-### Installation reproductible
+- comparer chaque identifiant, titre, description, ordre et chemin du catalogue à la source ;
+- implémenter la progression et les favoris avec persistance locale ;
+- compléter les tests navigateur sur plusieurs tutoriels et le build de production ;
+- exécuter et vérifier le déploiement GitHub Pages.
 
-Le `package-lock.json` généré doit être conservé avec le projet ; utilisez `npm ci` pour les installations reproductibles en CI.
+Le [plan de migration](docs/PLAN_MIGRATION_REACT_ROADMAP_FULLSTACK_2026.md) et le [journal d’exécution](docs/MIGRATION_LOG.md) détaillent les travaux et limites.
 
-### Référence de migration
+## Source pédagogique
 
-La source de référence est désormais `Roadmap_Full_Stack_2026_V41.zip` (SHA-256 : `592e9b1213ee640b93d7951329d25c096adf7ba82fb4d743a335bbe4245fad1b`). Son manifeste indique que l’inventaire est identique à V40 ; seuls le README et le fichier de progression diffèrent. Les références V41 sont conservées dans `docs/source-reference/`.
+Le catalogue et les 174 pages proviennent de V40. Le manifeste V41 confirme que l’index, les tutoriels et la feuille de style sont identiques ; seules les documentations source diffèrent. Les références V40/V41 sont conservées dans [`docs/source-reference/`](docs/source-reference/).

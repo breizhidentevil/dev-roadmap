@@ -1,0 +1,51 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Pool de connexions et problème N+1
+Références proposées comme points d’entrée documentaires ; cela ne signifie pas que chaque source a été intégralement étudiée.
+1. PostgreSQL — Connection pooling concepts — https://www.postgresql.org/docs/current/runtime-config-connection.html
+2. node-postgres — Pooling — https://node-postgres.com/features/pooling
+3. Prisma — Connection pool — https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/databases-connections
+4. OWASP — Database Security Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Database_Security_Cheat_Sheet.html
+5. Microsoft — EF Core efficient querying — https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Maîtriser les connexions à la base et éviter les requêtes répétitives qui dégradent la latence." name="description"/>
+<title>Pool de connexions et problème N+1 — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">4. Bases de données et modélisation</p>
+<h1>Pool de connexions et problème N+1</h1>
+<p class="lead">Maîtriser les connexions à la base et éviter les requêtes répétitives qui dégradent la latence.</p>
+<div class="lesson-meta"><span>Seconde passe pédagogique</span><span>Backend et données</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Expliquer le rôle d’un pool de connexions et le coût d’une connexion créée à chaque requête.</li><li>Reconnaître le problème N+1 et ses effets sur la latence.</li><li>Choisir entre jointure, chargement groupé et chargement différé selon le cas.</li></ul></section>
+<section class="lesson-section"><h2>1. Pool de connexions : réutiliser sans saturer</h2><p>Une connexion consomme des ressources côté client et serveur. Le pool limite le nombre de connexions ouvertes et les réutilise. Dimensionne-le globalement : si 8 instances peuvent ouvrir 15 connexions chacune, la base peut recevoir jusqu’à 120 connexions applicatives, auxquelles s’ajoutent les connexions d’administration et de supervision. Compare ce total à la limite réellement disponible.</p><pre><code>const result = await pool.query(
+  'SELECT id, email FROM utilisateurs WHERE id = $1',
+  [userId]
+);</code></pre><p>Pour un client emprunté manuellement, utilise un bloc <code>try/finally</code> afin de le restituer même si une instruction échoue. Configure un délai d’attente, surveille les connexions actives/inactives et les files d’attente. Une attente de pool peut être la cause de la latence même si les requêtes SQL sont rapides.</p></section>
+<section class="lesson-section"><h2>2. Le problème N+1</h2><p>Le problème N+1 apparaît lorsqu’une requête récupère une liste de N entités, puis exécute une requête supplémentaire pour chaque entité afin de charger une relation. Une page qui affiche 50 articles et leurs auteurs peut ainsi déclencher 1 requête pour les articles puis 50 requêtes pour les auteurs. Même si chaque requête est rapide, les allers-retours réseau et la charge cumulée coûtent cher.</p><pre><code>// Schéma de comportement à éviter : une requête par article
+const articles = await listArticles();
+for (const article of articles) {
+  article.auteur = await findUser(article.auteurId);
+}</code></pre><p>Solutions courantes : une jointure SQL, une requête groupée avec <code>WHERE id IN (...)</code>, un chargement anticipé fourni par l’ORM, ou un DataLoader qui regroupe les demandes d’un même lot. Le choix dépend de la cardinalité : une jointure sur plusieurs relations « un-à-plusieurs » peut elle-même multiplier les lignes et rendre le résultat volumineux.</p></section>
+<section class="lesson-section"><h2>3. Mesurer plutôt que deviner</h2><p>Mesure au moins : requêtes SQL par requête HTTP, latence totale, temps passé en base, durée d’attente d’une connexion, nombre de connexions actives, lignes et octets transférés. Utilise des identifiants de corrélation sans enregistrer les mots de passe, jetons ou données personnelles sensibles.</p><p>Compare trois variantes sur un jeu de données réaliste : boucle N+1, requête groupée avec <code>WHERE id = ANY($1)</code> ou <code>IN</code>, et jointure. Vérifie aussi les doublons produits par la jointure, le comportement lorsque la liste est vide et les limites de taille des lots. Une seule requête géante peut augmenter la mémoire et répéter des colonnes ; quelques requêtes groupées peuvent être plus simples et plus rapides.</p><p>Les chargements différés conviennent si une relation est rarement utilisée, mais deviennent coûteux quand ils se déclenchent dans une boucle. Les chargements anticipés sont utiles si les données sont réellement nécessaires à l’écran ; ne charge pas toutes les relations par défaut.</p></section>
+<section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Créer une nouvelle connexion à chaque opération sans la fermer correctement.</li><li>Configurer un pool indépendamment du nombre d’instances de l’application.</li><li>Ignorer une multiplication des requêtes déclenchée par une boucle ou une sérialisation.</li><li>Remplacer N+1 par une jointure énorme qui duplique les données.</li><li>Augmenter la taille du pool sans vérifier si la base est déjà saturée.</li></ul></section>
+<section class="lesson-section"><h2>Exercice</h2><p>Une route renvoie 40 articles avec le nom de leur auteur. Elle exécute actuellement une requête pour les articles puis une requête par auteur. Propose deux solutions pour réduire les requêtes et décris les métriques à comparer. Explique également comment dimensionner le pool si l’application tourne sur plusieurs instances.</p><h3>Critères de réussite</h3><ul><li>Tu identifies clairement les requêtes N+1 dans les journaux ou les métriques.</li><li>Tu proposes un chargement groupé ou une jointure adaptée.</li><li>Tu compares nombre de requêtes, latence et volume transféré.</li><li>Tu tiens compte du nombre d’instances et de la limite de connexions de la base.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://www.postgresql.org/docs/current/runtime-config-connection.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Connection pooling concepts</a></li>
+<li><a href="https://node-postgres.com/features/pooling" rel="noopener noreferrer" target="_blank">node-postgres — Pooling</a></li>
+<li><a href="https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/databases-connections" rel="noopener noreferrer" target="_blank">Prisma — Connection pool</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Database_Security_Cheat_Sheet.html" rel="noopener noreferrer" target="_blank">OWASP — Database Security Cheat Sheet</a></li>
+<li><a href="https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying" rel="noopener noreferrer" target="_blank">Microsoft — EF Core efficient querying</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"/> Je sais expliquer le rôle d’un pool de connexions.</label><label><input type="checkbox"/> Je sais détecter et corriger une requête N+1.</label><label><input type="checkbox"/> Je sais comparer jointure et chargement groupé sans supposer qu’une seule requête est toujours préférable.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="migrations.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="nosql-mongodb.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

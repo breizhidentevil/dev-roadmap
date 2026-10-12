@@ -1,0 +1,88 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Métriques et alertes
+Domaine documentaire : observability
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. Google SRE — Monitoring Distributed Systems — https://sre.google/sre-book/monitoring-distributed-systems/
+2. Google SRE — Alerting on SLOs — https://sre.google/workbook/alerting-on-slos/
+3. Prometheus — Overview — https://prometheus.io/docs/introduction/overview/
+4. Prometheus — Alerting rules — https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+5. OpenTelemetry — Metrics — https://opentelemetry.io/docs/concepts/signals/metrics/
+
+Note : les cinq références documentaires ci-dessous sont reprises dans la liste visible de la page.-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Choisir des indicateurs qui reflètent l’expérience utilisateur et créer des alertes utiles, actionnables et peu bruyantes.">
+<title>Métriques et alertes — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Architecture et ingénierie Full Stack</p>
+<h1>Métriques et alertes</h1>
+<p class="lead">Choisir des indicateurs qui reflètent l’expérience utilisateur et créer des alertes utiles, actionnables et peu bruyantes.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un besoin réel et justifier tes choix à partir de contraintes observables.</p>
+<ul><li>Définir le vocabulaire essentiel et le problème que la compétence résout.</li><li>Appliquer les principes dans un exemple pratique et identifier les limites.</li><li>Vérifier le résultat avec des critères explicites plutôt qu’une impression subjective.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Une métrique doit répondre à une question</h2>
+<p>Une métrique est une mesure numérique suivie dans le temps. Elle peut décrire le trafic, les erreurs, la durée des requêtes ou l’utilisation des ressources. Le fait qu’une valeur soit disponible ne signifie pas qu’elle est utile : une bonne métrique aide à comprendre le comportement du service, à repérer une dérive ou à décider d’une action.</p>
+<p>Le modèle RED, souvent appliqué aux services, suit le taux de requêtes, les erreurs et la durée. Le modèle USE examine l’utilisation, la saturation et les erreurs d’une ressource. Ces modèles se complètent : RED décrit ce que subissent les clients, tandis que USE aide à expliquer les causes possibles au niveau des ressources.</p>
+<p>Les métriques doivent avoir une définition claire : unité, fenêtre temporelle, source, méthode d’agrégation et limites. Un « temps de réponse moyen » sans préciser s’il est calculé sur toutes les requêtes, sur une fenêtre ou sur un échantillon peut induire en erreur. Les percentiles permettent d’observer la queue de distribution, mais leur calcul et leur agrégation doivent être compris.</p></section>
+<section class="lesson-section"><h2>2. Distinguer compteurs, jauges et histogrammes</h2>
+<p>Un compteur augmente au fil des événements, par exemple le nombre total de requêtes. Pour calculer un débit, on mesure son taux d’augmentation sur une fenêtre, en tenant compte des redémarrages. Une jauge décrit une valeur courante, comme le nombre de connexions actives ou l’utilisation mémoire. Un histogramme regroupe les observations d’une distribution, par exemple les durées, afin de calculer des quantiles ou de vérifier des seuils.</p>
+<p>Les labels ajoutent des dimensions telles que service, méthode ou code de statut. Mais chaque combinaison de labels crée une série supplémentaire. Ajouter un identifiant utilisateur, une URL avec des paramètres ou un identifiant de commande peut créer une cardinalité très élevée et rendre la collecte coûteuse. Préfère un nom de route normalisé, comme <code>/orders/:id</code>, à l’URL concrète de chaque requête.</p>
+<p>Choisis la résolution et la rétention selon le besoin. Une fréquence de collecte élevée peut aider à diagnostiquer des pointes courtes, mais augmente le volume. Les tableaux de bord ne remplacent pas les traces : une métrique indique qu’un p95 a monté, tandis qu’une trace aide à comprendre une requête particulière.</p></section>
+<section class="lesson-section"><h2>3. Partir des objectifs de service</h2>
+<p>Un indicateur de niveau de service (SLI) mesure une propriété importante pour l’utilisateur, comme la proportion de requêtes réussies ou la latence sous un seuil. Un objectif de niveau de service (SLO) fixe une cible sur une période. Par exemple, un SLO pourrait viser 99,9 % de requêtes valides servies en moins de 400 ms sur une fenêtre définie. Cet exemple est illustratif : le seuil doit refléter l’usage réel et le coût d’une dégradation.</p>
+<p>Le budget d’erreur représente la part de mauvais résultats compatible avec le SLO. Il permet d’équilibrer la vitesse de livraison et la fiabilité. Si le budget se consomme rapidement, l’équipe peut reporter des changements risqués et prioriser la stabilité. Le SLO doit être défini avec un périmètre, une fenêtre et une méthode de calcul explicites, sinon les équipes risquent de discuter de chiffres différents.</p>
+<p>Une métrique d’infrastructure est souvent un bon signal de diagnostic, mais pas toujours un bon déclencheur d’alerte. Un CPU à 90 % peut être normal si le service répond correctement ; une forte latence client peut nécessiter une intervention même lorsque le CPU est bas. L’alerte principale doit autant que possible suivre l’impact et l’urgence, avec les ressources comme indices de diagnostic.</p></section>
+<section class="lesson-section"><h2>4. Concevoir des alertes actionnables</h2>
+<p>Une alerte doit répondre à trois questions : qu’est-ce qui est cassé ou menacé, qui doit agir, et quelle première action est attendue ? Une alerte qui dit seulement « CPU élevé » manque souvent de contexte. Une alerte plus utile précise le service, la durée du problème, l’impact observé et un lien vers le tableau de bord ou le runbook.</p>
+<p>Évite les seuils trop sensibles qui déclenchent à chaque variation brève. Une fenêtre de durée, un taux d’erreur ou une consommation du budget d’erreur peuvent mieux représenter un incident. Pour une panne majeure, une détection rapide est importante ; pour une tendance lente, une alerte moins fréquente peut suffire. L’alerte doit être testée comme le reste du système.</p>
+<p>Exemple conceptuel d’une règle Prometheus :</p>
+<pre><code>alert: HighRequestErrorRate
+expr: |
+  sum(rate(http_requests_total{status=~"5.."}[5m]))
+  / clamp_min(sum(rate(http_requests_total[5m])), 1e-9) &gt; 0.02
+for: 10m
+labels:
+  severity: page
+annotations:
+  summary: "Taux d'erreur élevé"
+  description: "Vérifier le service et ses dépendances."</code></pre>
+<p>L’agrégation <code>sum</code> calcule un taux global sur les séries retenues ; adapte le nom du label de statut à l’instrumentation réelle et applique les mêmes filtres de service au numérateur et au dénominateur. <code>clamp_min</code> évite une division par zéro, mais ne signale pas une absence totale de trafic : si le service doit recevoir des requêtes, définis une alerte distincte de trafic absent avec une fenêtre adaptée. Valide l’expression avec les outils Prometheus avant publication. Une alerte de production nécessite aussi un routage, un responsable et des instructions d’intervention.</p></section>
+<section class="lesson-section"><h2>5. Réduire le bruit et maintenir les alertes</h2>
+<p>Chaque alerte déclenchée doit avoir une suite attendue. Si personne ne peut agir, il s’agit peut-être d’un indicateur de tableau de bord plutôt que d’une alerte. Les alertes redondantes peuvent être regroupées pour éviter plusieurs pages pendant le même incident. Les dépendances partagées nécessitent un traitement réfléchi afin qu’une seule panne ne génère pas une avalanche d’alertes secondaires.</p>
+<p>Teste les alertes en simulant les conditions prévues et vérifie que la notification arrive à la bonne personne. Ajoute un runbook bref, une procédure de diagnostic et les liens vers les métriques utiles. Révise les alertes après chaque incident : un signal manquant doit être ajouté, une alerte inutile doit être supprimée ou ajustée.</p>
+<ul><li>Ne crée pas d’alerte uniquement parce qu’une métrique est disponible.</li><li>Ne déclenche pas une page sur un pic isolé si l’impact ne le justifie pas.</li><li>Ne mets pas des identifiants uniques dans les labels de métriques.</li><li>Ne confonds pas une moyenne acceptable avec l’absence de requêtes très lentes.</li></ul></section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Définis un SLI pour la réussite des requêtes et un autre pour la latence. Choisis un SLO plausible pour une API fictive, puis écris deux alertes : une qui mérite une intervention immédiate et une qui doit seulement apparaître sur un tableau de bord. Pour chaque alerte, précise le seuil, la fenêtre, le responsable, l’impact utilisateur et la première action.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je sais choisir une métrique en fonction d’une question opérationnelle.</li><li>Je distingue compteur, jauge et histogramme, et comprends le risque de cardinalité.</li><li>Je peux définir un SLI, un SLO et un budget d’erreur.</li><li>Mes alertes sont actionnables, testées et reliées à une procédure.</li><li>Je réduis les alertes redondantes et les faux positifs.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Les ressources ci-dessous sont des références pour poursuivre l’apprentissage. Elles servent de points de départ ciblés ; consulte les sections pertinentes et vérifie les détails qui dépendent de la version des outils ou de ton environnement.</p><ol><li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" target="_blank" rel="noopener noreferrer">Google SRE — Monitoring Distributed Systems</a></li>
+<li><a href="https://sre.google/workbook/alerting-on-slos/" target="_blank" rel="noopener noreferrer">Google SRE — Alerting on SLOs</a></li>
+<li><a href="https://prometheus.io/docs/introduction/overview/" target="_blank" rel="noopener noreferrer">Prometheus — Overview</a></li>
+<li><a href="https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/" target="_blank" rel="noopener noreferrer">Prometheus — Alerting rules</a></li>
+<li><a href="https://opentelemetry.io/docs/concepts/signals/metrics/" target="_blank" rel="noopener noreferrer">OpenTelemetry — Metrics</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="correlation-logs.html">← Corrélation des logs</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="environnements-dev-test-prod.html">Environnements de développement, test et production →</a></nav>
+
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — construire des alertes actionnables</h2>
+<h3>Objectifs pédagogiques</h3>
+<ul><li>Choisir des indicateurs reliés à une expérience utilisateur.</li><li>Différencier métriques de symptômes et métriques de cause.</li><li>Concevoir des alertes avec seuils, fenêtres et procédures d’action.</li></ul>
+<h3>SLI et SLO</h3><p>Définir un indicateur de service et une cible sur une fenêtre explicite; calculer un budget d’erreur cohérent avec cette cible.</p>
+<h3>Quatre signaux</h3><p>Examiner latence, trafic, erreurs et saturation, en les adaptant au service plutôt que de copier un tableau universel.</p>
+<h3>Alerte utile</h3><p>Une alerte doit signaler un impact ou un risque immédiat, avoir un propriétaire et conduire à une action documentée.</p>
+<h3>Fenêtres et bruit</h3><p>Utiliser une fenêtre et une durée suffisantes pour éviter le bruit; tester les cas de données manquantes et les changements de trafic.</p>
+<h3>Runbook</h3><p>Ajouter la requête de diagnostic, les dépendances, le seuil de mitigation, l’escalade et les conditions de clôture.</p>
+<h3>Exercice pratique</h3><p>Définir un SLO de disponibilité et un SLO de latence pour une API. Rédiger deux alertes et leurs runbooks, puis expliquer comment éviter une alerte par requête sur un service à faible trafic.</p>
+<h3>Critères de réussite</h3><ul><li>Les indicateurs représentent le service rendu.</li><li>Les fenêtres et seuils sont justifiés.</li><li>Chaque alerte déclenche une action concrète.</li><li>Les faux positifs et données manquantes sont pris en compte.</li></ul>
+</section>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Complexité algorithmique
+Domaine documentaire : apprentissage ciblé
+Les références ci-dessous sont des ressources de référence à étudier pour approfondir et vérifier les notions. Le tutoriel est une synthèse originale et ne prétend pas reproduire intégralement chaque source.
+1. OpenDSA — Analyse d’algorithmes — https://opendsa-server.cs.vt.edu/
+2. Big-O Cheat Sheet — Complexités usuelles — https://www.bigocheatsheet.com/
+3. MDN — Array.prototype.sort() — https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
+4. VisuAlgo — Visualisations — https://visualgo.net/en
+5. MIT OpenCourseWare — Introduction to Algorithms — https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Évaluer le coût en temps et en mémoire d’un algorithme.">
+  <title>Complexité algorithmique — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">1. Fondamentaux de la programmation et du Web</p>
+    <h1>Complexité algorithmique</h1>
+    <p class="lead">Estimer comment le temps et la mémoire consommés évoluent avec la taille de l’entrée, avant d’optimiser.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 5 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Définir la taille d’entrée et la complexité asymptotique.</li><li>Reconnaître O(1), O(log n), O(n), O(n log n), O(n²) et O(2ⁿ).</li><li>Analyser boucles, boucles imbriquées, recherches et récursions simples.</li><li>Mesurer sans confondre un benchmark ponctuel et une garantie théorique.</li></ul></section>
+    <section class="lesson-section"><h2>1. Que décrit Big O ?</h2><p>La complexité décrit la manière dont une ressource évolue quand la taille de l’entrée <code>n</code> augmente. On distingue notamment le temps et la mémoire auxiliaire. La notation Big O décrit une borne asymptotique ; elle ne donne pas directement le nombre de millisecondes sur une machine particulière.</p><p>On ignore généralement les constantes et les termes de plus faible ordre : <code>3n² + 10n + 8</code> est en <code>O(n²)</code>. Pour de petites entrées, une solution théoriquement plus coûteuse peut parfois être plus rapide en pratique à cause des constantes, de l’accès mémoire ou de l’implémentation.</p></section>
+    <section class="lesson-section"><h2>2. Les ordres de grandeur usuels</h2>
+    <table><thead><tr><th>Complexité</th><th>Exemple</th><th>Évolution indicative</th></tr></thead><tbody><tr><td>O(1)</td><td>Accès par indice</td><td>Le coût reste constant</td></tr><tr><td>O(log n)</td><td>Recherche binaire</td><td>Chaque étape réduit le domaine</td></tr><tr><td>O(n)</td><td>Parcours d’un tableau</td><td>Deux fois plus d’éléments ≈ deux fois le travail</td></tr><tr><td>O(n log n)</td><td>Tri efficace typique</td><td>Courant pour les tris comparatifs performants</td></tr><tr><td>O(n²)</td><td>Toutes les paires</td><td>Deux fois plus d’éléments ≈ quatre fois le travail</td></tr><tr><td>O(2ⁿ)</td><td>Exploration exhaustive de sous-ensembles</td><td>Peut devenir impraticable rapidement</td></tr></tbody></table>
+    </section>
+    <section class="lesson-section"><h2>3. Lire le code</h2>
+    <pre><code>// O(n) : chaque élément est visité une fois
+    function somme(tab) {
+      let resultat = 0;
+      for (const n of tab) resultat += n;
+      return resultat;
+    }
+    
+    // O(n²) : pour chaque élément, on reparcourt la liste
+    function contientDoublonSimple(tab) {
+      for (let i = 0; i &lt; tab.length; i++) {
+        for (let j = i + 1; j &lt; tab.length; j++) {
+          if (tab[i] === tab[j]) return true;
+        }
+      }
+      return false;
+    }</code></pre>
+    <p>Deux boucles successives donnent souvent <code>O(n) + O(n) = O(n)</code>. Deux boucles imbriquées qui parcourent toutes deux l’entrée donnent souvent <code>O(n²)</code>. Mais il faut compter les itérations réelles : une boucle intérieure qui divise la valeur par deux n’a pas le même coût qu’une boucle qui l’incrémente de un.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Améliorer une recherche de doublons</h2>
+    <pre><code>function contientDoublon(tab) {
+      const vus = new Set();
+      for (const valeur of tab) {
+        if (vus.has(valeur)) return true;
+        vus.add(valeur);
+      }
+      return false;
+    }</code></pre>
+    <p>Cette version a un coût attendu linéaire avec une mémoire supplémentaire proportionnelle au nombre de valeurs distinctes. C’est un compromis temps/mémoire : elle échange de la mémoire contre moins de comparaisons. La complexité moyenne des opérations de Set dépend de l’implémentation et des hypothèses de hachage ; évite de présenter ces coûts comme une loi absolue de toute plateforme.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Récursion, espace et mesure</h2><p>Une fonction récursive consomme généralement de l’espace de pile proportionnel à la profondeur des appels, sauf optimisation spécifique. Une récursion mal bornée peut provoquer un dépassement de pile. Pour analyser une récursion, précise le cas de base, le nombre d’appels et la taille de chaque sous-problème.</p><p>Pour mesurer, utilise des jeux de données de tailles croissantes, plusieurs répétitions et des conditions reproductibles. Évite d’inclure dans la mesure le chargement des données si tu veux isoler l’algorithme. Un benchmark valide complète l’analyse théorique ; il ne la remplace pas.</p></section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Confondre Big O avec une durée exacte.</li><li>Oublier la mémoire consommée par une copie, une Map ou la récursion.</li><li>Supposer que tout <code>sort()</code> a une complexité garantie identique sur tous les moteurs.</li><li>Optimiser prématurément sans profiler.</li><li>Analyser seulement le cas moyen sans considérer le pire cas pertinent.</li></ul></section>
+    <section class="lesson-section"><h2>Exercice</h2><p>Analyse une fonction qui cherche une valeur dans un tableau, puis une fonction qui compare chaque paire. Pour chaque fonction, indique le coût en temps et en mémoire, puis propose une version avec Set lorsque cela convient.</p><h3>Critères de réussite</h3><ul><li>La variable <code>n</code> est clairement définie.</li><li>Les boucles et appels récursifs sont comptés correctement.</li><li>Le coût mémoire est distingué du coût temporel.</li><li>Le compromis de l’optimisation est explicité et testé.</li></ul></section>
+        <section class="lesson-section"><h2>Approfondissement — compter les opérations avant de chronométrer</h2>
+    <p>Pour analyser une boucle, définis d’abord <code>n</code> : nombre d’éléments, longueur d’une chaîne ou nombre de sommets. Compte ensuite le nombre de fois où l’opération dominante s’exécute. L’analyse n’est valable que si tu explicites l’hypothèse sur la taille et la forme de l’entrée.</p>
+    <pre><code>// La variable i est multipliée par 2 à chaque tour : O(log n)
+for (let i = 1; i &lt; n; i *= 2) {
+  traiter(i);
+}
+
+// Le nombre de tours de la boucle interne dépend de i : O(n²)
+for (let i = 0; i &lt; n; i++) {
+  for (let j = i + 1; j &lt; n; j++) {
+    comparer(i, j);
+  }
+}</code></pre>
+    <p>Dans la première boucle, après <code>k</code> tours, <code>i</code> vaut environ <code>2^k</code> ; atteindre <code>n</code> demande donc environ <code>log₂(n)</code> tours. Dans la seconde, le nombre de comparaisons vaut <code>(n - 1) + (n - 2) + … + 1 = n(n - 1)/2</code>, ce qui est quadratique. Deux boucles successives qui parcourent chacune les <code>n</code> éléments coûtent plutôt <code>O(n) + O(n) = O(n)</code>, car on ignore le facteur constant dans la notation asymptotique.</p>
+    <p><code>O(f(n))</code> exprime une borne asymptotique supérieure ; on emploie souvent cette notation pour désigner l’ordre de grandeur usuel. Quand on veut préciser que la croissance est serrée, <code>Θ(f(n))</code> indique une borne supérieure et inférieure du même ordre. Pour une fonction de recherche, précise également le meilleur cas, le cas moyen ou le pire cas : trouver immédiatement le premier élément n’a pas le même nombre d’opérations que parcourir toute la liste.</p>
+    <h3>Temps et mémoire</h3><p>Une solution peut gagner du temps en conservant des données supplémentaires. Le test de doublons avec <code>Set</code> utilise une mémoire proportionnelle au nombre de valeurs distinctes, alors que la double boucle peut n’utiliser qu’une quantité de mémoire auxiliaire constante. Cette comparaison suppose les performances moyennes usuelles de <code>Set</code> ; la spécification JavaScript exige un accès moyen sous-linéaire, sans imposer une table de hachage précise ni une garantie stricte de <code>O(1)</code>.</p>
+    <h3>Mesurer sans tirer de conclusion hâtive</h3><ol><li>Génère des jeux d’entrée de tailles différentes, par exemple <code>n</code>, <code>2n</code> et <code>4n</code>.</li><li>Mesure plusieurs exécutions et compare les médianes plutôt qu’un seul résultat.</li><li>Utilise les mêmes données, la même version d’exécution et des conditions comparables.</li><li>Sépare la préparation des données de la partie mesurée.</li><li>Observe aussi la mémoire et les cas défavorables ; une mesure locale ne constitue pas une garantie universelle.</li></ol>
+    <h3>Exercice de vérification</h3><p>Analyse une boucle qui double son compteur, une double boucle qui compare toutes les paires et une recherche de doublons par <code>Set</code>. Pour chacune, indique la taille d’entrée, le coût temporel, le coût mémoire auxiliaire et les hypothèses. Mesure les trois versions sur des tableaux croissants, puis explique tout écart avec l’analyse théorique.</p>
+    <h3>Critères de réussite</h3><ul><li>La taille d’entrée est définie avant l’analyse.</li><li>Les boucles sont comptées selon leur nombre réel d’itérations.</li><li>Temps et mémoire sont distingués.</li><li>Le cas étudié et les hypothèses sur les structures sont explicités.</li><li>Le benchmark complète l’analyse, sans être présenté comme une preuve asymptotique.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://opendsa-server.cs.vt.edu/" target="_blank" rel="noopener noreferrer">OpenDSA — Analyse d’algorithmes</a></li><li><a href="https://www.bigocheatsheet.com/" target="_blank" rel="noopener noreferrer">Big-O Cheat Sheet — Complexités usuelles</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Array/sort" target="_blank" rel="noopener noreferrer">MDN — Array.prototype.sort()</a></li><li><a href="https://visualgo.net/en" target="_blank" rel="noopener noreferrer">VisuAlgo — Visualisations</a></li><li><a href="https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/" target="_blank" rel="noopener noreferrer">MIT OpenCourseWare — Introduction to Algorithms</a></li></ul></section>
+    <nav class="lesson-nav"><a class="nav-link" href="structures-donnees-algorithmes.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="javascript-avance.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

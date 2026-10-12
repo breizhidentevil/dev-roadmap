@@ -1,0 +1,95 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Transactions et cohérence
+Références documentaires proposées comme points d’entrée ; cela ne signifie pas que chaque source a été intégralement étudiée.
+1. PostgreSQL — Transactions — https://www.postgresql.org/docs/current/tutorial-transactions.html
+2. PostgreSQL — Transaction isolation — https://www.postgresql.org/docs/current/transaction-iso.html
+3. PostgreSQL — Explicit locking — https://www.postgresql.org/docs/current/explicit-locking.html
+4. MySQL — InnoDB transaction model — https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-model.html
+5. Microsoft — Transaction locking and row versioning — https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Regrouper des opérations atomiques et choisir le niveau d’isolation adapté aux risques." name="description"/>
+<title>Transactions et cohérence — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">4. Bases de données et modélisation</p>
+<h1>Transactions et cohérence</h1>
+<p class="lead">Regrouper des opérations atomiques et choisir le niveau d’isolation adapté aux risques.</p>
+<div class="lesson-meta"><span>Seconde passe pédagogique</span><span>Base de données</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Expliquer les propriétés ACID.</li><li>Utiliser BEGIN, COMMIT et ROLLBACK.</li><li>Reconnaître les risques liés aux opérations concurrentes.</li></ul></section>
+<section class="lesson-section"><h2>1. Une transaction, une unité cohérente</h2><p>Une transaction regroupe des opérations qui doivent réussir ou échouer ensemble. ACID signifie atomicité (tout ou rien), cohérence (les contraintes restent respectées), isolation (les accès concurrents sont contrôlés) et durabilité (un commit confirmé résiste aux défaillances selon les garanties du système).</p><pre><code>BEGIN;
+UPDATE comptes SET solde = solde - 50 WHERE id = 10;
+UPDATE comptes SET solde = solde + 50 WHERE id = 20;
+COMMIT;</code></pre><p>Un transfert doit aussi vérifier que le compte source existe et que le solde est suffisant. Si une étape échoue, l’application annule la transaction. Les contraintes de base et les mises à jour conditionnelles protègent mieux les invariants qu’un contrôle réalisé uniquement avant l’écriture.</p></section>
+<section class="lesson-section">
+<h2>2. Frontière transactionnelle, commit et rollback</h2>
+<p>Une transaction n’est utile que si toutes les écritures nécessaires au même invariant se trouvent dans la même frontière. En cas d’exception, il faut annuler la transaction ; en cas de succès, la valider. Les appels réseau externes ne participent pas automatiquement à la transaction SQL : pour un paiement ou un message, prévois une outbox transactionnelle et un traitement idempotent.</p>
+<p>Exemple pédagogique avec PostgreSQL et <code>node-postgres</code>. Les identifiants ont déjà été validés, <code>sourceId</code> et <code>targetId</code> sont différents, et <code>amount</code> est un montant décimal positif validé sans conversion flottante imprécise.</p>
+<pre><code>const client = await pool.connect();
+let discardClient = false;
+try {
+  await client.query("BEGIN");
+
+  // Verrouiller les deux comptes dans un ordre stable limite
+  // les interblocages lors de transferts simultanés opposés.
+  const accounts = await client.query(
+    "SELECT id FROM comptes WHERE id = ANY($1::bigint[]) ORDER BY id FOR UPDATE",
+    [[sourceId, targetId]]
+  );
+  if (accounts.rowCount !== 2) throw new Error("ACCOUNT_NOT_FOUND");
+
+  const debit = await client.query(
+    "UPDATE comptes SET solde = solde - $1 WHERE id = $2 AND solde &gt;= $1 RETURNING id",
+    [amount, sourceId]
+  );
+  if (debit.rowCount !== 1) throw new Error("INSUFFICIENT_FUNDS");
+
+  const credit = await client.query(
+    "UPDATE comptes SET solde = solde + $1 WHERE id = $2 RETURNING id",
+    [amount, targetId]
+  );
+  if (credit.rowCount !== 1) throw new Error("TARGET_ACCOUNT_NOT_FOUND");
+
+  await client.query("COMMIT");
+} catch (error) {
+  try {
+    await client.query("ROLLBACK");
+  } catch {
+    // Ne pas rendre au pool une connexion dont l’état est incertain.
+    discardClient = true;
+  }
+  throw error;
+} finally {
+  client.release(discardClient);
+}</code></pre>
+<p>Ce fragment illustre le cycle de vie, pas une fonction bancaire prête à déployer. En production, ajoute des contraintes de schéma, un journal de transfert, des règles métier, une gestion d’erreurs typées et des tests de concurrence. Vérifie aussi le comportement de la bibliothèque et du pool lorsque la connexion est perdue pendant le commit : le résultat peut être incertain pour le client.</p>
+<ul>
+<li><strong>Rollback :</strong> annule les écritures SQL de la transaction, pas les effets déjà produits par un service externe.</li>
+<li><strong>Libération :</strong> rends toujours la connexion au pool dans un <code>finally</code>, même si le commit ou le rollback échoue.</li>
+<li><strong>Nouvel essai :</strong> après une erreur de sérialisation, recommence toute la transaction, avec un nombre de tentatives limité. Après un résultat de commit incertain, ne répète pas aveuglément une opération non idempotente.</li>
+<li><strong>Durée :</strong> ne garde pas de transaction ouverte pendant une interaction utilisateur ou un appel réseau lent.</li>
+</ul>
+</section>
+<section class="lesson-section"><h2>3. Isolation et concurrence</h2><p>Les niveaux d’isolation définissent quelles anomalies concurrentes sont possibles. Le niveau par défaut de PostgreSQL, <code>READ COMMITTED</code>, fournit un nouvel instantané par instruction ; il ne suffit pas à rendre atomique une séquence « lire puis modifier » si aucune protection n’est ajoutée. Selon la règle, utilise une mise à jour conditionnelle, une contrainte, <code>SELECT ... FOR UPDATE</code> ou une isolation plus forte.</p><p>Avec <code>SERIALIZABLE</code>, la base peut interrompre une transaction pour préserver un résultat équivalent à une exécution sérielle. L’application doit être capable de réessayer la transaction entière en cas d’erreur de sérialisation, avec un nombre limité de tentatives et une logique idempotente. Teste les opérations concurrentes, pas uniquement leur exécution séquentielle.</p></section>
+<section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Supposer que deux requêtes séparées sont atomiques.</li><li>Oublier le rollback en cas d’exception.</li><li>Garder une transaction ouverte pendant une interaction utilisateur.</li><li>Croire que le rollback annule les actions d’un service externe.</li></ul></section>
+<section class="lesson-section"><h2>Exercice</h2><p>Conçois la réservation de la dernière place disponible d’un événement. Deux requêtes concurrentes ne doivent pas réserver la même place. Propose une solution avec contrainte, verrou ou mise à jour conditionnelle, puis explique comment l’application traite un conflit.</p><h3>Critères de réussite</h3><ul><li>L’invariant est protégé par la base ou par une stratégie transactionnelle solide.</li><li>Le succès est déterminé par le résultat de l’écriture.</li><li>Les transactions restent courtes et les erreurs sont traitées.</li><li>La reprise ne duplique pas les effets externes.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://www.postgresql.org/docs/current/tutorial-transactions.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Transactions</a></li>
+<li><a href="https://www.postgresql.org/docs/current/transaction-iso.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Transaction isolation</a></li>
+<li><a href="https://www.postgresql.org/docs/current/explicit-locking.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Explicit locking</a></li>
+<li><a href="https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-model.html" rel="noopener noreferrer" target="_blank">MySQL — InnoDB transaction model</a></li>
+<li><a href="https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide" rel="noopener noreferrer" target="_blank">Microsoft — Transaction locking and row versioning</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"/> Je sais décider quand valider ou annuler.</label><label><input type="checkbox"/> Je sais expliquer ACID et les risques de concurrence.</label><label><input type="checkbox"/> Je sais choisir une protection adaptée à une règle métier.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="index-performances.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="migrations.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

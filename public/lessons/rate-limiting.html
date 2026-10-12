@@ -1,0 +1,73 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Rate limiting
+Les références ci-dessous sont des points de départ documentaires pertinents ; elles n’impliquent pas une lecture exhaustive de chaque page.
+1. OWASP — API4:2023 Unrestricted Resource Consumption — https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/
+2. OWASP — Denial of Service Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Denial_of_Service_Cheat_Sheet.html
+3. MDN — 429 Too Many Requests — https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+4. IETF — RFC 6585: Additional HTTP Status Codes — https://www.rfc-editor.org/rfc/rfc6585
+5. Express — Production best practices: security — https://expressjs.com/en/advanced/best-practice-security.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Limiter les abus et protéger les ressources contre les rafales de requêtes.">
+  <title>Rate limiting — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">5. Sécurité applicative</p>
+    <h1>Rate limiting</h1>
+    <p class="lead">Limiter les abus et protéger les ressources contre les rafales de requêtes.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Sécurité applicative</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>Tu dois pouvoir choisir une clé de limitation, sélectionner un algorithme simple, produire une réponse HTTP adaptée et expliquer pourquoi un limiteur ne suffit pas à lui seul à protéger un service.</p><ul><li>Distinguer limitation de débit, quota, concurrence et protection anti-bot.</li><li>Choisir une portée : IP, compte, clé API, endpoint ou combinaison.</li><li>Tester les limites, les fenêtres de réinitialisation et les cas distribués.</li></ul>
+</section><section class="lesson-section"><h2>1. Pourquoi limiter les requêtes ?</h2>
+<p>Une API peut être surchargée par un client défectueux, un script automatisé, une tentative de deviner des mots de passe ou une intégration qui réessaie trop souvent. Le rate limiting limite la consommation d’une ressource sur une période donnée. Il protège la disponibilité et peut contribuer à réduire certains abus, mais ne prouve pas qu’un utilisateur est malveillant.</p><p>Une règle doit refléter le coût et le risque de l’opération. Un endpoint de recherche complexe ou d’envoi de SMS ne devrait pas forcément partager le même quota qu’un endpoint de lecture léger.</p>
+</section><section class="lesson-section"><h2>2. Choisir une clé et un périmètre</h2>
+<p>Une limite par adresse IP est simple, mais elle peut pénaliser les utilisateurs derrière un NAT et être contournée par des réseaux distribués. Une limite par compte authentifié est plus précise après connexion, mais ne protège pas seule les tentatives avant authentification. Une clé API permet de limiter un client technique, à condition que la clé ne soit pas publique.</p><p>En pratique, combine souvent plusieurs niveaux : limite globale pour préserver la capacité, limite par IP pour certains endpoints publics, limite par compte pour les opérations sensibles et limite spécifique aux actions coûteuses. Si l’application est derrière un proxy, ne fais confiance aux en-têtes d’IP transmis que si le proxy de confiance les réécrit correctement.</p>
+</section><section class="lesson-section"><h2>3. Algorithmes courants</h2>
+<ul><li><strong>Fenêtre fixe :</strong> par exemple 100 requêtes par minute. Simple, mais permet un pic à la frontière de deux fenêtres.</li><li><strong>Fenêtre glissante :</strong> comptabilise une période mobile et lisse mieux les frontières, au prix d’un état plus complexe.</li><li><strong>Token bucket :</strong> un seau se remplit à débit régulier et permet des rafales limitées par sa capacité.</li><li><strong>Leaky bucket / régulation :</strong> lisse le débit de sortie et peut mettre en file les opérations plutôt que les rejeter immédiatement.</li></ul><p>Le choix dépend du besoin : protéger le serveur, autoriser des rafales légitimes, ou garantir un quota contractuel. Les limites doivent être testées sous charge, pas seulement déduites de leur nom.</p>
+</section><section class="lesson-section"><h2>4. Réponse HTTP et exemple</h2>
+<p>Lorsqu’une limite est dépassée, <code>429 Too Many Requests</code> est le statut usuel. Si possible, indique quand le client peut réessayer, par exemple via <code>Retry-After</code>. Le client doit respecter cette indication et utiliser un backoff avec jitter pour éviter que tous les clients recommencent au même instant.</p><pre><code>HTTP/1.1 429 Too Many Requests
+Retry-After: 30
+Content-Type: application/json
+
+{"error":"rate_limit_exceeded","retryAfterSeconds":30}</code></pre><p>Le format exact du corps est propre à l’API ; le statut et les en-têtes doivent rester cohérents avec le contrat documenté.</p>
+</section><section class="lesson-section"><h2>5. Architecture en production</h2>
+<p>Un compteur en mémoire peut convenir à un prototype à une seule instance. Avec plusieurs processus ou serveurs, chaque instance voit sinon un compteur différent. Il faut alors un stockage partagé ou un composant de limitation distribué, avec une opération atomique pour éviter que plusieurs requêtes concurrentes dépassent le quota.</p><p>Décide aussi du comportement en cas d’indisponibilité du limiteur : <em>fail-open</em> favorise la disponibilité mais peut supprimer la protection ; <em>fail-closed</em> protège la ressource mais peut bloquer des utilisateurs légitimes. Le choix dépend de l’endpoint et du risque. Ajoute des métriques sur les rejets, sans journaliser de secrets.</p>
+</section><section class="lesson-section"><h2>Concevoir une limite exploitable en production</h2>
+<p>Définis la limite à partir d’un objectif mesurable : protéger une ressource coûteuse, ralentir les tentatives de connexion ou préserver l’équité entre clients. Une limite globale peut être contournée ou pénaliser tout le monde ; une limite par IP peut pénaliser les réseaux partagés et être contournée par des réseaux distribués. Les routes d’authentification peuvent combiner une limite par compte normalisé et par adresse IP, sans révéler si le compte existe.</p><p>Le client doit respecter <code>Retry-After</code> : sa valeur peut être un délai en secondes ou une date HTTP. Le champ JSON <code>retryAfterSeconds</code> est propre au contrat de cette API et ne remplace pas l’en-tête standard. Pour une opération réessayable, utilise un délai exponentiel avec une part aléatoire (<em>jitter</em>) et un plafond. Ne relance pas aveuglément une opération non idempotente (commande, paiement) sans mécanisme d’idempotence. Derrière un proxy, ne déduis l’adresse IP du client que depuis des proxies explicitement approuvés : un en-tête <code>X-Forwarded-For</code> reçu directement d’un client n’est pas une identité fiable.</p><p>La valeur de <code>Retry-After</code> doit refléter la politique réellement appliquée. Pour plusieurs instances, le compteur doit être partagé ou la limite doit tenir compte explicitement de la répartition ; un compteur mémoire isolé par processus ne forme pas une limite globale. Prévois également le comportement en cas d’indisponibilité du stockage de compteurs : bloquer, laisser passer ou appliquer une limite locale selon le coût du risque.</p><ul><li>Mesurer le taux de refus, la latence du compteur et les faux positifs.</li><li>Tester les fenêtres de remise à zéro, les rafales et les requêtes concurrentes.</li><li>Ne pas exposer des identifiants personnels en clair dans les clés de métriques.</li></ul>
+<h2>Erreurs fréquentes</h2>
+<ul><li>Définir un quota identique pour tous les endpoints, sans mesurer leur coût.</li><li>Se fier à une IP client fournie directement par un en-tête non fiable.</li><li>Utiliser uniquement une limite par IP pour la connexion ou la création de comptes.</li><li>Ne pas partager les compteurs entre les instances du service.</li><li>Réessayer immédiatement après un <code>429</code>, ce qui amplifie la surcharge.</li><li>Ne pas expliquer la limite aux consommateurs de l’API.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Ajoute à une API de démonstration une limite de 10 appels par minute sur un endpoint coûteux et une limite distincte sur la connexion. Utilise un outil de test pour envoyer 12 requêtes rapprochées, puis observe les statuts, les en-têtes et la remise à zéro.</p><p>Teste aussi deux comptes différents derrière la même IP, et deux instances applicatives si ton environnement le permet. Explique ce que ces tests révèlent sur la clé choisie et le stockage du compteur.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Propose une politique de limitation pour : lecture publique, recherche coûteuse, connexion, réinitialisation de mot de passe et opération facturée à l’usage.</p><p><strong>Réussite :</strong> chaque règle possède une clé et une fenêtre justifiées ; les appels excessifs produisent une réponse documentée ; le client peut savoir quand réessayer ; la configuration résiste aux requêtes concurrentes ; le comportement en cas de panne du limiteur est explicite ; les limites ne remplacent ni l’authentification ni les contrôles métier.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Utilise ces références pour approfondir les mécanismes, vérifier les détails d’implémentation et comparer les recommandations selon ton environnement.</p>
+      <ol><li><a href="https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/" target="_blank" rel="noopener noreferrer">OWASP — API4:2023 Unrestricted Resource Consumption</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Denial_of_Service_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Denial of Service Cheat Sheet</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429" target="_blank" rel="noopener noreferrer">MDN — 429 Too Many Requests</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc6585" target="_blank" rel="noopener noreferrer">IETF — RFC 6585: Additional HTTP Status Codes</a></li>
+<li><a href="https://expressjs.com/en/advanced/best-practice-security.html" target="_blank" rel="noopener noreferrer">Express — Production best practices: security</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer le mécanisme et son objectif de sécurité.</label>
+      <label><input type="checkbox"> Je peux appliquer une configuration adaptée à un cas concret.</label>
+      <label><input type="checkbox"> Je sais distinguer la protection apportée de ce qu’elle ne protège pas.</label>
+      <label><input type="checkbox"> Je peux tester le comportement attendu et documenter les limites.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="cors.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="securite-sessions-tokens.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Migrations pendant la livraison
+Domaine documentaire : bases de données et livraison
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. Martin Fowler — Evolutionary Database Design — https://martinfowler.com/articles/evodb.html
+2. Prisma — Database migrations — https://www.prisma.io/docs/orm/prisma-migrate
+3. PostgreSQL — ALTER TABLE — https://www.postgresql.org/docs/current/sql-altertable.html
+4. GitLab — Database migrations — https://docs.gitlab.com/development/migration_style_guide/
+5. AWS — Database migration strategies — https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-database-migration/
+
+Note : les cinq références documentaires ci-dessous sont reprises dans la liste visible de la page.-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Orchestrer les changements applicatifs et de données de façon sûre.">
+<title>Migrations pendant la livraison — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Livraison logicielle</p>
+<h1>Migrations pendant la livraison</h1>
+<p class="lead">Orchestrer les changements applicatifs et de données de façon sûre.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un contexte réel et justifier tes décisions en fonction des contraintes et des risques.</p>
+<ul><li>Comprendre les notions essentielles et le problème qu’elles permettent de résoudre.</li><li>Appliquer une méthode concrète et vérifier son résultat.</li><li>Identifier les limites, les compromis et les erreurs fréquentes.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Pourquoi les migrations sont une partie du déploiement</h2>
+<p>Une migration transforme le schéma ou les données d’une base : ajout de colonne, nouvel index, changement de contrainte, conversion de données ou suppression d’un ancien champ. Le code applicatif et le schéma évoluent ensemble, mais ils ne sont pas nécessairement mis en production au même instant. Pendant un déploiement progressif, plusieurs versions du code peuvent utiliser la même base. La migration doit donc prendre en compte cette période de coexistence.</p>
+<p>Une migration qui fonctionne sur une base de développement minuscule peut bloquer une table de production ou durer plusieurs heures. Il faut examiner le volume, les verrous, les index, la réplication, la charge des écritures et les limites du moteur utilisé. Les détails varient selon le SGBD et sa version : ne suppose pas qu’une opération « en ligne » est sans verrou ni impact.</p>
+<p>Chaque changement devrait être traçable et automatisé. Le dépôt contient les migrations ordonnées ; l’outil sait lesquelles ont été appliquées ; le pipeline vérifie le résultat. Modifier manuellement le schéma de production sans consigner l’opération crée une divergence que les environnements et les prochains déploiements ne pourront pas reproduire.</p></section>
+<section class="lesson-section"><h2>2. La stratégie expand–migrate–contract</h2>
+<p>Pour un changement incompatible, préfère plusieurs livraisons compatibles. La phase <strong>expand</strong> ajoute les éléments nécessaires sans supprimer l’ancien fonctionnement. La phase <strong>migrate</strong> déploie le code compatible et transforme progressivement les données. La phase <strong>contract</strong> retire l’ancien schéma après confirmation qu’aucune version ni tâche ne l’utilise encore.</p>
+<p>Exemple : une application stocke un nom complet dans <code>full_name</code> et doit passer à <code>first_name</code> et <code>last_name</code>. Une migration directe qui supprime immédiatement <code>full_name</code> peut casser l’ancienne version toujours en service. Une approche plus sûre ajoute les nouvelles colonnes, déploie du code qui lit les deux formats et écrit selon une règle contrôlée, remplit les nouvelles colonnes par lots, compare les valeurs, bascule les lectures, puis supprime l’ancien champ dans une livraison ultérieure.</p>
+<p>Il faut définir qui est la source de vérité pendant la transition. Écrire dans trois colonnes sans stratégie peut créer des divergences. Le code doit préciser l’ordre des écritures, le comportement en cas d’échec partiel et comment les données seront réparées. Une double écriture n’est pas automatiquement sûre : elle doit être idempotente, observable et temporaire.</p></section>
+<section class="lesson-section"><h2>3. Les risques opérationnels</h2>
+<p><strong>Verrous et durée.</strong> Ajouter une contrainte ou construire un index peut bloquer les écritures selon le moteur et la commande. Consulte la documentation de la version réelle, estime la durée avec des données représentatives et choisis les options qui réduisent le verrouillage si elles existent.</p>
+<p><strong>Backfill volumineux.</strong> Mettre à jour des millions de lignes en une seule transaction peut générer beaucoup de journaux, gonfler les tables et perturber la réplication. Traite les données par lots bornés, suis la progression et prévois la reprise après interruption. Le script doit pouvoir être relancé sans doubler les effets.</p>
+<p><strong>Contraintes et données historiques.</strong> Une nouvelle contrainte NOT NULL ou une unicité peut échouer si les données existantes ne la respectent pas. Mesure d’abord les anomalies, définis une règle de correction et vérifie le résultat avant d’activer la contrainte.</p>
+<p><strong>Retour arrière.</strong> Le code peut être restauré alors que la migration a déjà changé la structure ou les valeurs. Une migration inverse ne restaure pas toujours l’information supprimée. Pour les opérations destructives, la sauvegarde, la restauration testée ou une correction en avant sont souvent plus réalistes qu’un simple « down migration ».</p></section>
+<section class="lesson-section"><h2>4. Exemple de plan de livraison</h2>
+<ol><li>Créer une migration additive et la tester sur une copie représentative de la base.</li><li>Mesurer son temps, ses verrous, son volume de journaux et son impact sur la réplication.</li><li>Déployer une version du code compatible avec l’ancien et le nouveau schéma.</li><li>Exécuter le backfill par lots avec métriques de progression, reprise et contrôle d’intégrité.</li><li>Comparer les données, puis basculer les lectures et surveiller les erreurs.</li><li>Attendre la disparition des anciennes versions et tâches, puis retirer l’ancien schéma dans une livraison séparée.</li></ol>
+<p>Dans le pipeline, sépare autant que possible la validation, l’application de migration et le déploiement du code. Les migrations peuvent demander des droits élevés ; donne-les à une identité dédiée et limitée, plutôt qu’à chaque processus applicatif. Pour les migrations longues, préfère un job contrôlé et observable à une opération cachée au démarrage de chaque instance.</p></section>
+<section class="lesson-section"><h2>5. Automatisation et contrôle</h2>
+<p>Le pipeline doit détecter les migrations déjà appliquées, échouer clairement si l’état est incohérent et empêcher deux exécutions concurrentes du même changement. Vérifie les migrations depuis une base vide et depuis une version antérieure réaliste. Le premier scénario vérifie la construction initiale ; le second vérifie l’évolution réelle. Les deux sont nécessaires.</p>
+<p>Avant une opération destructive, confirme qu’une sauvegarde existe et qu’une restauration a été testée. Une sauvegarde n’est utile que si elle est récupérable dans le délai attendu. Définis aussi un seuil d’arrêt : durée excessive, hausse de latence, réplication en retard ou taux d’erreur inhabituel.</p>
+<p>Ne modifie pas une migration déjà appliquée dans les environnements partagés pour « corriger le fichier » : les bases peuvent avoir exécuté des contenus différents. Crée une nouvelle migration corrective, documente la divergence et réconcilie l’état. Les migrations doivent rester immuables une fois publiées.</p></section>
+<section class="lesson-section">
+<h2>Exemple PostgreSQL : backfill borné et reprenable</h2>
+<p>Exemple illustratif pour convertir <code>price_text</code> en centimes entiers. Vérifie le moteur et sa version sur une base représentative avant la livraison ; une opération additive n’est pas automatiquement sans verrou ni impact.</p>
+<pre><code>-- Migration expand séparée du backfill
+ALTER TABLE product ADD COLUMN price_cents bigint;
+
+-- Précontrôle : traiter les valeurs non convertibles avant la bascule
+SELECT id, price_text
+FROM product
+WHERE price_text IS NOT NULL
+  AND price_text !~ '^[0-9]+([.][0-9]{1,2})?$'
+ORDER BY id
+LIMIT 100;
+
+-- Exécuter plusieurs fois avec les paramètres positionnels $1 (dernier identifiant) et $2 (taille du lot).
+-- Le curseur avance sur les identifiants retournés ; les valeurs invalides
+-- sont traitées séparément et ne doivent pas être converties silencieusement.
+WITH batch AS (
+  SELECT id, round(price_text::numeric * 100)::bigint AS cents
+  FROM product
+  WHERE id &gt; $1
+    AND price_cents IS NULL
+    AND price_text ~ '^[0-9]+([.][0-9]{1,2})?$'
+  ORDER BY id
+  LIMIT $2
+)
+UPDATE product AS p
+SET price_cents = batch.cents
+FROM batch
+WHERE p.id = batch.id
+RETURNING p.id;</code></pre>
+<p>Après chaque lot, enregistre le nombre de lignes traitées, le dernier identifiant retourné, la durée et les erreurs. Avant la bascule, compare les lignes convertibles restantes et les écarts entre l’ancien et le nouveau format ; définis une procédure explicite pour les valeurs invalides. Le code applicatif doit garder une règle de double écriture cohérente pendant la coexistence. La suppression de <code>price_text</code> n’intervient que dans une migration ultérieure, après preuve qu’aucune version active ne le lit.</p>
+<ul>
+<li><strong>Reprise :</strong> relancer un lot ne modifie pas une ligne déjà remplie grâce à <code>price_cents IS NULL</code>.</li>
+<li><strong>Arrêt :</strong> interrompre le backfill si la latence, le retard de réplication ou les verrous dépassent les seuils convenus.</li>
+<li><strong>Validation :</strong> tester base vide, données historiques, valeurs invalides et interruption/reprise sur une copie représentative.</li>
+</ul>
+</section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Planifie le passage d’une colonne <code>price_text</code> vers un montant numérique <code>price_cents</code>. Décris les phases expand, migrate et contract ; indique comment traiter les valeurs invalides, comment migrer par lots, comment vérifier la parité entre colonnes et ce qui se passe si le backfill s’arrête à mi-chemin. Ajoute les métriques et le plan de reprise.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je comprends pourquoi les versions applicatives peuvent coexister pendant une migration.</li><li>Je sais appliquer expand–migrate–contract à un changement incompatible.</li><li>J’anticipe les verrous, les backfills, les contraintes et les données historiques.</li><li>Je teste les migrations sur une base vide et sur une base existante représentative.</li><li>Je prévois une reprise observable et une stratégie réaliste de récupération.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les points de la leçon. Consulte les sections pertinentes et vérifie les détails qui dépendent des versions, des outils ou du contexte de ton projet.</p><ol><li><a href="https://martinfowler.com/articles/evodb.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Evolutionary Database Design</a></li>
+<li><a href="https://www.prisma.io/docs/orm/prisma-migrate" target="_blank" rel="noopener noreferrer">Prisma — Database migrations</a></li>
+<li><a href="https://www.postgresql.org/docs/current/sql-altertable.html" target="_blank" rel="noopener noreferrer">PostgreSQL — ALTER TABLE</a></li>
+<li><a href="https://docs.gitlab.com/development/migration_style_guide/" target="_blank" rel="noopener noreferrer">GitLab — Database migrations</a></li>
+<li><a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-database-migration/" target="_blank" rel="noopener noreferrer">AWS — Database migration strategies</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="rollback-deploiement.html">← Rollback et stratégies de déploiement</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="recueil-besoin-specifications.html">Recueil du besoin et spécifications →</a></nav>
+
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — livrer une migration compatible</h2>
+<h3>Objectifs pédagogiques</h3>
+<ul><li>Organiser une migration de schéma sans synchroniser tous les déploiements.</li><li>Gérer backfill, double lecture/écriture et retrait différé.</li><li>Prévoir surveillance, reprise et conditions d’arrêt.</li></ul>
+<h3>Expand</h3><p>Ajouter d’abord une structure compatible avec l’ancienne version; éviter les opérations longues ou bloquantes sur le chemin critique.</p>
+<h3>Migration progressive</h3><p>Déployer le code capable de lire l’ancien et le nouveau format, puis effectuer le backfill par lots bornés et reprenables.</p>
+<h3>Bascule</h3><p>Vérifier la complétude et la cohérence des données avant de faire du nouveau champ la source de vérité.</p>
+<h3>Contract</h3><p>Ne supprimer l’ancien champ qu’après avoir prouvé qu’aucune version active ni tâche différée ne l’utilise.</p>
+<h3>Exploitation</h3><p>Mesurer durée, erreurs, verrous et retard; définir des checkpoints, un mécanisme de reprise et une stratégie de réparation.</p>
+<h3>Exercice pratique</h3><p>Faire évoluer `customer.name` vers `given_name` et `family_name`. Détailler les étapes de compatibilité, le backfill, la validation et la suppression différée.</p>
+<h3>Critères de réussite</h3><ul><li>Ancienne et nouvelle versions coexistent sans rupture.</li><li>Le backfill est borné, observable et reprenable.</li><li>La bascule dépend d’une vérification de cohérence.</li><li>Le retrait est retardé jusqu’à preuve d’absence d’usage.</li></ul>
+</section>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

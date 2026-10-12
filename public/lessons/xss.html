@@ -1,0 +1,56 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Prévention des failles XSS
+Références proposées comme points d’entrée documentaires ; cela ne signifie pas que chaque source a été intégralement étudiée.
+1. OWASP — Cross Site Scripting Prevention Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+2. MDN — Cross-site scripting (XSS) — https://developer.mozilla.org/en-US/docs/Glossary/Cross-site_scripting
+3. OWASP — DOM based XSS Prevention Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/DOM_based_XSS_Prevention_Cheat_Sheet.html
+4. PortSwigger — Cross-site scripting — https://portswigger.net/web-security/cross-site-scripting
+5. MDN — innerHTML — https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Afficher le contenu non fiable sans permettre son interprétation comme code dans le navigateur.">
+  <title>Prévention des failles XSS — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">5. Sécurité applicative</p>
+    <h1>Prévention des failles XSS</h1>
+    <p class="lead">Afficher le contenu non fiable sans permettre son interprétation comme code dans le navigateur.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Backend et données</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Définir une faille XSS et distinguer ses principales formes.</li><li>Choisir une méthode d’affichage qui traite les données comme du texte plutôt que comme du code.</li><li>Comprendre l’encodage contextuel, l’assainissement HTML et les protections complémentaires.</li></ul></section>
+<section class="lesson-section"><h2>1. Comment fonctionne une XSS ?</h2><p>Une faille Cross-Site Scripting (XSS) permet à un contenu non fiable d’être interprété comme du code dans le navigateur d’une victime, dans le contexte du site vulnérable. Une XSS peut être stockée (contenu malveillant enregistré puis affiché), réfléchie (retournée dans une réponse) ou basée sur le DOM (le code côté client manipule une entrée de façon dangereuse).</p><p>Le risque ne se limite pas à une fenêtre d’alerte : un script exécuté dans le contexte du site peut agir avec les droits de la session de l’utilisateur, lire des données accessibles à la page ou déclencher des actions. Les cookies marqués HttpOnly ne sont pas directement lisibles par JavaScript, mais cela ne rend pas une XSS inoffensive.</p></section>
+<section class="lesson-section"><h2>2. Traiter les données comme des données</h2><p>Pour afficher du texte fourni par un utilisateur, privilégie les API qui créent du texte, par exemple <code>textContent</code>, plutôt que d’interpréter une chaîne comme HTML.</p><pre><code>// Sûr pour afficher un texte brut
+messageElement.textContent = userProvidedMessage;
+
+// Dangereux si la chaîne contient du HTML contrôlé
+messageElement.innerHTML = userProvidedMessage;</code></pre><p>Les frameworks modernes échappent généralement les interpolations textuelles ordinaires, mais des API de HTML brut ou des bibliothèques tierces peuvent contourner cette protection. Si du HTML est réellement nécessaire, utilise un assainisseur reconnu, configuré pour le contexte et maintenu à jour.</p><p>L’encodage doit correspondre au contexte de sortie : texte HTML, attribut, URL, CSS et JavaScript ne suivent pas les mêmes règles. Évite d’insérer des données non fiables dans du code JavaScript inline, des gestionnaires d’événements ou des contextes difficiles à encoder correctement.</p></section>
+<section class="lesson-section"><h2>3. Défense en profondeur</h2><p>La politique de sécurité du contenu (CSP) peut limiter les scripts autorisés et réduire certaines conséquences, mais elle ne remplace pas le traitement sûr des données. Évite les scripts inline non nécessaires et privilégie une politique CSP restrictive avec des nonces ou des hachages lorsque l’architecture le permet.</p><p>Teste les chemins où du contenu utilisateur est enregistré, affiché, rendu côté client ou inséré dans le DOM. Une bibliothèque de composants, un aperçu Markdown ou un éditeur riche peuvent créer des contextes de sortie spécifiques. Vérifie également que les URL utilisées comme liens ne permettent pas des schémas dangereux.</p></section>
+<section class="lesson-section"><h2>Choisir la défense selon le contexte de rendu</h2>
+<p>Il n’existe pas un encodage universel pour toutes les sorties. Commence par identifier le contexte exact où la donnée sera interprétée, puis privilégie une API qui évite l’interprétation de code. Les données injectées dans une URL, un attribut HTML ou un bloc JavaScript demandent des protections différentes ; le plus sûr est généralement de ne pas placer de données non fiables dans du code exécutable.</p><pre><code>// Texte ordinaire : aucune interprétation HTML
+statusNode.textContent = profile.displayName;
+
+// Lien : contrôler le schéma et la destination avant affectation
+const target = new URL(profile.website, window.location.origin);
+if (target.protocol === 'https:' || target.origin === window.location.origin) {
+  link.href = target.href;
+}</code></pre><p>La validation d’URL de l’exemple est illustrative : adapte la politique aux liens réellement permis. Une URL analysable n’est pas automatiquement sûre. Pour du HTML riche, configure un assainisseur maintenu et teste les éléments, attributs et schémas autorisés après assainissement.</p><ul><li>Ajouter des tests pour texte brut, guillemets, balises, attributs événementiels et URL de schéma inattendu.</li><li>Tester le rendu initial côté serveur et les mises à jour DOM côté client.</li><li>Rechercher les API de HTML brut et les composants tiers qui contournent l’échappement normal.</li></ul>
+<h2>Tests de non-régression</h2><p>Un test doit vérifier le résultat du rendu, pas seulement l’absence d’une exception. Utilise des marqueurs inoffensifs dans les tests automatisés et inspecte le DOM final.</p><ul><li>Texte brut : la chaîne <code>&lt;b&gt;marqueur&lt;/b&gt;</code> apparaît littéralement ; aucun élément <code>b</code> n’est créé.</li><li>Attributs et événements : une chaîne contenant un attribut événementiel reste du texte ou est supprimée par l’assainisseur ; aucun gestionnaire n’est actif.</li><li>URL : les liens <code>javascript:</code> et <code>data:</code> sont refusés selon la politique du produit ; les liens HTTPS autorisés restent fonctionnels.</li><li>HTML riche : les balises permises sont conservées, tandis que les scripts, attributs événementiels et schémas d’URL non autorisés sont retirés.</li><li>Chemins de rendu : couvre le rendu serveur et les mises à jour DOM, et recherche les sinks tels que <code>innerHTML</code>, <code>outerHTML</code>, <code>insertAdjacentHTML</code>, <code>document.write</code> et les API de HTML brut des frameworks.</li></ul><p>Ne valide pas l’exercice en te contentant d’un test CSP : la défense principale reste le traitement adapté au contexte de sortie et l’assainissement du HTML riche.</p><h2>Erreurs fréquentes</h2><ul><li>Utiliser innerHTML pour afficher un simple message utilisateur.</li><li>Considérer une validation de longueur ou de caractères comme une protection XSS complète.</li><li>Réutiliser un encodage conçu pour le texte HTML dans un attribut ou une URL.</li><li>Penser que React ou un autre framework protège les API de HTML brut.</li><li>Traiter CSP comme une solution qui permet de conserver du rendu dangereux.</li></ul></section>
+<section class="lesson-section"><h2>Exercice</h2><p>Une application affiche le commentaire saisi par un utilisateur et propose ensuite un aperçu HTML enrichi. Réécris l’affichage du commentaire en texte brut, puis décris comment traiter l’aperçu riche avec un assainisseur maintenu. Indique les tests nécessaires pour les vues serveur et client.</p><h3>Critères de réussite</h3><ul><li>Le commentaire ordinaire est affiché avec textContent ou l’équivalent sûr du framework.</li><li>Le HTML riche est assaini avec une politique explicite, pas par une expression régulière maison.</li><li>Le contexte d’insertion est pris en compte.</li><li>La CSP est considérée comme une couche supplémentaire, non comme la défense principale.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Cross Site Scripting Prevention Cheat Sheet</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Glossary/Cross-site_scripting" target="_blank" rel="noopener noreferrer">MDN — Cross-site scripting (XSS)</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/DOM_based_XSS_Prevention_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — DOM based XSS Prevention Cheat Sheet</a></li>
+<li><a href="https://portswigger.net/web-security/cross-site-scripting" target="_blank" rel="noopener noreferrer">PortSwigger — Cross-site scripting</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML" target="_blank" rel="noopener noreferrer">MDN — innerHTML</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je sais expliquer comment une XSS peut s’exécuter.</label><label><input type="checkbox"> Je sais distinguer texte brut et HTML interprété.</label><label><input type="checkbox"> Je sais choisir l’encodage ou l’assainissement adapté au contexte.</label></section>
+    <nav class="lesson-nav"><a class="nav-link" href="injections-sql.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="csrf.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

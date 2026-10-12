@@ -1,0 +1,80 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Linux et ligne de commande
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. GNU Bash Reference Manual — https://www.gnu.org/software/bash/manual/bash.html
+2. GNU Coreutils Manual — https://www.gnu.org/software/coreutils/manual/coreutils.html
+3. Ubuntu — Command-line tutorials — https://ubuntu.com/tutorials/command-line-for-beginners
+4. Linux man-pages project — https://man7.org/linux/man-pages/
+5. The Linux Documentation Project — https://tldp.org/guides.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Fondamentaux pratiques du shell Linux, des chemins, des permissions, des processus et des redirections.">
+<title>Linux et ligne de commande — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">7. Environnement, livraison et exploitation</p>
+<h1>Linux et ligne de commande</h1>
+<p class="lead">Naviguer dans Linux, inspecter les fichiers et processus, puis diagnostiquer un environnement de développement depuis le terminal.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Le terminal est une interface textuelle ; le shell, souvent Bash, interprète les commandes et transmet leurs arguments aux programmes. <code>ls</code> est généralement un programme externe, tandis que <code>cd</code> est une commande intégrée : elle doit modifier le répertoire courant du shell lui-même.</p><ul><li>Comprendre les chemins absolus et relatifs.</li><li>Créer, lire, déplacer et rechercher des fichiers.</li><li>Utiliser les redirections et pipelines.</li><li>Inspecter les processus et les permissions.</li><li>Consulter l’aide et éviter les opérations destructrices.</li></ul>
+</section><section class="lesson-section"><h2>1. Chemins et fichiers</h2>
+<p>Un chemin absolu part de <code>/</code>. Un chemin relatif est interprété depuis le répertoire courant, affiché par <code>pwd</code>. <code>.</code> désigne le répertoire courant, <code>..</code> son parent et <code>~</code> le dossier personnel.</p><pre><code>pwd
+ls -la
+cd ~/projets/mon-app
+mkdir -p exercices/terminal
+touch exercices/terminal/notes.txt
+cp exercices/terminal/notes.txt /tmp/notes-copie.txt
+mv /tmp/notes-copie.txt /tmp/notes.txt</code></pre><p><code>ls -la</code> affiche aussi les fichiers cachés comme <code>.git</code>. Avant de supprimer ou déplacer des fichiers, vérifie le répertoire courant et la cible. Les noms contenant des espaces doivent être placés entre guillemets, par exemple <code>"mon dossier"</code>.</p>
+</section><section class="lesson-section"><h2>2. Lire et rechercher</h2>
+<p><code>less</code> permet de parcourir un fichier, <code>head</code> et <code>tail</code> affichent ses extrémités, <code>grep</code> recherche un motif et <code>find</code> recherche des fichiers selon des critères.</p><pre><code>less README.md
+grep -RIn "TODO" src/
+find . -type f -name "*.ts"
+tail -n 100 logs/app.log
+tail -f logs/app.log</code></pre><p><code>tail -f</code> suit les nouvelles lignes ; arrête-le avec Ctrl+C. Les recherches récursives peuvent traverser de grands dossiers : exclue les dépendances et les fichiers de build lorsque nécessaire. Pour une commande inconnue, lis son aide avant de copier des options trouvées ailleurs.</p>
+</section><section class="lesson-section"><h2>3. Redirections et pipelines</h2>
+<p>Les processus utilisent notamment une entrée standard (0), une sortie standard (1) et une sortie d’erreur (2). <code>|</code> transmet la sortie d’une commande à l’entrée de la suivante. <code>&gt;</code> remplace un fichier, <code>&gt;&gt;</code> ajoute à la fin et <code>2&gt;</code> redirige les erreurs.</p><pre><code>find src -type f -name "*.ts" | wc -l
+npm run build > build.log 2>&1
+tail -n 200 build.log | grep -i "error"
+echo $?</code></pre><p>La dernière commande affiche le code de sortie de la commande précédente : zéro indique généralement le succès, une valeur non nulle un échec. L’ordre des redirections compte, car <code>2&gt;&amp;1</code> dirige les erreurs vers la destination actuelle de la sortie standard. Évite d’écraser par accident un fichier utilisé en entrée.</p>
+</section><section class="lesson-section"><h2>4. Processus et permissions</h2>
+<p>Un processus est une instance d’un programme en cours d’exécution. <code>ps</code>, <code>pgrep</code> et <code>top</code> aident à l’inspecter. <code>kill</code> envoie un signal à un PID ; commence par identifier précisément le processus.</p><pre><code>ps aux | grep node
+pgrep -af node
+kill -TERM 12345</code></pre><p>Le PID est ici un exemple, à remplacer par celui réellement trouvé. <code>TERM</code> demande un arrêt propre ; <code>KILL</code> force l’arrêt sans laisser le programme nettoyer ses ressources et doit rester un dernier recours.</p><p>Les permissions distinguent propriétaire, groupe et autres. <code>chmod</code> les modifie et <code>chown</code> change le propriétaire. Évite d’utiliser <code>sudo</code> pour masquer un problème de droits : cela peut créer des fichiers appartenant à root dans ton projet.</p>
+</section><section class="lesson-section"><h2>5. Sécurité et dépannage</h2>
+<p>Consulte <code>man nom</code> ou <code>commande --help</code>. Les commandes de suppression, les jokers et les privilèges administrateur exigent une attention particulière. Pour une opération risquée, liste d’abord les cibles et essaie sur un petit échantillon. Ne lance pas aveuglément une chaîne qui télécharge puis exécute un script distant.</p><ul><li><strong>Chemin incorrect :</strong> vérifie <code>pwd</code> et le type de chemin.</li><li><strong>Permission refusée :</strong> inspecte propriétaire et permissions avant sudo.</li><li><strong>Sortie écrasée :</strong> rappelle-toi que <code>&gt;</code> remplace le contenu.</li><li><strong>Commande apparemment bloquée :</strong> vérifie si elle attend une entrée ou suit un flux continu.</li></ul><p>Les scripts accélèrent les tâches répétitives, mais amplifient aussi les erreurs. Utilise des chemins explicites et des vérifications lorsque tu automatises.</p>
+</section><section class="lesson-section"><h2>Diagnostic reproductible : partir du symptôme</h2>
+<p>Une bonne investigation réduit l’incertitude étape par étape. Avant de modifier quoi que ce soit, note le répertoire courant, la commande exacte, le code de sortie et les premières lignes d’erreur. Reproduis ensuite le problème avec le plus petit nombre de commandes possible.</p>
+<pre><code>pwd
+command -v node
+node --version
+printf 'code précédent = %s\n' "$?"
+ls -ld ./node_modules
+id
+printf 'PATH=%s\n' "$PATH"</code></pre>
+<p>Exécute <code>printf</code> immédiatement après la commande à diagnostiquer : sinon, son propre code de sortie remplace celui de la commande testée. <code>command -v</code> révèle quel exécutable sera lancé ; c’est utile lorsque plusieurs versions de Node sont installées. Évite de publier la sortie complète d’un environnement sans l’examiner, car elle peut contenir des chemins personnels ou des informations sensibles.</p>
+<p>Pour un processus qui écoute sur un port, identifie d’abord le port et le processus avec les outils disponibles sur ta distribution, puis vérifie son journal et sa configuration. Ne tue pas un processus avant d’avoir confirmé son identité et son rôle.</p>
+</section>
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Crée un dossier <code>atelier-linux</code> avec deux sous-dossiers et trois fichiers texte. Recherche le mot « erreur », redirige les résultats dans un rapport et affiche ses cinq premières lignes. Vérifie le code de sortie de la recherche.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Dans un projet de test, produis un rapport listant les fichiers TypeScript et les lignes de journal contenant « error », sans modifier les sources.</p><ul><li>Les chemins et cibles sont compris.</li><li>Le pipeline ne modifie pas les sources.</li><li>Les sorties standard et d’erreur sont traitées consciemment.</li><li>Le code de sortie est interprété correctement.</li><li>Les privilèges élevés ne sont pas utilisés par réflexe.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Utilise ces références pour approfondir les notions et vérifier les détails liés aux versions de tes outils.</p><ol><li><a href="https://www.gnu.org/software/bash/manual/bash.html" target="_blank" rel="noopener noreferrer">GNU Bash Reference Manual</a></li><li><a href="https://www.gnu.org/software/coreutils/manual/coreutils.html" target="_blank" rel="noopener noreferrer">GNU Coreutils Manual</a></li><li><a href="https://ubuntu.com/tutorials/command-line-for-beginners" target="_blank" rel="noopener noreferrer">Ubuntu — Command-line tutorials</a></li><li><a href="https://man7.org/linux/man-pages/" target="_blank" rel="noopener noreferrer">Linux man-pages project</a></li><li><a href="https://tldp.org/guides.html" target="_blank" rel="noopener noreferrer">The Linux Documentation Project</a></li></ol></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2>
+<label><input type="checkbox"> Je peux expliquer les concepts essentiels avec mes propres mots.</label>
+<label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+<label><input type="checkbox"> Je sais diagnostiquer les erreurs et expliquer les compromis.</label>
+<label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+<p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p></section>
+<nav class="lesson-nav"><a class="nav-link" href="lecture-code.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="environnement-config.html">Compétence suivante →</a></nav>
+</main><footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body></html>

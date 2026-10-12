@@ -1,0 +1,80 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Identification des goulots d’étranglement
+Domaine documentaire : performance
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. Google SRE — Monitoring Distributed Systems — https://sre.google/sre-book/monitoring-distributed-systems/
+2. Chrome DevTools — Performance — https://developer.chrome.com/docs/devtools/performance/
+3. Node.js — Diagnostic des performances — https://nodejs.org/en/learn/diagnostics/poor-performance
+4. PostgreSQL — EXPLAIN — https://www.postgresql.org/docs/current/using-explain.html
+5. OpenTelemetry — Concepts — https://opentelemetry.io/docs/concepts/
+
+Note : les cinq références documentaires ci-dessous sont reprises dans la liste visible de la page.-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Repérer la ressource qui limite réellement le débit ou la latence d’un système, puis choisir une amélioration appuyée par des mesures.">
+<title>Identification des goulots d’étranglement — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Architecture et ingénierie Full Stack</p>
+<h1>Identification des goulots d’étranglement</h1>
+<p class="lead">Repérer la ressource qui limite réellement le débit ou la latence d’un système, puis choisir une amélioration appuyée par des mesures.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un besoin réel et justifier tes choix à partir de contraintes observables.</p>
+<ul><li>Définir le vocabulaire essentiel et le problème que la compétence résout.</li><li>Appliquer les principes dans un exemple pratique et identifier les limites.</li><li>Vérifier le résultat avec des critères explicites plutôt qu’une impression subjective.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Définir le goulot</h2>
+<p>Un goulot d’étranglement est une ressource ou une étape qui limite le comportement global d’un système dans un scénario donné. Il peut s’agir du processeur, de la mémoire, du réseau, de la base de données, d’un verrou, d’un pool de connexions ou même d’une dépendance externe. Le goulot n’est pas nécessairement l’élément le plus occupé : une API qui attend une base lente peut avoir un CPU presque inactif tout en répondant mal.</p>
+<p>Il faut d’abord préciser le symptôme. « L’application est lente » est trop vague. Décris plutôt une route précise, un volume de trafic, une durée ou un percentile, et le type de requête concerné. Une page peut être lente au premier affichage mais rapide ensuite ; une API peut être satisfaisante à faible charge et se dégrader au-delà d’un certain débit. Chaque scénario peut avoir un goulot différent.</p>
+<p>Le système doit être observé comme une chaîne : navigateur, réseau, serveur web, logique métier, base de données et services externes. Le temps total est la somme de traitements et d’attentes, avec parfois du travail parallèle. Une durée globale indique qu’il existe un problème, mais ne révèle pas à elle seule quelle étape en est la cause.</p></section>
+<section class="lesson-section"><h2>2. Construire une hypothèse testable</h2>
+<p>Une enquête efficace suit un cycle : observer, formuler une hypothèse, recueillir une preuve, changer une seule chose, puis mesurer de nouveau. Exemple : « Le p95 de la route /orders augmente quand le nombre de requêtes dépasse 100 par seconde ; les connexions de base atteignent leur limite ; je pense que les requêtes attendent une connexion disponible. » Cette hypothèse prédit des observations qu’on peut vérifier.</p>
+<p>Commence par les métriques de service : débit, latence par percentiles et taux d’erreur. Ajoute ensuite des métriques de ressources : CPU, mémoire, pauses du ramasse-miettes, connexions actives, file d’attente, lectures disque et temps des dépendances. Corrèle les courbes dans le temps. Une hausse simultanée ne prouve pas toujours une causalité, mais elle aide à choisir la prochaine mesure.</p>
+<p>Utilise un scénario reproductible, des données réalistes et un environnement identifié. Note la version du code, la configuration, la taille des données et l’état du cache. Si les conditions changent entre deux essais, il devient difficile d’attribuer l’écart à la modification.</p></section>
+<section class="lesson-section"><h2>3. Signatures fréquentes</h2>
+<ul><li><strong>CPU saturé :</strong> utilisation durablement élevée, files d’attente qui augmentent et profils dominés par certaines fonctions. Examine algorithmes, allocations et travail répété.</li>
+<li><strong>Mémoire sous pression :</strong> consommation qui grimpe, pauses fréquentes du garbage collector ou processus tué. Recherche objets retenus, caches sans limite et buffers excessifs.</li>
+<li><strong>Base de données :</strong> requêtes lentes, verrous, pool saturé ou beaucoup d’allers-retours. Examine le plan d’exécution, les index et les transactions longues.</li>
+<li><strong>Réseau ou service externe :</strong> temps d’attente dominant, timeouts et débit plafonné. Vérifie la latence, les limites de débit et la stratégie de reprise.</li>
+<li><strong>Contention :</strong> plusieurs requêtes attendent une ressource partagée. Ajouter des threads peut augmenter la concurrence sans augmenter la capacité utile.</li></ul>
+<p>Une forte utilisation de CPU n’est pas automatiquement un défaut : un service peut utiliser efficacement ses ressources et respecter ses objectifs. De même, une faible utilisation n’est pas la preuve qu’il reste de la capacité si une dépendance bloque. Interprète les mesures ensemble.</p></section>
+<section class="lesson-section"><h2>4. Localiser l’étape coûteuse</h2>
+<p>Pour une requête HTTP, mesure des durées par étape : authentification, accès aux données, logique métier, appel externe et sérialisation. Les traces distribuées peuvent montrer où le temps s’accumule entre services. Pour la base, un plan d’exécution aide à comprendre les scans et les jointures ; compare les lignes estimées et réelles avec prudence. Pour le navigateur, un profil révèle les longues tâches, les recalculs de style ou le travail de rendu.</p>
+<p>Ne rajoute pas une instrumentation coûteuse partout sans stratégie. Des logs détaillés à chaque requête peuvent eux-mêmes saturer le stockage ou le réseau. Privilégie les mesures agrégées, l’échantillonnage des traces et des profils ciblés. Masque les données sensibles et limite l’accès aux traces qui contiennent des paramètres ou des informations utilisateur.</p>
+<p>La loi de Little, <code>L = λ × W</code>, relie le nombre moyen de travaux en cours (L), le débit d’arrivée (λ) et le temps moyen passé dans le système (W), dans des conditions stables. Quand la capacité est dépassée, les files d’attente grossissent et la latence augmente. Réduire le temps de service ou limiter le travail entrant peut alors être plus utile que d’ajouter des instances à l’aveugle.</p></section>
+<section class="lesson-section"><h2>5. Choisir une correction proportionnée</h2>
+<p>Si une requête SQL est le goulot, un index ou une requête mieux conçue peut aider, mais un index ajoute du coût aux écritures et de l’espace. Si une fonction CPU domine, réduire le travail algorithmique peut être préférable à augmenter la capacité matérielle. Si une API externe est lente, un timeout raisonnable et une limite de concurrence peuvent protéger le système ; un cache peut être adapté seulement si la fraîcheur des données le permet.</p>
+<p>Le passage à davantage d’instances est utile lorsque le travail se répartit bien et que la dépendance partagée ne reste pas saturée. La mise en parallèle peut au contraire amplifier la charge sur la base, provoquer des contentions ou rendre les erreurs plus fréquentes. Chaque correction doit être accompagnée d’une hypothèse sur ses effets secondaires.</p>
+<ul><li>Ne conclus pas à partir d’un seul pic ou d’une seule requête.</li><li>Ne confonds pas corrélation temporelle et cause démontrée.</li><li>Ne multiplie pas les optimisations simultanées : tu ne sauras pas laquelle a aidé.</li><li>Ne supprime pas les contrôles fonctionnels ou de sécurité pour gagner quelques millisecondes.</li></ul></section>
+<section class="lesson-section"><h2>6. Exercice</h2><p>Choisis une route d’API fictive dont le p95 se dégrade sous charge. Prépare un tableau avec les métriques à observer, les hypothèses possibles et la preuve nécessaire pour chacune. Sélectionne ensuite un goulot hypothétique, décris un test qui pourrait le confirmer et propose une correction ainsi qu’un risque secondaire. Termine par les mesures qui permettraient de prouver le gain.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je formule un symptôme précis et reproductible.</li><li>Je distingue saturation CPU, attente I/O, mémoire et contention.</li><li>Je formule des hypothèses falsifiables plutôt que de deviner.</li><li>Je relie chaque correction à une mesure avant/après.</li><li>Je peux expliquer les effets secondaires possibles d’une optimisation.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Les ressources ci-dessous sont des références pour poursuivre l’apprentissage. Elles servent de points de départ ciblés ; consulte les sections pertinentes et vérifie les détails qui dépendent de la version des outils ou de ton environnement.</p><ol><li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" target="_blank" rel="noopener noreferrer">Google SRE — Monitoring Distributed Systems</a></li>
+<li><a href="https://developer.chrome.com/docs/devtools/performance/" target="_blank" rel="noopener noreferrer">Chrome DevTools — Performance</a></li>
+<li><a href="https://nodejs.org/en/learn/diagnostics/poor-performance" target="_blank" rel="noopener noreferrer">Node.js — Diagnostic des performances</a></li>
+<li><a href="https://www.postgresql.org/docs/current/using-explain.html" target="_blank" rel="noopener noreferrer">PostgreSQL — EXPLAIN</a></li>
+<li><a href="https://opentelemetry.io/docs/concepts/" target="_blank" rel="noopener noreferrer">OpenTelemetry — Concepts</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="tests-charge.html">← Tests de charge</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="traces-distribuees.html">Traces distribuées →</a></nav>
+
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — localiser un goulot sans optimiser à l’aveugle</h2>
+<h3>Objectifs pédagogiques</h3>
+<ul><li>Formuler une hypothèse falsifiable à partir d’une mesure.</li><li>Différencier saturation CPU, attente I/O, contention, réseau et inefficacité algorithmique.</li><li>Valider une optimisation par une comparaison contrôlée.</li></ul>
+<h3>Partir du symptôme</h3><p>Choisir une transaction lente et mesurer son parcours complet; ne pas déduire la cause depuis un seul indicateur global.</p>
+<h3>Réduire le périmètre</h3><p>Corréler latence et débit avec profils CPU, allocation mémoire, traces, requêtes SQL et métriques de dépendances.</p>
+<h3>Hypothèse</h3><p>Exemple : « la latence p95 augmente lorsque le pool SQL est saturé ». Définir l’observation qui confirmerait ou réfuterait cette idée.</p>
+<h3>Expérience</h3><p>Modifier une variable à la fois, garder charge et données comparables, répéter les mesures et conserver le résultat négatif.</p>
+<h3>Coût total</h3><p>Vérifier que le gain local ne déplace pas la saturation vers la base, le cache ou le service suivant.</p>
+<h3>Exercice pratique</h3><p>Une page devient lente à partir de 100 requêtes/s. Construire un arbre de diagnostic, choisir trois mesures discriminantes, puis proposer une expérience qui pourrait invalider votre première hypothèse.</p>
+<h3>Critères de réussite</h3><ul><li>Chaque hypothèse est liée à une mesure et à un test de réfutation.</li><li>La charge de comparaison est reproductible.</li><li>Le résultat est mesuré avant/après.</li><li>Les régressions et le déplacement du goulot sont examinés.</li></ul>
+</section>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

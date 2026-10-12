@@ -1,0 +1,189 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Projet 1 — Site frontend
+Domaine documentaire : project
+Références consultées pour vérifier l’existence et l’adéquation générale des ressources. Elles servent de base de travail, pas de classement absolu des cinq meilleures ressources.
+1. Manifeste Agile — version française — https://agilemanifesto.org/iso/fr/manifesto.html
+2. Scrum Guide — Guide officiel — https://scrumguides.org/scrum-guide.html
+3. GitHub — À propos des issues — https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues
+4. Atlassian — User stories — https://www.atlassian.com/agile/project-management/user-stories
+5. Google — Engineering Practices — https://google.github.io/eng-practices/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spécification du projet pratique 1 : créer un site frontend responsive, accessible et documenté.">
+  <title>Projet 1 — Site frontend — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+  <p class="eyebrow">Projets pratiques et validation des acquis · Projet 1/5</p>
+  <h1>Projet 1 — Site frontend</h1>
+  <p class="lead">Concevoir et livrer un site statique responsive, accessible, utilisable au clavier et documenté, sans framework obligatoire.</p>
+
+  <section class="lesson-section">
+    <h2>1. Contexte et besoin</h2>
+    <p>Vous devez publier un petit site de présentation pour une association, un événement culturel ou une activité fictive. Une personne qui découvre le site doit comprendre l’offre, trouver les informations pratiques et contacter l’organisateur. Le contenu peut être fictif, mais il doit rester cohérent sur toutes les pages.</p>
+    <h3>Utilisateur principal</h3>
+    <p>Une personne consultant le site sur téléphone ou ordinateur, avec ou sans souris. Elle doit pouvoir accéder aux informations essentielles sans compte et sans installer de logiciel.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>2. Périmètre fonctionnel</h2>
+    <h3>Fonctionnalités obligatoires</h3>
+    <ul>
+      <li>Une page d’accueil présentant clairement le sujet, avec un titre principal unique et un appel à l’action pertinent.</li>
+      <li>Une page ou section « À propos » présentant l’organisation, l’activité ou l’événement.</li>
+      <li>Une page ou section pratique avec horaires ou dates, lieu ou zone, et moyen de contact fictif clairement identifié.</li>
+      <li>Une navigation cohérente entre les sections/pages, avec l’état de navigation compréhensible et sans lien factice.</li>
+      <li>Une interaction JavaScript utile et non essentielle à la lecture : par exemple un menu mobile ou un filtre sur une liste de contenus.</li>
+      <li>Une page ou section de contact avec des coordonnées de démonstration ; si un formulaire est ajouté, ses erreurs doivent être annoncées et ses limites expliquées.</li>
+    </ul>
+    <h3>Hors périmètre</h3>
+    <p>Pas de compte utilisateur, paiement, API distante, base de données, CMS ou collecte réelle de données personnelles. Ces éléments relèvent de projets ultérieurs. Ne pas ajouter une dépendance ou un framework uniquement pour complexifier le projet.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>3. Exigences non fonctionnelles</h2>
+    <ul>
+      <li><strong>Responsive :</strong> pas de défilement horizontal à 320 px de largeur, sauf contenu intrinsèquement bidimensionnel justifié ; contenu lisible à 320, 768 et 1280 px.</li>
+      <li><strong>Accessibilité :</strong> HTML sémantique, ordre de titres logique, liens et contrôles utilisables au clavier, focus visible, libellés explicites et textes alternatifs pertinents.</li>
+      <li><strong>Performance :</strong> images dimensionnées et compressées raisonnablement ; éviter les scripts ou bibliothèques inutiles ; pas d’erreur console bloquante pendant le parcours principal.</li>
+      <li><strong>Compatibilité :</strong> vérifier au minimum un navigateur Chromium récent et un second moteur si disponible ; noter précisément les navigateurs réellement testés.</li>
+      <li><strong>Confidentialité :</strong> utiliser des données fictives ; ne pas inclure de secret, clé d’API ni donnée personnelle réelle.</li>
+      <li><strong>Maintenabilité :</strong> noms de fichiers et classes explicites, styles organisés, JavaScript limité aux comportements nécessaires.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>4. Stack et organisation</h2>
+    <ul>
+      <li>HTML sémantique pour la structure.</li>
+      <li>CSS natif pour la mise en page, les états de focus et les adaptations responsive.</li>
+      <li>JavaScript natif pour une interaction ciblée, avec gestion du cas où l’élément attendu n’existe pas.</li>
+      <li>Git pour conserver des étapes de travail compréhensibles.</li>
+    </ul>
+    <p>Organisation suggérée :</p>
+    <pre><code>site-frontend/
+├── index.html
+├── pages/
+│   ├── a-propos.html
+│   └── informations.html
+├── assets/
+│   └── images/
+├── css/
+│   └── styles.css
+├── js/
+│   └── main.js
+└── README.md</code></pre>
+    <p>Cette structure est une proposition, pas une contrainte absolue. Pour un site d’une seule page, des sections avec ancres peuvent remplacer les pages séparées si la navigation reste claire.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>5. Étapes de réalisation</h2>
+    <ol>
+      <li><strong>Cadrer le contenu :</strong> écrire les besoins, choisir le public, définir les pages/sections et dessiner un wireframe simple.</li>
+      <li><strong>Construire la structure :</strong> créer les fichiers, les titres, les régions sémantiques et la navigation sans mise en forme avancée.</li>
+      <li><strong>Ajouter le style :</strong> définir typographie, espacements, couleurs, états interactifs et points de rupture ; tester d’abord les petits écrans.</li>
+      <li><strong>Ajouter l’interaction :</strong> implémenter une fonctionnalité précise, prévoir le clavier et le cas où JavaScript échoue lorsque c’est possible.</li>
+      <li><strong>Contrôler le contenu :</strong> vérifier les liens, textes alternatifs, libellés, cohérence des informations et absence de faux boutons.</li>
+      <li><strong>Tester et corriger :</strong> suivre la grille d’acceptation ci-dessous, puis résoudre les défauts avant publication.</li>
+      <li><strong>Livrer :</strong> rédiger le README, expliquer comment ouvrir le site et consigner les limites connues.</li>
+    </ol>
+  </section>
+
+  <section class="lesson-section">
+    <h2>6. Critères d’acceptation</h2>
+    <p>Le projet est accepté uniquement si chaque point applicable peut être vérifié :</p>
+    <ul>
+      <li>Le site s’ouvre depuis le fichier d’entrée documenté et les chemins relatifs fonctionnent après extraction du dossier.</li>
+      <li>Chaque page possède un titre de document pertinent, un seul titre principal visible et une structure de titres compréhensible.</li>
+      <li>Tous les liens internes conduisent à une destination existante ; les liens externes sont identifiés et testés avant livraison.</li>
+      <li>À 320, 768 et 1280 px, les éléments essentiels restent visibles et utilisables sans défilement horizontal accidentel.</li>
+      <li>Le parcours principal fonctionne entièrement au clavier ; le focus est visible et ne se perd pas dans un contrôle masqué.</li>
+      <li>Les images informatives ont un texte alternatif adapté ; les images décoratives n’ajoutent pas de bruit aux lecteurs d’écran.</li>
+      <li>L’interaction JavaScript fonctionne avec les cas normal et vide ; une erreur de saisie, si le formulaire existe, est indiquée en texte.</li>
+      <li>Aucune donnée réelle sensible, aucun secret et aucune dépendance non documentée ne sont livrés.</li>
+      <li>Le README décrit le but du site, la structure, la méthode de lancement et les vérifications effectuées.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>7. Plan de tests</h2>
+    <h3>Tests manuels fonctionnels</h3>
+    <ul>
+      <li>Suivre tous les liens et utiliser l’action principale sur chaque page.</li>
+      <li>Tester l’interaction avec souris, clavier et, si disponible, lecteur d’écran.</li>
+      <li>Vérifier le menu ou le filtre sur contenu normal, vide et très long.</li>
+      <li>Redimensionner la fenêtre aux trois largeurs cibles et contrôler l’orientation mobile si l’appareil est disponible.</li>
+    </ul>
+    <h3>Contrôles automatisables</h3>
+    <ul>
+      <li>Validation HTML avec un outil reconnu, si disponible.</li>
+      <li>Vérification des liens locaux par script.</li>
+      <li>Audit automatisé d’accessibilité comme aide au diagnostic, complété par un test clavier manuel.</li>
+      <li>Inspection de la console et de l’onglet réseau dans le navigateur.</li>
+    </ul>
+    <p>Ne noter un contrôle comme réussi qu’après l’avoir réellement exécuté. L’absence d’outil ou de navigateur doit être signalée comme non testée, pas transformée en succès.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>8. Sécurité, accessibilité et publication</h2>
+    <ul>
+      <li>Éviter d’injecter du contenu utilisateur avec `innerHTML` ; privilégier les API DOM adaptées ou échapper correctement les données si un rendu HTML est réellement nécessaire.</li>
+      <li>Ne pas collecter ni transmettre de données personnelles. Si un formulaire de démonstration existe, afficher clairement qu’il n’envoie rien.</li>
+      <li>Respecter la navigation clavier, les contrastes suffisants, les libellés et la réduction des animations lorsque c’est pertinent.</li>
+      <li>Pour la publication, utiliser un hébergement statique HTTPS, vérifier les chemins et ne publier que les fichiers nécessaires.</li>
+      <li>Ajouter un contrôle de liens et un audit d’accessibilité dans une CI simple si le projet le justifie ; ce n’est pas une condition pour commencer.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>9. Livrables et définition de terminé</h2>
+    <ul>
+      <li>Code source complet avec structure stable.</li>
+      <li>README de lancement et de maintenance.</li>
+      <li>Grille d’acceptation cochée avec notes sur les tests réellement exécutés.</li>
+      <li>Liste des limites connues ou points non testés.</li>
+      <li>Historique Git avec des commits décrivant les changements.</li>
+    </ul>
+    <p><strong>Dossier de transfert.</strong> En plus du code, conserver une carte des pages et des parcours, les wireframes ou décisions d’interface importantes, l’inventaire des interactions et des champs de formulaire, ainsi que les résultats réellement observés aux largeurs cibles. Signaler les données encore fictives, les comportements simulés et les points d’accessibilité non vérifiés. Ce dossier servira de référence lors de la réutilisation de l’interface dans les projets Full Stack ; il ne suppose pas que le site statique doive devenir l’application métier.</p>
+    <p><strong>Terminé</strong> signifie que les critères d’acceptation sont vérifiés, que les défauts bloquants sont corrigés, que les contrôles non réalisés sont signalés et qu’une autre personne peut ouvrir et comprendre le projet grâce au README. Une simple capture d’écran ou une page qui « semble fonctionner » ne suffit pas.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>10. Checklist de validation</h2>
+    <div class="checklist">
+      <label><input type="checkbox"> Besoin, utilisateur cible et périmètre documentés.</label>
+      <label><input type="checkbox"> Pages/sections et navigation cohérentes.</label>
+      <label><input type="checkbox"> HTML sémantique et hiérarchie des titres contrôlés.</label>
+      <label><input type="checkbox"> Mise en page vérifiée à 320, 768 et 1280 px.</label>
+      <label><input type="checkbox"> Parcours clavier et focus visible vérifiés.</label>
+      <label><input type="checkbox"> Interaction JavaScript et cas limites testés.</label>
+      <label><input type="checkbox"> Liens locaux et ressources vérifiés.</label>
+      <label><input type="checkbox"> Sécurité, confidentialité et images contrôlées.</label>
+      <label><input type="checkbox"> README, tests et limites consignés.</label>
+    </div>
+    <p class="note small">Les cases de cette page ne sont pas enregistrées après fermeture. Consigner l’état durablement dans le README ou le suivi du projet.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>Sources documentaires</h2>
+    <ul>
+      <li><a href="https://agilemanifesto.org/iso/fr/manifesto.html" rel="noopener noreferrer">Manifeste Agile — version française</a></li>
+      <li><a href="https://scrumguides.org/scrum-guide.html" rel="noopener noreferrer">Scrum Guide — guide officiel</a></li>
+      <li><a href="https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues" rel="noopener noreferrer">GitHub Docs — suivi du travail avec les issues</a></li>
+      <li><a href="https://www.atlassian.com/agile/project-management/user-stories" rel="noopener noreferrer">Atlassian — user stories</a></li>
+      <li><a href="https://google.github.io/eng-practices/" rel="noopener noreferrer">Google Engineering Practices</a></li>
+    </ul>
+    <p class="note small">Ces références aident à cadrer le travail et la revue. Elles ne remplacent pas les spécifications propres au projet ; leur disponibilité et leur contenu doivent être vérifiés au moment de les consulter.</p>
+  </section>
+  <nav class="lesson-nav"><a class="nav-link" href="../index.html#24-projets-pratiques">↑ Retour aux projets</a><a class="nav-link" href="projet-2-api-base-donnees.html">Projet suivant →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

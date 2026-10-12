@@ -1,0 +1,118 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Core Web Vitals et performances réelles
+Domaine documentaire : performance
+Ces références sont des points de départ ciblés pour approfondir le sujet ; cette liste ne prétend pas que chaque page liée a été lue intégralement.
+1. web.dev — Web Vitals — https://web.dev/articles/vitals
+2. web.dev — Apprendre les performances Web — https://web.dev/learn/performance
+3. Chrome for Developers — Performance dans DevTools — https://developer.chrome.com/docs/devtools/performance
+4. Chrome for Developers — Lighthouse — https://developer.chrome.com/docs/lighthouse/overview
+5. MDN — Mesurer les performances — https://developer.mozilla.org/en-US/docs/Web/Performance
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Comprendre LCP, INP et CLS, collecter des mesures et choisir des optimisations vérifiables.">
+  <title>Core Web Vitals et performances réelles — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">14. UX, accessibilité et qualité produit</p>
+    <h1>Core Web Vitals et performances réelles</h1>
+    <p class="lead">Mesurer l’expérience réelle de chargement, de réactivité et de stabilité visuelle pour prioriser les optimisations.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Lecture et mise en pratique</span></div>
+    <section class="lesson-section">
+<h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu sauras expliquer les trois Core Web Vitals actuels, distinguer données de terrain et mesures de laboratoire, lire un rapport de performance et relier un problème mesuré à une hypothèse d’optimisation. Tu apprendras à éviter les optimisations prématurées et à vérifier qu’un changement améliore l’expérience sans casser le produit.</p>
+<p>Prérequis : bases HTML, CSS, JavaScript, chargement des ressources et outils de développement du navigateur. Les seuils évoluent parfois ; vérifie toujours la documentation officielle pour une décision de production.</p>
+</section><section class="lesson-section">
+<h2>1. Les trois indicateurs principaux</h2>
+<p>Les Core Web Vitals cherchent à représenter trois dimensions importantes de l’expérience : vitesse de chargement perçue, réactivité aux interactions et stabilité visuelle. Les indicateurs actuels sont LCP, INP et CLS. Ils ne résument pas toute la qualité d’un site, mais fournissent un langage commun pour suivre des problèmes qui affectent les utilisateurs.</p>
+<p>LCP, Largest Contentful Paint, mesure le temps nécessaire pour afficher le plus grand élément de contenu visible dans la zone d’affichage. Il peut s’agir d’une image principale, d’un bloc de texte ou d’une autre ressource importante. Un LCP lent peut venir du serveur, d’une ressource découverte tardivement, d’une image trop lourde, d’un CSS bloquant ou d’un rendu coûteux.</p>
+<p>INP, Interaction to Next Paint, évalue la réactivité globale d’une page face aux interactions utilisateur éligibles. Il prend en compte le délai avant le traitement, le temps d’exécution des gestionnaires et le délai jusqu’au prochain rendu. Une page peut afficher rapidement son contenu tout en semblant lente si son JavaScript bloque le thread principal au clic.</p>
+<p>CLS, Cumulative Layout Shift, mesure les déplacements inattendus de contenu pendant la durée de vie de la page. Une image sans dimensions réservées, une publicité insérée tardivement ou une police qui modifie fortement la mise en page peuvent déplacer un bouton juste avant un clic. La stabilité visuelle est donc aussi importante que la vitesse brute.</p>
+</section><section class="lesson-section">
+<h2>2. Seuils et interprétation</h2>
+<p>Les seuils usuels « bons » sont un LCP inférieur ou égal à 2,5 secondes, un INP inférieur ou égal à 200 millisecondes et un CLS inférieur ou égal à 0,1. Pour interpréter les résultats, on utilise le 75e percentile des visites, séparément selon les types d’appareils lorsque c’est pertinent. Cela signifie qu’au moins trois quarts des expériences observées devraient se situer au niveau du seuil visé.</p>
+<p>Ne confonds pas ces seuils avec une garantie de bonne expérience. Une page peut réussir ces mesures mais avoir une navigation incompréhensible, une erreur métier ou des images floues. À l’inverse, une mesure isolée peut être dégradée par un environnement inhabituel. Il faut observer la tendance, le volume de données et les segments.</p>
+<p>Le LCP se décompose utilement en temps de réponse du document, délai avant découverte de la ressource, durée de téléchargement et délai de rendu. Si l’image principale est chargée tardivement parce qu’elle est injectée par JavaScript, ajouter une compression supplémentaire peut ne pas corriger le problème principal. Si le serveur répond lentement, travailler uniquement le CSS ne suffit pas.</p>
+<p>Pour INP, regarde si le problème vient du gestionnaire d’événement, de calculs synchrones ou d’un rendu long. Pour CLS, identifie l’élément déplacé et la cause du changement de dimensions. La valeur globale signale le symptôme ; la trace et les détails permettent de trouver la cause.</p>
+</section><section class="lesson-section">
+<h2>3. Données de terrain et laboratoire</h2>
+<p>Les données de terrain sont recueillies pendant de vraies visites, sur des appareils, réseaux, régions et parcours variés. Elles révèlent l’expérience effectivement vécue, mais demandent un échantillon suffisant et peuvent arriver avec un délai. Les rapports publics ou outils de mesure peuvent utiliser des agrégations différentes ; vérifie la période, le périmètre et le percentile avant de comparer.</p>
+<p>Les données de laboratoire proviennent d’un test contrôlé, par exemple Lighthouse ou un profilage dans DevTools. Elles sont reproductibles et utiles pour isoler un changement, mais ne représentent pas automatiquement tous les utilisateurs. Le CPU simulé, le réseau, le cache et les extensions peuvent modifier les résultats. Un score Lighthouse est un diagnostic synthétique, pas la preuve absolue d’une expérience parfaite.</p>
+<p>Une méthode robuste combine les deux : repérer dans les données de terrain un indicateur qui se dégrade, reproduire ou approcher le problème en laboratoire, examiner la trace, effectuer un changement ciblé puis vérifier à nouveau. Après déploiement, surveille les données de terrain pour confirmer que le bénéfice existe dans des conditions réelles.</p>
+<p>Pour comparer deux versions, conserve les mêmes conditions de test autant que possible. Répète les mesures : le réseau et l’ordonnanceur du système créent de la variabilité. N’annonce pas une amélioration de 30 % sur la base d’une unique mesure particulièrement favorable.</p>
+</section><section class="lesson-section">
+<h2>4. Optimiser selon le diagnostic</h2>
+<p>Pour améliorer le LCP, commence par l’élément LCP réel. Assure-toi que la ressource principale est découvrable tôt, qu’elle n’est pas chargée avec une priorité trop faible et que ses dimensions et son format sont adaptés. Une image essentielle placée dans le HTML peut être priorisée plus efficacement qu’une image ajoutée tard par JavaScript. La précharge peut aider dans certains cas, mais elle consomme la bande passante et doit être réservée aux ressources réellement critiques.</p>
+<p>Réduis les ressources bloquantes sans supprimer aveuglément des fonctionnalités. Fractionne le JavaScript lorsque cela permet de différer du code non nécessaire, élimine les dépendances inutilisées et évite un travail excessif sur le thread principal. Le code partagé peut réduire le téléchargement global mais augmenter le coût initial si trop de modules sont chargés sur chaque page ; mesure le compromis.</p>
+<p>Pour INP, cherche les longues tâches et déplace le travail non urgent hors du chemin de l’interaction. Découpe les calculs importants en tâches plus petites, réduis les re-rendus inutiles et évite de recalculer des structures complexes à chaque frappe. Les Web Workers conviennent à certains calculs isolables, mais ne peuvent pas manipuler directement le DOM. Un indicateur de chargement ne corrige pas une interface qui reste bloquée.</p>
+<p>Pour CLS, réserve l’espace des images et intégrations, fixe des dimensions ou un ratio d’aspect quand ils sont connus, évite d’insérer du contenu au-dessus de l’élément consulté et utilise des animations qui ne déclenchent pas de reflow lorsque possible. Les polices web peuvent aussi changer les métriques du texte ; choisis des stratégies de chargement et des polices de secours cohérentes.</p>
+</section><section class="lesson-section">
+<h2>5. Exemple de boucle d’optimisation</h2>
+<p>Supposons qu’une page produit ait un LCP de 4 secondes sur mobile. Première étape : identifier l’élément LCP et inspecter la chronologie. Si le document attend 1,8 seconde avant de répondre, la priorité peut être côté serveur ou cache. Si l’image principale n’est découverte qu’après l’exécution d’un bundle, rends-la découvrable plus tôt. Si le transfert de l’image est très long, examine sa taille, ses dimensions et son format.</p>
+<p>Formule une hypothèse mesurable : « En déclarant l’image principale directement dans le HTML et en servant une variante adaptée au mobile, le délai de découverte et le téléchargement devraient diminuer ». Mesure la taille transférée, le moment de découverte et le LCP avant/après. Vérifie ensuite la qualité visuelle et les effets sur les autres ressources critiques.</p>
+<p>Pour une mauvaise INP, profile une interaction précise, par exemple ouvrir un menu filtrant plusieurs centaines d’éléments. Si le gestionnaire calcule tout le tri avant de rendre l’état ouvert, sépare l’ouverture de la mise à jour coûteuse, utilise un filtrage plus efficace ou reporte le travail non indispensable. Vérifie que la réponse à l’interaction est perceptible et que les résultats restent exacts.</p>
+<p>Pour un CLS élevé, reproduis le déplacement et repère l’élément responsable. Ajouter `width` et `height` à une image peut réserver l’espace, mais si l’image est recadrée dans un conteneur, contrôle aussi le ratio et `object-fit`. Corrige la cause, pas seulement la valeur rapportée.</p>
+</section><section class="lesson-section">
+<h2>Pièges, limites et compromis</h2>
+<ul><li>Un score de laboratoire n’est pas une mesure directe de toutes les visites réelles.</li><li>N’optimise pas une métrique sans examiner la cause qui la dégrade.</li><li>Précharger trop de ressources peut concurrencer l’image principale ou les polices critiques.</li><li>La réduction de JavaScript peut améliorer la réactivité mais demande de vérifier le comportement fonctionnel.</li><li>Le CLS peut provenir de contenus tiers sur lesquels tu as peu de contrôle ; réserve leur espace quand c’est possible et surveille leur impact.</li><li>Les seuils sont des repères de qualité, pas un substitut aux tests d’usage ou à l’accessibilité.</li><li>Une amélioration locale peut déplacer le coût ailleurs : mesure les trois indicateurs et les fonctionnalités concernées.</li></ul>
+</section><section class="lesson-section">
+<h2>Exercice</h2>
+<p>Choisis une page réelle ou un projet de démonstration. Mesure les performances avec Lighthouse, puis inspecte la trace de chargement dans DevTools. Note le LCP, l’INP lorsqu’une mesure de terrain est disponible, et le CLS. Identifie un élément LCP ou un déplacement visuel précis. Formule une hypothèse, applique une seule correction et répète plusieurs mesures dans les mêmes conditions. Compare les résultats et explique les limites de ton échantillon.</p>
+</section><section class="lesson-section">
+<h2>Critères de réussite</h2>
+<ul class="checklist"><li>Je peux définir LCP, INP et CLS sans les confondre.</li><li>Je connais les seuils usuels et le principe du 75e percentile.</li><li>Je distingue les données de terrain des mesures de laboratoire.</li><li>Je relie une optimisation à une cause observée.</li><li>Je répète les mesures et vérifie les effets secondaires.</li><li>Je sais qu’un score favorable ne garantit pas à lui seul une bonne expérience utilisateur.</li></ul>
+</section>
+    <section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — seconde passe</h2>
+<h3>Objectifs opérationnels</h3>
+<ul>
+  <li>Interpréter LCP, INP et CLS sans confondre ces mesures avec un score synthétique unique.</li>
+  <li>Distinguer mesures de laboratoire et données d’utilisateurs réels.</li>
+  <li>Choisir une optimisation à partir d’une mesure reproductible et vérifier son effet.</li>
+</ul>
+<h3>Explications et méthode</h3>
+<p>Les seuils « bons » couramment utilisés, évalués au 75e percentile des visites, sont LCP ≤ 2,5 s, INP ≤ 200 ms et CLS ≤ 0,1. LCP décrit l’affichage du plus grand contenu visible, INP la réactivité aux interactions et CLS les déplacements inattendus de mise en page.</p>
+<p>Un test de laboratoire permet de reproduire un scénario et d’inspecter les causes. Les données terrain décrivent des appareils, réseaux et parcours réels. Une amélioration dans un seul test ne prouve pas à elle seule une amélioration globale ; segmenter par type de page, appareil et source de trafic aide à trouver les écarts.</p>
+<p>Optimiser commence par identifier l’élément ou la tâche dominante : image principale pour LCP, JavaScript coûteux pendant une interaction pour INP, dimensions réservées pour CLS. Mesure avant/après dans des conditions comparables et garde un budget de performance lié à l’expérience produit.</p>
+
+<h3>Exemple commenté</h3>
+<pre><code>&lt;!-- Réserver l’espace de l’image évite un déplacement tardif. --&gt;
+&lt;img src=&quot;/images/hero.webp&quot; alt=&quot;Vue du produit&quot;
+     width=&quot;1200&quot; height=&quot;700&quot; fetchpriority=&quot;high&quot;&gt;
+
+&lt;!-- Exemple de budget d’équipe, à adapter aux données terrain. --&gt;
+&lt;ul&gt;
+  &lt;li&gt;LCP : au plus 2,5 s au 75e percentile&lt;/li&gt;
+  &lt;li&gt;INP : au plus 200 ms au 75e percentile&lt;/li&gt;
+  &lt;li&gt;CLS : au plus 0,1 au 75e percentile&lt;/li&gt;
+&lt;/ul&gt;</code></pre>
+<h3>Pièges à éviter</h3>
+<ul>
+  <li>Traiter un score Lighthouse comme une preuve suffisante de la qualité de toutes les visites.</li>
+  <li>Précharger de nombreuses ressources prioritaires : elles entrent alors en concurrence pour la bande passante.</li>
+  <li>Optimiser une métrique sans vérifier la régression possible sur l’accessibilité, la fonctionnalité ou les autres métriques.</li>
+</ul>
+<h3>Exercice d’application</h3>
+<p>Mesure une page avec DevTools ou Lighthouse sur un profil documenté. Identifie un élément qui influence LCP, une interaction lente potentielle pour INP et une source de CLS. Applique une correction, refais le test dans les mêmes conditions et consigne les limites de la comparaison.</p>
+<h3>Critères de réussite</h3>
+<ul>
+  <li>Les trois métriques sont définies correctement et leurs seuils ne sont pas présentés comme des garanties absolues.</li>
+  <li>Le rapport sépare laboratoire et terrain, indique le scénario et conserve les résultats avant/après.</li>
+  <li>L’optimisation choisie est reliée à une cause observée et aucune régression majeure n’est masquée par un score global.</li>
+</ul>
+</section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Les ressources suivantes sont des points de départ ciblés pour vérifier les notions et poursuivre l’apprentissage. Les versions et recommandations peuvent évoluer ; consulte les pages officielles à jour.</p><ol><li><a href="https://web.dev/articles/vitals" target="_blank" rel="noopener noreferrer">web.dev — Web Vitals</a></li><li><a href="https://web.dev/learn/performance" target="_blank" rel="noopener noreferrer">web.dev — Apprendre les performances Web</a></li><li><a href="https://developer.chrome.com/docs/devtools/performance" target="_blank" rel="noopener noreferrer">Chrome for Developers — Performance dans DevTools</a></li><li><a href="https://developer.chrome.com/docs/lighthouse/overview" target="_blank" rel="noopener noreferrer">Chrome for Developers — Lighthouse</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/Performance" target="_blank" rel="noopener noreferrer">MDN — Mesurer les performances</a></li></ol></section>
+    <nav class="lesson-nav" aria-label="Navigation entre les leçons">
+      <a href="contraste-semantique-aria.html">← Précédent : Contraste, sémantique et ARIA</a>
+      <a href="issues-tickets-acceptation.html">Suivant : Issues, tickets et critères d’acceptation →</a>
+    </nav>
+  </main>
+</body>
+</html>

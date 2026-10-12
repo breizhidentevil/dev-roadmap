@@ -1,0 +1,68 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Débogage méthodique
+Les références sont des points de départ pertinents ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. Chrome DevTools — Debug JavaScript — https://developer.chrome.com/docs/devtools/javascript/
+2. Firefox DevTools — Debugger — https://firefox-source-docs.mozilla.org/devtools-user/debugger/
+3. Node.js — Debugger — https://nodejs.org/en/learn/getting-started/debugging
+4. MDN — JavaScript debugging — https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting/Debugging_JavaScript
+5. Chrome DevTools — Network panel — https://developer.chrome.com/docs/devtools/network/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Localiser la cause d’un défaut en formulant des hypothèses, en réduisant le problème et en vérifiant chaque résultat.">
+  <title>Débogage méthodique — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">6. Tests, débogage et qualité</p>
+    <h1>Débogage méthodique</h1>
+    <p class="lead">Localiser la cause d’un défaut en formulant des hypothèses, en réduisant le problème et en vérifiant chaque résultat.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Qualité et tests</span></div>
+    <section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Le débogage consiste à expliquer un comportement observé, pas à essayer des changements au hasard jusqu’à ce que l’erreur disparaisse. Tu apprendras à reproduire le défaut, formuler des hypothèses vérifiables, inspecter l’exécution et confirmer la cause avant de modifier le code.</p><ul><li>Réduire un problème à un cas reproductible.</li><li>Choisir entre logs, points d’arrêt, inspection réseau et analyse de données.</li><li>Vérifier la correction avec un test et rechercher les effets secondaires.</li></ul>
+</section><section class="lesson-section"><h2>1. Décrire le défaut précisément</h2>
+<p>Commence par distinguer le résultat attendu du résultat observé. Note les étapes, les données utilisées, l’environnement, le navigateur ou la version de runtime, l’heure éventuelle et la fréquence du défaut. « La page ne marche pas » est trop vague ; « après l’envoi du formulaire avec un titre vide, l’interface affiche un succès alors que l’API renvoie 400 » permet de cibler le problème.</p><p>Essaie de reproduire le défaut de manière fiable. Réduis ensuite le cas : retire les étapes non nécessaires, remplace les données par un exemple minimal et désactive les dépendances non pertinentes. Un cas minimal facilite la compréhension et devient souvent un excellent test de régression.</p>
+</section><section class="lesson-section"><h2>2. Formuler des hypothèses testables</h2>
+<p>À partir des symptômes, énumère quelques causes plausibles, puis cherche une observation qui permet de les départager. Exemple : si une liste est vide, les causes possibles incluent une réponse API vide, un filtre incorrect, une erreur de transformation ou un rendu conditionnel qui masque les éléments.</p><ol><li>Vérifier l’onglet Network : la requête part-elle et quel est son statut ?</li><li>Inspecter la réponse : les données attendues sont-elles présentes ?</li><li>Placer un point d’arrêt après la transformation : la structure a-t-elle changé ?</li><li>Inspecter l’état utilisé par le composant : est-il mis à jour ?</li><li>Vérifier la condition de rendu et les erreurs de console.</li></ol><p>Chaque étape réduit l’espace des causes possibles. Évite de changer simultanément plusieurs éléments : si le résultat change, tu ne sauras pas quelle modification a compté.</p>
+</section><section class="lesson-section"><h2>3. Utiliser les bons outils</h2>
+<p><strong>Logs :</strong> utiles pour les événements survenus dans un processus ou un environnement distant, à condition d’être structurés et de ne pas exposer de secrets.</p><p><strong>Points d’arrêt :</strong> suspendent l’exécution pour inspecter variables, pile d’appels et flux de contrôle. Place-les près de la transition où la valeur devient incorrecte, pas uniquement sur la ligne où l’erreur se manifeste.</p><p><strong>Onglet Network :</strong> permet de vérifier URL, méthode, statut, en-têtes, durée et corps de réponse. Il aide à distinguer un problème frontend d’un problème backend ou réseau.</p><p><strong>Stack trace :</strong> donne la chaîne d’appels associée à une exception. Lis-la depuis l’origine pertinente, et pas seulement depuis la dernière ligne du message. Une erreur affichée dans une bibliothèque peut être déclenchée par une donnée incorrecte fournie par ton code.</p>
+</section><section class="lesson-section"><h2>4. Suivre une donnée de bout en bout</h2>
+<p>Dans une application Full Stack, trace la donnée à travers les frontières : formulaire, validation cliente, requête HTTP, validation serveur, logique métier, base de données, réponse et affichage. Vérifie le format à chaque étape. Une date, par exemple, peut être interprétée dans un fuseau différent ; un nombre peut devenir une chaîne ; un champ optionnel peut être absent plutôt que défini à <code>null</code>.</p><p>Utilise un identifiant de corrélation pour relier les logs d’une même requête sans enregistrer des données sensibles. Compare la requête réellement envoyée à celle attendue par l’API et inspecte les paramètres de configuration chargés au démarrage.</p>
+</section><section class="lesson-section"><h2>5. Confirmer la cause et éviter la récidive</h2>
+<p>Une correction est crédible quand elle explique le symptôme et que l’on peut montrer pourquoi elle le supprime. Après modification, rejoue le cas minimal, exécute les tests pertinents et vérifie les scénarios voisins. Ajoute un test de régression lorsqu’il est possible d’automatiser le défaut.</p><p>Évite les « corrections » qui masquent seulement le symptôme : attraper toutes les exceptions sans les traiter, ajouter une attente arbitraire ou désactiver une validation. Si la cause n’est pas certaine, note ce qui est prouvé et ce qui reste une hypothèse.</p>
+</section><section class="lesson-section"><h2>6. Transformer une enquête en expérience contrôlée</h2>
+<p>Avant chaque manipulation, écris la prédiction : « si l’hypothèse H est vraie, l’observation O devrait apparaître ». Choisis ensuite une seule expérience qui peut invalider cette hypothèse. Cette discipline évite de confondre une corrélation avec une cause et permet de revenir sur les étapes déjà réfutées.</p>
+<table><thead><tr><th>Observation</th><th>Hypothèse à tester</th><th>Expérience discriminante</th></tr></thead><tbody><tr><td>La requête renvoie 200 mais la liste reste vide</td><td>La réponse ne correspond pas au format attendu</td><td>Inspecter le JSON brut puis la valeur après transformation</td></tr><tr><td>Le défaut n’apparaît qu’en production</td><td>Configuration ou données différentes</td><td>Comparer versions, variables non secrètes, feature flags et forme des données</td></tr><tr><td>Le défaut disparaît avec les logs</td><td>Course temporelle ou effet de bord lié à l’instrumentation</td><td>Utiliser un point d’arrêt conditionnel ou des traces à faible impact</td></tr></tbody></table>
+<p>Pour les défauts intermittents, consigne la fréquence et les conditions de déclenchement. Ne conclus pas à une résolution après une seule exécution réussie : définis à l’avance un nombre d’essais pertinent ou un test déterministe qui couvre la condition.</p>
+</section>
+<section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Modifier plusieurs variables à la fois sans mesurer l’effet de chaque changement.</li><li>Se fier uniquement au message d’erreur sans lire la pile d’appels ou le contexte réseau.</li><li>Déboguer avec des données réelles sensibles copiées dans un environnement non protégé.</li><li>Ajouter des logs qui modifient fortement le timing d’un bug concurrent.</li><li>Corriger le symptôme sans identifier la cause racine.</li><li>Oublier de supprimer les traces temporaires ou de conserver un test de régression.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Prends un bug simulé : une liste ne s’affiche pas alors que la requête API semble réussir. Reproduis-le, inspecte la réponse réseau, vérifie la transformation des données et place un point d’arrêt au moment où l’état est mis à jour. Écris une courte chronologie des observations avant de modifier le code.</p><p>Une fois la cause trouvée, corrige-la et ajoute un test adapté. Vérifie le cas nominal et un cas voisin, puis supprime les logs de diagnostic qui ne sont plus nécessaires.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Rédige un rapport de débogage pour un défaut réel ou fictif : étapes de reproduction, attendu, observé, hypothèses, observations, cause, correction et vérification.</p><p><strong>Réussite :</strong> le défaut est reproductible ou ses conditions sont clairement circonscrites ; les hypothèses sont testées séparément ; les outils sont choisis selon le symptôme ; la cause est distinguée du symptôme ; la correction est couverte par un test ou une vérification reproductible.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Ces références permettent d’approfondir les méthodes et de confronter les exemples à la version des outils utilisés dans ton projet.</p>
+      <ol><li><a href="https://developer.chrome.com/docs/devtools/javascript/" target="_blank" rel="noopener noreferrer">Chrome DevTools — Debug JavaScript</a></li><li><a href="https://firefox-source-docs.mozilla.org/devtools-user/debugger/" target="_blank" rel="noopener noreferrer">Firefox DevTools — Debugger</a></li><li><a href="https://nodejs.org/en/learn/getting-started/debugging" target="_blank" rel="noopener noreferrer">Node.js — Debugger</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting/Debugging_JavaScript" target="_blank" rel="noopener noreferrer">MDN — JavaScript debugging</a></li><li><a href="https://developer.chrome.com/docs/devtools/network/" target="_blank" rel="noopener noreferrer">Chrome DevTools — Network panel</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer les concepts et les objectifs de cette compétence.</label>
+      <label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+      <label><input type="checkbox"> Je sais reconnaître les limites et les compromis.</label>
+      <label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="cas-limites-regressions.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="logs-erreurs.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

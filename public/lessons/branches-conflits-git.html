@@ -1,0 +1,97 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Stratégie Git et résolution de conflits
+Domaine documentaire : tutoriel spécialisé
+Références retenues comme points de départ documentaires ; vérifier leur actualité et leur adéquation au projet.
+1. Git — Branching and Merging — https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging
+2. Git — Basic Branching and Merging — https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging
+3. GitHub Docs — About pull requests — https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests
+4. Atlassian — Git merge conflicts — https://www.atlassian.com/git/tutorials/using-branches/merge-conflicts
+5. Git — git-merge reference — https://git-scm.com/docs/git-merge
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Organiser les branches, intégrer les changements et résoudre les conflits sans perdre l’intention du code.">
+  <title>Stratégie Git et résolution de conflits — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">15. Méthodes de travail en équipe</p>
+    <h1>Stratégie Git et résolution de conflits</h1>
+    <p class="lead">Collaborer avec des branches et résoudre les conflits proprement.</p>
+    <div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 1 h 30</span></div>
+<section class="lesson-section"><h2>Objectifs pédagogiques</h2><ul><li>Choisir une stratégie de branches proportionnée au projet.</li><li>Résoudre un conflit en comprenant les deux changements concurrents.</li><li>Sécuriser l’intégration avec une revue, des tests et un historique lisible.</li></ul></section>
+<section class="lesson-section"><h2>1. Une branche est un pointeur, pas une copie isolée</h2><p>Git représente les versions sous forme de commits reliés entre eux. Une branche est un nom mobile qui pointe vers un commit. Créer une branche permet d’isoler une ligne de travail sans dupliquer tout le dépôt. Un conflit apparaît lorsque Git ne peut pas déterminer automatiquement comment combiner deux modifications, pas simplement parce que deux développeurs ont touché au même fichier.</p></section>
+<section class="lesson-section"><h2>2. Choisir un flux de travail</h2><p>Pour une petite équipe, une branche principale toujours intégrable, des branches courtes et des pull requests fréquentes suffisent souvent. Les branches longues divergent et rendent les intégrations plus difficiles. Les modèles plus complexes avec branches de release ou branches de développement se justifient par des besoins de livraison précis, pas par tradition.</p><pre><code>git switch main
+git pull --ff-only
+git switch -c feature/filtre-taches
+# modifier les fichiers, tester
+git add src/
+git commit -m "feat: ajouter le filtre des tâches"
+git push -u origin feature/filtre-taches</code></pre><p>Ne commitez pas les fichiers générés, secrets ou modifications sans rapport. Un commit doit représenter une unité compréhensible et vérifiable.</p></section>
+<section class="lesson-section"><h2>3. Comprendre les marqueurs de conflit</h2><p>Lors d’un conflit, Git insère généralement des marqueurs comme <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>=======</code> et <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>. La partie du haut correspond généralement à votre version courante (HEAD) et celle du bas à l’autre version, mais vérifiez toujours le contexte de la commande et de l’outil utilisé.</p><pre><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+const pageSize = 20;
+=======
+const pageSize = 50;
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; origin/main</code></pre><p>Ne choisissez pas automatiquement le haut ou le bas. Déterminez la règle attendue : faut-il conserver une seule valeur, fusionner deux comportements, ou réécrire la logique ?</p></section>
+<section class="lesson-section"><h2>4. Résoudre et vérifier</h2><p></p><ol><li>Consultez <code>git status</code> pour identifier les fichiers concernés.</li><li>Lisez les deux versions et, si nécessaire, l’historique des commits.</li><li>Éditez le fichier pour exprimer le comportement final voulu.</li><li>Supprimez tous les marqueurs de conflit.</li><li>Exécutez les tests ciblés, puis les contrôles du projet.</li><li>Marquez le fichier résolu avec <code>git add</code> et terminez l’opération en cours.</li></ol><pre><code>git status
+# corriger les fichiers
+git diff --check
+git diff
+npm test
+git add src/chemin/fichier.ts
+git status</code></pre><p>Pour un rebase ou un merge, les commandes de continuation et d’annulation diffèrent. Lisez le message de Git et utilisez <code>git rebase --continue</code>, <code>git merge --continue</code> ou l’annulation appropriée selon l’opération active.</p></section>
+<section class="lesson-section"><h2>5. Éviter les erreurs dangereuses</h2><p>Avant une commande destructive, inspectez l’état du dépôt et sauvegardez les modifications non commitées. Évitez de forcer un push sur une branche partagée sans comprendre l’impact. Ne résolvez pas un conflit en supprimant un bloc entier uniquement pour faire disparaître les marqueurs : cela peut éliminer une règle métier ou un correctif de sécurité.</p><p>Après résolution, vérifiez le diff complet et le comportement fonctionnel. La disparition des marqueurs ne prouve pas que la fusion est correcte.</p></section>
+<section class="lesson-section"><h2>6. Exercice</h2><p>Créez deux branches qui modifient la même constante et un autre fichier avec des modifications compatibles. Fusionnez-les, résolvez le conflit selon une règle explicite, puis vérifiez l’historique et exécutez les tests.</p><h3>Critères de réussite</h3><ul><li>Les branches restent courtes et leur objectif est clair.</li><li>La résolution conserve l’intention des deux changements pertinents.</li><li>Le diff ne contient aucun marqueur ni modification accidentelle.</li><li>Les tests sont exécutés après la résolution.</li></ul></section>
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — seconde passe</h2>
+<h3>Objectifs opérationnels</h3>
+<ul>
+  <li>Choisir entre merge et rebase en fonction de la politique du dépôt.</li>
+  <li>Résoudre un conflit en comprenant les deux changements plutôt qu’en choisissant mécaniquement un côté.</li>
+  <li>Vérifier l’état du dépôt et les tests avant de poursuivre une intégration.</li>
+</ul>
+<h3>Explications et méthode</h3>
+<p>Une branche est un pointeur mobile vers un commit. Un merge conserve les deux historiques et peut créer un commit de fusion ; un rebase rejoue des commits sur une nouvelle base et réécrit leurs identifiants. Ne rebase pas une branche partagée sans coordination, car les autres clones conservent l’ancien historique.</p>
+<p>Un conflit signale que Git ne peut pas décider automatiquement comment combiner des modifications. Les marqueurs indiquent des versions concurrentes, pas une réponse à sélectionner sans contexte. Lis le code environnant et l’intention de chaque commit, puis reconstruis le comportement souhaité.</p>
+<p>Avant toute commande de résolution, vérifie git status et protège le travail non commité. Après résolution, inspecte le diff, recherche les marqueurs restants, exécute les tests et confirme que le commit contient uniquement les changements attendus.</p>
+
+<h3>Exemple commenté</h3>
+<pre><code>git status
+# Actualiser les références distantes sans modifier le répertoire de travail
+git fetch origin
+# Choisir une stratégie cohérente avec les règles de l’équipe
+git switch feature/recherche
+git merge origin/main
+# Après résolution manuelle des fichiers conflictuels :
+git diff --check
+git diff --cached
+# Si le merge est devenu trop risqué, avant de le valider :
+git merge --abort</code></pre>
+<h3>Pièges à éviter</h3>
+<ul>
+  <li>Résoudre tous les conflits en choisissant « ours » ou « theirs » sans comprendre l’effet métier.</li>
+  <li>Lancer un reset destructif ou un rebase avec du travail non sauvegardé.</li>
+  <li>Oublier qu’une résolution peut être syntaxiquement valide mais supprimer un comportement de l’autre branche.</li>
+</ul>
+<h3>Exercice d’application</h3>
+<p>Crée deux branches qui modifient la même fonction de façons différentes. Intègre l’une dans l’autre, résous le conflit en conservant l’intention des deux changements, puis vérifie le diff et exécute les tests. Refais l’exercice avec une stratégie d’intégration différente si le dépôt l’autorise.</p>
+<h3>Critères de réussite</h3>
+<ul>
+  <li>La stratégie choisie respecte les conventions de l’équipe et l’historique partagé.</li>
+  <li>Aucun marqueur de conflit ne subsiste et le comportement final est expliqué.</li>
+  <li>Le dépôt est propre, le diff relu et les tests exécutés après la résolution.</li>
+</ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging" target="_blank" rel="noopener noreferrer">Git — Branching and Merging</a></li><li><a href="https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging" target="_blank" rel="noopener noreferrer">Git — Basic Branching and Merging</a></li><li><a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests" target="_blank" rel="noopener noreferrer">GitHub Docs — About pull requests</a></li><li><a href="https://www.atlassian.com/git/tutorials/using-branches/merge-conflicts" target="_blank" rel="noopener noreferrer">Atlassian — Git merge conflicts</a></li><li><a href="https://git-scm.com/docs/git-merge" target="_blank" rel="noopener noreferrer">Git — git-merge reference</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je sais expliquer ce qu’est une branche et pourquoi elle diverge.</label><label><input type="checkbox"> Je résous un conflit selon le comportement attendu, pas au hasard.</label><label><input type="checkbox"> Je vérifie le diff et les tests après l’intégration.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="pull-requests-revue-code.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="semver-changelogs.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Traces distribuées
+Domaine documentaire : observability
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. OpenTelemetry — Traces — https://opentelemetry.io/docs/concepts/signals/traces/
+2. OpenTelemetry — Propagation de contexte — https://opentelemetry.io/docs/concepts/context-propagation/
+3. W3C — Trace Context — https://www.w3.org/TR/trace-context/
+4. Jaeger — Architecture et concepts — https://www.jaegertracing.io/docs/latest/architecture/
+5. Google SRE — Distributed Systems Monitoring — https://sre.google/sre-book/monitoring-distributed-systems/
+
+Note : les cinq références documentaires ci-dessous sont reprises dans la liste visible de la page.-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Suivre le parcours d’une requête à travers plusieurs composants et comprendre où se produisent les délais ou les erreurs.">
+<title>Traces distribuées — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Architecture et ingénierie Full Stack</p>
+<h1>Traces distribuées</h1>
+<p class="lead">Suivre le parcours d’une requête à travers plusieurs composants et comprendre où se produisent les délais ou les erreurs.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un besoin réel et justifier tes choix à partir de contraintes observables.</p>
+<ul><li>Définir le vocabulaire essentiel et le problème que la compétence résout.</li><li>Appliquer les principes dans un exemple pratique et identifier les limites.</li><li>Vérifier le résultat avec des critères explicites plutôt qu’une impression subjective.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Pourquoi une trace ?</h2>
+<p>Dans un système composé de plusieurs services, une requête utilisateur peut traverser une passerelle, un backend, une base de données et plusieurs API externes. Les logs de chaque composant donnent des fragments de l’histoire, mais ils ne montrent pas toujours l’ordre des appels ni le temps consommé à chaque étape. Une trace distribuée représente ce parcours sous la forme d’un ensemble de spans reliés.</p>
+<p>Une trace possède généralement un identifiant partagé. Chaque span décrit une opération, avec son nom, son début, sa durée, son statut et des attributs utiles. Les spans peuvent être imbriqués : un span parent représente le traitement HTTP global, tandis que des spans enfants décrivent une requête SQL et un appel réseau. Cette structure aide à repérer les attentes et les erreurs qui se propagent entre services.</p>
+<p>La trace ne remplace ni les métriques ni les logs. Les métriques indiquent une tendance agrégée, par exemple un p95 qui augmente ; les traces aident à comprendre un échantillon de requêtes ; les logs décrivent des événements et des détails. Les trois signaux sont complémentaires, à condition de pouvoir les relier avec des identifiants cohérents.</p></section>
+<section class="lesson-section"><h2>2. Comprendre trace, span et propagation</h2>
+<p>Le <em>trace ID</em> identifie le parcours global. Le <em>span ID</em> identifie une opération particulière, et le lien parent-enfant représente la causalité ou la hiérarchie de traitement. Un span peut contenir des attributs comme la méthode HTTP, le nom de route ou le type d’opération, mais évite les données personnelles et les valeurs à cardinalité élevée qui ne sont pas nécessaires au diagnostic.</p>
+<p>Pour continuer la trace au-delà d’une frontière réseau, le service appelant transmet un contexte de trace selon un format partagé, couramment le standard W3C Trace Context avec des en-têtes comme <code>traceparent</code>. Le service destinataire extrait ce contexte puis crée un nouveau span lié au même parcours. Si la propagation est interrompue, l’outil peut afficher plusieurs traces indépendantes et perdre la relation entre l’appel entrant et l’appel sortant.</p>
+<p>La propagation de contexte doit être configurée et testée pour chaque protocole et chaque client. Ne suppose pas que toute bibliothèque instrumente automatiquement tous les appels. Les files de messages et les traitements asynchrones nécessitent aussi une propagation explicite ou un lien entre spans, selon la sémantique du flux.</p></section>
+<section class="lesson-section"><h2>3. Lire une trace de bout en bout</h2>
+<p>Commence par le span racine et regarde la durée totale. Identifie ensuite les spans enfants qui occupent le plus de temps. Attention : des spans imbriqués peuvent se chevaucher ; il ne faut donc pas additionner naïvement toutes les durées pour reconstituer le temps total. Une longue période sans span enfant peut représenter du travail non instrumenté, une attente ou une instrumentation incomplète.</p>
+<p>Les erreurs doivent être interprétées dans leur contexte. Un span enfant en erreur peut entraîner l’échec du parent, mais certaines erreurs sont gérées et le traitement global réussit. Examine le statut, les attributs et les logs associés. Un code HTTP 500 peut être la conséquence d’un timeout en aval ; le span révèle parfois la première défaillance plutôt que le symptôme final.</p>
+<p>Les traces peuvent aussi montrer un fan-out : un service lance plusieurs appels parallèles et attend leur résultat. Un seul appel lent peut dominer la latence totale même si la plupart des dépendances répondent vite. À l’inverse, de nombreux appels séquentiels courts peuvent s’additionner et devenir coûteux.</p></section>
+<section class="lesson-section"><h2>4. Instrumenter avec OpenTelemetry</h2>
+<p>OpenTelemetry fournit des API, des SDK et des conventions pour générer et exporter des traces. Dans une application, commence par l’instrumentation automatique supportée pour le serveur HTTP, le client HTTP et le pilote de base de données. Ajoute des spans manuels aux étapes métier où ils apportent un contexte absent des instrumentations standard.</p>
+<pre><code>// Exemple conceptuel : le nom de l'API varie selon le SDK.
+const span = tracer.startSpan("commande.calculer-total");
+try {
+  const total = calculerTotal(lignes);
+  span.setAttribute("commande.nb_lignes", lignes.length);
+  return total;
+} catch (error) {
+  span.recordException(error);
+  span.setStatus({ code: SpanStatusCode.ERROR });
+  throw error;
+} finally {
+  span.end();
+}</code></pre>
+<p>Ce code illustre les opérations, pas un fichier directement exécutable : les imports et les noms exacts dépendent du SDK et du langage. Termine toujours un span, y compris en cas d’exception. Les attributs doivent être stables, utiles et conformes à la politique de confidentialité. Évite de nommer chaque span avec un identifiant de commande unique ; conserve le nom d’opération et place seulement les attributs nécessaires.</p></section>
+<section class="lesson-section"><h2>5. Échantillonnage, coûts et sécurité</h2>
+<p>En production, enregistrer toutes les traces peut coûter cher et augmenter le volume de données. L’échantillonnage décide quelles traces sont conservées. Un échantillonnage en tête prend la décision tôt, avant de connaître le résultat complet ; il est efficace mais peut manquer des erreurs rares. Un échantillonnage en queue peut prendre en compte le statut ou la durée après collecte, au prix d’une architecture et d’une mémoire supplémentaires.</p>
+<p>La propagation d’un contexte de trace entrant ne doit pas être considérée comme une preuve d’identité ou d’autorisation. Un client peut envoyer des en-têtes arbitraires. Valide et borne les attributs, limite les données sensibles, contrôle l’accès à l’interface de traces et définis une durée de conservation. Une trace peut exposer des URL, des identifiants ou des paramètres qui n’auraient pas dû être enregistrés.</p>
+<p>Un taux d’échantillonnage trop faible peut masquer les problèmes rares ; un taux trop élevé peut dégrader le coût et la disponibilité du système d’observabilité. Adapte-le au trafic, au budget et à la criticité, puis vérifie que les parcours importants restent visibles.</p></section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Dessine le parcours d’une requête « créer une commande » à travers API, service de commandes, base et service de paiement. Pour chaque étape, définis le span, son parent, deux attributs non sensibles et les erreurs possibles. Décris ensuite comment le trace ID traverse l’appel HTTP et comment une erreur du prestataire serait repérée. Enfin, propose une règle d’échantillonnage qui conserve davantage les traces lentes ou en échec.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je distingue trace ID, span ID et relation parent-enfant.</li><li>Je sais expliquer la propagation du contexte entre services.</li><li>Je repère les délais dominants sans additionner abusivement les spans imbriqués.</li><li>Je connais le rôle d’OpenTelemetry et les limites de l’échantillonnage.</li><li>Je n’ajoute pas de secrets ni de données personnelles inutiles aux traces.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Les ressources ci-dessous sont des références pour poursuivre l’apprentissage. Elles servent de points de départ ciblés ; consulte les sections pertinentes et vérifie les détails qui dépendent de la version des outils ou de ton environnement.</p><ol><li><a href="https://opentelemetry.io/docs/concepts/signals/traces/" target="_blank" rel="noopener noreferrer">OpenTelemetry — Traces</a></li>
+<li><a href="https://opentelemetry.io/docs/concepts/context-propagation/" target="_blank" rel="noopener noreferrer">OpenTelemetry — Propagation de contexte</a></li>
+<li><a href="https://www.w3.org/TR/trace-context/" target="_blank" rel="noopener noreferrer">W3C — Trace Context</a></li>
+<li><a href="https://www.jaegertracing.io/docs/latest/architecture/" target="_blank" rel="noopener noreferrer">Jaeger — Architecture et concepts</a></li>
+<li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" target="_blank" rel="noopener noreferrer">Google SRE — Distributed Systems Monitoring</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="goulots-etranglement.html">← Identification des goulots d’étranglement</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="correlation-logs.html">Corrélation des logs →</a></nav>
+
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — lire une trace distribuée de bout en bout</h2>
+<h3>Objectifs pédagogiques</h3>
+<ul><li>Comprendre spans, traces, parenté et propagation de contexte.</li><li>Utiliser les durées et événements pour identifier une dépendance lente.</li><li>Instrumenter sans créer de données sensibles ni une cardinalité incontrôlée.</li></ul>
+<h3>Modèle mental</h3><p>Une trace représente une opération distribuée; chaque span décrit une unité de travail et porte durée, attributs et relation parent-enfant.</p>
+<h3>Propagation</h3><p>Transmettre le contexte via les mécanismes standard entre services; vérifier que les appels asynchrones ne perdent pas le contexte.</p>
+<h3>Diagnostic</h3><p>Comparer durée totale et spans enfants. Les écarts peuvent provenir du travail local, de l’attente, des files ou d’un contexte manquant.</p>
+<h3>Échantillonnage</h3><p>Choisir une stratégie compatible avec le coût et le diagnostic; les traces rares d’erreurs critiques peuvent nécessiter une politique adaptée.</p>
+<h3>Confidentialité</h3><p>Ne pas mettre jetons, mots de passe, corps complets ou données personnelles dans les attributs; borner les valeurs et la cardinalité.</p>
+<h3>Exercice pratique</h3><p>Dessiner une trace navigateur → API → service de paiement simulé → base de données. Marquer les spans, propager le contexte et diagnostiquer une latence de 800 ms dans une dépendance.</p>
+<h3>Critères de réussite</h3><ul><li>Les spans sont reliés par un contexte propagé.</li><li>La somme des durées n’est pas interprétée naïvement en présence de parallélisme.</li><li>Les attributs restent bornés et non sensibles.</li><li>Le diagnostic s’appuie sur une trace concrète.</li></ul>
+</section>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

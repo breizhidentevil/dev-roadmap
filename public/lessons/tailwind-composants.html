@@ -1,0 +1,51 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Tailwind CSS et bibliothèques de composants
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. Tailwind CSS — Documentation — https://tailwindcss.com/docs
+2. Tailwind CSS — Responsive design — https://tailwindcss.com/docs/responsive-design
+3. Tailwind CSS — Dark mode — https://tailwindcss.com/docs/dark-mode
+4. shadcn/ui — Documentation — https://ui.shadcn.com/docs
+5. W3C WAI — Principes d’accessibilité — https://www.w3.org/WAI/fundamentals/accessibility-principles/
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Construire une interface cohérente avec des styles utilitaires ou des composants existants." name="description"/>
+<title>Tailwind CSS et bibliothèques de composants — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">2. Frontend</p>
+<h1>Tailwind CSS et bibliothèques de composants</h1>
+<p class="lead">Construire des interfaces cohérentes avec des classes utilitaires, des tokens de design et des composants réutilisables.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 9 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Comprendre l’approche utilitaire de Tailwind CSS.</li><li>Construire des mises en page adaptatives avec les variantes responsive.</li><li>Réutiliser des composants sans dupliquer les classes partout.</li><li>Évaluer les compromis d’une bibliothèque de composants.</li></ul>
+</section><section class="lesson-section"><h2>Fil directeur</h2><p>Les classes utilitaires accélèrent la composition du style, mais elles ne remplacent ni un système de design ni une architecture de composants. L’objectif est de garder des règles visuelles cohérentes et de rendre les états, les variantes et l’accessibilité explicites.</p></section><section class="lesson-section"><h2>1. Lire les classes comme une composition de règles</h2><p>Une classe utilitaire représente généralement une propriété ou un petit ensemble de propriétés CSS. Un élément combine des utilitaires de mise en page, d’espacement, de typographie, de couleur et d’état. Le coût n’est pas seulement le nombre de classes : une longue chaîne incohérente peut rendre les intentions difficiles à lire.</p><pre><code>&lt;button type="button" class="rounded-md px-4 py-2 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"&gt;
+  Enregistrer
+&lt;/button&gt;</code></pre><p>Vérifie le résultat dans le navigateur et comprends les propriétés générées avant d’ajouter des exceptions contradictoires.</p></section><section class="lesson-section"><h2>2. Définir responsive et états interactifs</h2><p>Les préfixes responsive appliquent des styles à partir de seuils définis par la configuration. Conçois d’abord une disposition lisible sur petit écran, puis ajoute les changements nécessaires aux largeurs supérieures. Ne choisis pas les points de rupture uniquement d’après des modèles d’appareils : laisse le contenu révéler où la mise en page casse.</p><p>Les états `hover`, `focus-visible`, `disabled` et les variantes de thème doivent refléter un état réel. Le focus clavier doit rester visible ; une apparence désactivée doit correspondre à un contrôle effectivement désactivé.</p></section><section class="lesson-section"><h2>État désactivé : apparence et comportement</h2>
+<pre><code>&lt;button type="button" disabled
+  class="rounded-md px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"&gt;
+  Enregistrement…
+&lt;/button&gt;</code></pre>
+<p>Pour un bouton HTML natif, l’attribut <code>disabled</code> empêche l’activation et retire le contrôle du parcours de focus habituel. Les variantes Tailwind ne font que modifier son apparence : elles ne remplacent pas l’attribut. <code>aria-disabled="true"</code> communique un état aux technologies d’assistance mais ne bloque pas à lui seul l’action ; si le contrôle doit rester focusable, il faut également empêcher l’activation dans le code et tester clavier et pointeur.</p></section>
+<section class="lesson-section"><h2>3. Centraliser les décisions visuelles</h2><p>Des tokens de couleur, d’espacement, de typographie et de rayon évitent que chaque page réinvente la palette. Utilise les mécanismes de thème ou de variables de la version Tailwind du projet. Les détails de configuration et de détection des classes varient selon les versions : vérifie la documentation correspondant à celle installée.</p><p>Si une classe construite dynamiquement n’est pas détectée par l’outil, elle peut ne pas figurer dans le CSS produit. Préfère des variantes explicites ou une liste de classes statiques plutôt qu’une concaténation arbitraire.</p></section><section class="lesson-section"><h2>4. Extraire des composants au bon moment</h2><p>Extrais un composant lorsque la structure, le comportement ou le contrat se répète. Des props comme `variant` et `size` rendent les variantes prévisibles ; évite de créer une API qui expose chaque classe CSS. Les composants partagés doivent documenter leur comportement clavier, leurs états et les éléments personnalisables.</p><p>Une bibliothèque peut accélérer la construction, mais évalue son accessibilité, sa maintenance, son mode de personnalisation, ses dépendances et son adéquation au design. Un composant visuellement correct peut rester inutilisable au clavier.</p></section><section class="lesson-section"><h2>Erreurs fréquentes et diagnostic</h2><ul><li>Accumuler des classes contradictoires sans vérifier le CSS calculé.</li><li>Construire des noms de classes dynamiques que le build ne détecte pas.</li><li>N’utiliser que des états hover sans focus clavier.</li><li>Extraire chaque fragment en composant sans bénéfice de responsabilité ou réutilisation.</li><li>Choisir une bibliothèque sur l’apparence seulement.</li></ul></section><section class="lesson-section"><h2>Exercice guidé</h2><p>Construis un bouton avec les variantes primary, secondary et danger, les tailles small et large, ainsi que les états focus et disabled. Fais-le fonctionner sur mobile et desktop, puis utilise-le dans deux contextes. Vérifie le contraste et la navigation clavier.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul><li>Les classes traduisent une intention lisible et sans conflit.</li><li>Les variantes responsive sont testées aux largeurs critiques.</li><li>Le focus est visible et l’état disabled est réel.</li><li>Les variantes sont centralisées et limitées.</li><li>La décision de réutiliser ou d’adopter une bibliothèque est argumentée.</li></ul></section>
+
+
+
+
+
+
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://tailwindcss.com/docs" rel="noopener noreferrer" target="_blank">Tailwind CSS — Documentation</a></li><li><a href="https://tailwindcss.com/docs/responsive-design" rel="noopener noreferrer" target="_blank">Tailwind CSS — Responsive design</a></li><li><a href="https://tailwindcss.com/docs/dark-mode" rel="noopener noreferrer" target="_blank">Tailwind CSS — Dark mode</a></li><li><a href="https://ui.shadcn.com/docs" rel="noopener noreferrer" target="_blank">shadcn/ui — Documentation</a></li><li><a href="https://www.w3.org/WAI/fundamentals/accessibility-principles/" rel="noopener noreferrer" target="_blank">W3C WAI — Principes d’accessibilité</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="typescript-react.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="outils-frontend.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

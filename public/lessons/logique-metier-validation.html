@@ -1,0 +1,66 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Logique métier et validation des données
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. OWASP — Input Validation Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+2. MDN — Validation des formulaires — https://developer.mozilla.org/fr/docs/Learn_web_development/Extensions/Forms/Form_validation
+3. Microsoft — Domain model validation — https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-model-layer-validations
+4. Zod — Documentation — https://zod.dev/
+5. OWASP — Business Logic Security — https://owasp.org/www-project-web-security-testing-guide/
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Appliquer les règles métier et rejeter les données invalides." name="description"/>
+<title>Logique métier et validation — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">3. Backend</p>
+<h1>Logique métier et validation des données</h1>
+<p class="lead">Séparer la validation de forme, les règles métier et les invariants persistants afin que les données restent valides même en présence de requêtes concurrentes.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 10 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Distinguer validation de format et règle métier.</li><li>Valider les données à la frontière du système.</li><li>Préserver les invariants pendant les modifications.</li><li>Tester les cas limites et les tentatives de contournement.</li></ul>
+</section><section class="lesson-section"><h2>Fil conducteur</h2><p>Valider tôt améliore le message d’erreur ; garantir un invariant au niveau métier et de la base protège le système. Ces protections sont complémentaires, pas interchangeables.</p></section>
+<section class="lesson-section"><h2>1. Trois niveaux de validation</h2>
+<p>La validation syntaxique vérifie la forme d’une entrée : type, longueur, format ou structure. La validation sémantique vérifie que la valeur a un sens dans le contexte, par exemple une date de fin postérieure à une date de début. La règle métier détermine si l’opération est permise : un stock doit être suffisant, un compte doit être actif ou une commande doit être dans un état compatible.</p><p>Ces niveaux peuvent être implémentés à des endroits différents, mais ils doivent former un parcours cohérent. Une chaîne bien formée n’est pas nécessairement autorisée, et une interface qui empêche une action ne suffit pas à protéger le serveur.</p>
+</section>
+<section class="lesson-section"><h2>2. Valider à la frontière</h2>
+<p>Les données venant d’une requête HTTP, d’un fichier ou d’un service externe doivent être considérées comme non fiables. Valide leur structure au point d’entrée et convertis-les vers un type interne clair. Rejette les valeurs impossibles avec un message exploitable, sans renvoyer de détails internes.</p><pre><code>type CreateAccountInput = {
+      email: string;
+      displayName: string;
+    };
+    
+    function validateInput(value: unknown): CreateAccountInput {
+      // Vérifier le type, les champs requis,
+      // les limites et le format avant conversion.
+      throw new Error("À implémenter");
+    }</code></pre><p>Cette fonction est un squelette pédagogique, pas un validateur prêt à l’emploi. Utilise une bibliothèque adaptée ou des contrôles explicites et teste les entrées absentes, mal typées, excessivement longues et inattendues.</p>
+</section>
+<section class="lesson-section"><h2>3. Les invariants doivent tenir dans le temps</h2>
+<p>Un invariant est une condition qui doit rester vraie pour les états valides du domaine : une quantité non négative, un identifiant unique ou une transition autorisée entre statuts. La validation ne doit pas être un contrôle isolé que certaines routes peuvent oublier.</p><p>Place les règles près de la logique qui les possède et renforce-les avec les garanties de la base de données lorsque c’est possible : contraintes, clés étrangères, unicité et transactions. Les contrôles applicatifs donnent des messages utiles ; les contraintes de stockage protègent aussi contre les accès concurrents et les chemins d’écriture oubliés.</p>
+</section>
+<section class="lesson-section"><h2>4. Concurrence et opérations métier</h2>
+<p>Un contrôle peut devenir faux entre la lecture et l’écriture. Par exemple, deux requêtes peuvent lire un stock de 1 et chacune tenter d’acheter la dernière unité. Une vérification préalable seule ne garantit pas l’absence de survente.</p><p>Utilise une transaction, une mise à jour conditionnelle, une contrainte ou un verrou adapté au niveau de cohérence requis. Définis aussi comment traiter un conflit : nouvelle tentative contrôlée, réponse de conflit ou demande de confirmation. La stratégie dépend de l’opération et de la base de données.</p>
+</section>
+<section class="lesson-section"><h2>5. Erreurs et tests métier</h2>
+<p>Les erreurs de validation doivent être distinguées des erreurs inattendues. Une entrée invalide peut produire une réponse client de type 400 ou 422 selon le contrat ; une absence d’authentification ou de permission relève d’une autre catégorie. Documente la structure d’erreur pour que les clients puissent l’exploiter sans analyser du texte libre.</p><p>Teste les limites et les transitions, pas uniquement les exemples habituels : valeur minimale, maximale, champ manquant, doublon, état interdit, accès concurrent et répétition de requête. Les tests métier doivent être indépendants de l’interface afin que toutes les voies d’entrée respectent les mêmes règles.</p>
+</section>
+
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Implémente le cas métier « réserver une place » avec validation des entrées, contrôle des permissions et disponibilité limitée. Écris des tests pour une quantité invalide, une ressource absente, une réservation répétée et deux demandes concurrentes.</p><h3>Critères de réussite</h3><ul><li>Les données sont validées à l’entrée du système.</li><li>Les règles métier sont centralisées et testables.</li><li>Les invariants sont protégés même en cas de concurrence.</li><li>Les erreurs ont des catégories et réponses cohérentes.</li><li>Les tests couvrent cas limites et répétitions.</li></ul>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Considérer une validation frontend comme une protection suffisante.</li><li>Confondre format valide et opération autorisée.</li><li>Mettre les règles métier uniquement dans le contrôleur HTTP.</li><li>Oublier les contraintes de base de données et les courses concurrentes.</li><li>Retourner des erreurs internes détaillées au client.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html" rel="noopener noreferrer" target="_blank">OWASP — Input Validation Cheat Sheet</a></li><li><a href="https://developer.mozilla.org/fr/docs/Learn_web_development/Extensions/Forms/Form_validation" rel="noopener noreferrer" target="_blank">MDN — Validation des formulaires</a></li><li><a href="https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-model-layer-validations" rel="noopener noreferrer" target="_blank">Microsoft — Domain model validation</a></li><li><a href="https://zod.dev/" rel="noopener noreferrer" target="_blank">Zod — Documentation</a></li><li><a href="https://owasp.org/www-project-web-security-testing-guide/" rel="noopener noreferrer" target="_blank">OWASP — Business Logic Security</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="modules-responsabilites.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="api-rest.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html><p><strong>Repère pratique. </strong>La validation syntaxique vérifie par exemple qu’un montant est un nombre positif ; la règle métier vérifie que le compte peut effectuer l’opération ; la contrainte persistante protège l’invariant même si une autre route ou un traitement différé écrit en base.</p><p><strong>Repère pratique. </strong>Ne fais pas reposer une unicité ou un solde non négatif sur un simple contrôle préalable en lecture : deux requêtes concurrentes peuvent toutes deux réussir le contrôle. Utilise une contrainte, une transaction ou une mise à jour conditionnelle atomique, puis traite explicitement le conflit.</p><p><strong>Repère pratique. </strong>Écris des tests autour des transitions permises et interdites, pas seulement autour des fonctions isolées. Pour chaque règle, couvre au moins un cas valide, une entrée invalide et une situation de concurrence ou de conflit si elle est pertinente.</p>

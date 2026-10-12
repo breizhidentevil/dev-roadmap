@@ -1,0 +1,84 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : React : composants, props et state
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. React — Apprendre React — https://react.dev/learn
+2. React — Votre premier composant — https://react.dev/learn/your-first-component
+3. React — Passer des props — https://react.dev/learn/passing-props-to-a-component
+4. React — L’état d’un composant — https://react.dev/learn/state-a-components-memory
+5. React — Partager l’état — https://react.dev/learn/sharing-state-between-components
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Composer une interface à partir de composants réutilisables." name="description"/>
+<title>React : composants, props et state — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">2. Frontend</p>
+<h1>React : composants, props et state</h1>
+<p class="lead">Construire une interface à partir de composants réutilisables, transmettre des données avec les props et gérer l’état local.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 8 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Décomposer une interface en composants cohérents.</li><li>Écrire un composant fonctionnel en JSX.</li><li>Transmettre des données avec les props.</li><li>Choisir entre état local et valeur calculée.</li></ul>
+</section><section class="lesson-section"><h2>Fil directeur</h2><p>React transforme une description d’interface en rendu. La séparation en composants doit suivre les responsabilités de l’interface, tandis que les props transportent les entrées et l’état représente les informations qui changent au fil des interactions.</p></section><section class="lesson-section"><h2>1. Décomposer l’interface par responsabilité</h2><p>Un composant est une fonction qui reçoit des données et renvoie une description d’interface en JSX. Découpe lorsque des parties ont un rôle identifiable, des données propres ou une réutilisation réelle ; éviter de créer un composant pour chaque ligne sans bénéfice rend le code plus difficile à suivre.</p><pre><code>function ProductCard({ product }) {
+  return (
+    &lt;article&gt;
+      &lt;h2&gt;{product.name}&lt;/h2&gt;
+      &lt;p&gt;{product.price} €&lt;/p&gt;
+    &lt;/article&gt;
+  );
+}</code></pre><p>Le composant décrit le rendu à partir de ses entrées : il ne doit pas modifier directement les données reçues ni effectuer des effets externes pendant le rendu.</p></section><section class="lesson-section"><h2>2. Transmettre les entrées avec les props</h2><p>Les props sont les paramètres du composant. Elles permettent au parent de transmettre des valeurs, des callbacks ou du contenu. Traite-les comme des entrées en lecture seule : si une carte doit signaler un clic, elle appelle une fonction fournie plutôt que de modifier elle-même la collection du parent.</p><pre><code>function ProductCard({ product, onSelect }) {
+  return (
+    &lt;button onClick={() =&gt; onSelect(product.id)}&gt;
+      {product.name}
+    &lt;/button&gt;
+  );
+}</code></pre><p>Pour les listes, fournis une clé stable issue de l’identité métier. Une clé d’index peut associer un état local au mauvais élément lorsque la liste est réordonnée.</p></section><section class="lesson-section"><h2>3. Gérer les changements avec un état local</h2><p>Utilise `useState` pour une information qui évolue et influence le rendu. L’appel retourne la valeur courante et une fonction de mise à jour ; cette fonction planifie un nouveau rendu, elle ne modifie pas la variable dans le code déjà en cours.</p><pre><code>const [quantity, setQuantity] = useState(1);
+
+function increase() {
+  setQuantity(current =&gt; current + 1);
+}</code></pre><p>La mise à jour fonctionnelle est utile lorsque le prochain état dépend du précédent. Ne stocke pas une valeur calculable à partir des props et de l’état si elle peut être calculée pendant le rendu.</p></section><section class="lesson-section"><h2>4. Partager l’état au bon niveau</h2><p>Si deux composants doivent rester synchronisés, place l’état dans leur plus proche parent commun et transmets valeur et actions via props. Ce déplacement est appelé « remonter l’état ». Si la donnée n’est utilisée que localement, la remonter inutilement augmente les dépendances et les rendus à comprendre.</p><p>Un rendu doit rester prévisible : à entrées identiques, un composant doit décrire la même interface. Évite les mutations de tableaux et objets existants ; crée une nouvelle valeur avec les changements nécessaires.</p></section><section class="lesson-section"><h2>5. Donner une identité stable aux éléments d’une liste</h2>
+<pre><code>type Product = { id: string; name: string; price: number };
+type ProductCardProps = {
+  product: Product;
+  onSelect: (id: string) =&gt; void;
+};
+
+function ProductCardTyped({ product, onSelect }: ProductCardProps) {
+  return (
+    &lt;button type="button" onClick={() =&gt; onSelect(product.id)}&gt;
+      {product.name} — {product.price} €
+    &lt;/button&gt;
+  );
+}
+
+// Dans le composant parent :
+{products.map(product =&gt; (
+  &lt;ProductCardTyped
+    key={product.id}
+    product={product}
+    onSelect={onSelect}
+  /&gt;
+))}</code></pre>
+<p>La clé <code>key</code> aide React à associer chaque élément rendu à son identité lors des insertions, suppressions et réordonnancements. Elle doit être stable et unique parmi les frères ; elle n’est pas transmise comme une prop ordinaire au composant. Évite les clés aléatoires générées à chaque rendu et les index si la liste peut changer d’ordre. Le type des props rend aussi le contrat du composant explicite, mais ne valide pas les données reçues d’une API à l’exécution.</p></section>
+<section class="lesson-section"><h2>Erreurs fréquentes et diagnostic</h2><ul><li>Modifier directement une prop ou un objet d’état.</li><li>Utiliser un index de tableau comme clé pour une liste réordonnable.</li><li>Créer un état pour une valeur qui peut être calculée.</li><li>Déplacer tout l’état à la racine sans besoin partagé.</li><li>Effectuer une requête ou modifier le DOM directement pendant le rendu.</li></ul></section><section class="lesson-section"><h2>Exercice guidé</h2><p>Construis une liste de produits avec une carte réutilisable, un bouton de sélection et un compteur de quantité. Fais porter la sélection par le parent si plusieurs composants doivent l’utiliser. Ajoute, retire et réordonne des éléments pour vérifier les clés et l’immuabilité.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul><li>Chaque composant a une responsabilité identifiable.</li><li>Les props sont traitées comme des données en lecture seule.</li><li>Les changements d’état déclenchent le rendu attendu.</li><li>Les listes utilisent des clés stables.</li><li>L’état est placé au niveau minimal qui permet le partage nécessaire.</li></ul></section>
+
+
+
+
+
+
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://react.dev/learn" rel="noopener noreferrer" target="_blank">React — Apprendre React</a></li><li><a href="https://react.dev/learn/your-first-component" rel="noopener noreferrer" target="_blank">React — Votre premier composant</a></li><li><a href="https://react.dev/learn/passing-props-to-a-component" rel="noopener noreferrer" target="_blank">React — Passer des props</a></li><li><a href="https://react.dev/learn/state-a-components-memory" rel="noopener noreferrer" target="_blank">React — L’état d’un composant</a></li><li><a href="https://react.dev/learn/sharing-state-between-components" rel="noopener noreferrer" target="_blank">React — Partager l’état</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="performance-frontend.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="react-hooks.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

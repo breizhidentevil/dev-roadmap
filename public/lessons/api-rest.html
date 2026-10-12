@@ -1,0 +1,140 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Conception d’API REST
+Domaine documentaire : api
+Références consultées pour vérifier l’existence et l’adéquation générale des ressources. Elles servent de base de travail, pas de classement absolu des cinq meilleures ressources.
+1. OpenAPI — Spécification — https://spec.openapis.org/oas/latest.html
+2. MDN — Vue d’ensemble HTTP — https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview
+3. MDN — Méthodes HTTP — https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
+4. MDN — Codes de statut HTTP — https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+5. Express — Guide du routage — https://expressjs.com/en/guide/routing/
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Organiser les ressources, méthodes HTTP et réponses d’une API." name="description"/>
+<title>Conception d’API REST — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">3. Backend</p>
+<h1>Conception d’API REST</h1>
+<p class="lead">Concevoir un contrat HTTP centré sur les ressources, avec des méthodes sémantiques, des réponses prévisibles, une validation explicite et des tests de compatibilité.</p>
+<div class="lesson-meta"><span>Tutoriel complet · Niveau débutant à intermédiaire</span><span>Durée indicative : 3 h</span></div>
+<section class="lesson-section">
+<h2>Objectifs d’apprentissage</h2>
+<ul><li>Comprendre les contraintes fondamentales du style architectural REST.</li><li>Modéliser une API autour de ressources et de représentations.</li><li>Choisir des chemins, méthodes HTTP, codes de réponse et formats cohérents.</li><li>Documenter, sécuriser et tester une API REST.</li></ul>
+</section><section class="lesson-section"><h2>Fil conducteur</h2><p>La conception suit cet ordre : identifier les ressources, définir les opérations et leurs effets, choisir les statuts et représentations, fixer les règles de validation/autorisation, puis documenter et tester le contrat.</p></section>
+<section class="lesson-section">
+<h2>1. REST : un style architectural, pas une syntaxe d’URL</h2>
+<p>REST signifie Representational State Transfer. C’est un style architectural défini autour de contraintes, dont la séparation client-serveur, l’absence d’état de session applicatif obligatoire entre les requêtes, la possibilité de mise en cache, une interface uniforme et une architecture en couches. Une API qui utilise HTTP et des URL propres n’implémente pas nécessairement toutes les contraintes REST.</p>
+<p>Dans la pratique courante, « API REST » désigne souvent une API HTTP qui expose des ressources, utilise les méthodes HTTP selon leur sémantique et renvoie des représentations structurées, souvent en JSON. Comprendre la différence évite de présenter REST comme un simple modèle de nommage.</p>
+</section>
+<section class="lesson-section">
+<h2>2. Modéliser les ressources</h2>
+<p>Commencez par les objets métier que le client doit consulter ou modifier : utilisateurs, tâches, commandes, produits. Utilisez des noms de ressources plutôt que des verbes d’action dans chaque chemin.</p>
+<pre><code>GET    /api/tasks          # lister les tâches
+POST   /api/tasks          # créer une tâche
+GET    /api/tasks/42       # lire la tâche 42
+PUT    /api/tasks/42       # remplacer sa représentation
+PATCH  /api/tasks/42       # modifier certains champs
+DELETE /api/tasks/42       # supprimer la tâche 42</code></pre>
+<p>Une ressource est identifiée par une URI. Le JSON renvoyé est une représentation de son état, pas la ressource elle-même. Une route comme <code>/api/tasks/42/complete</code> peut être acceptable pour une action métier qui ne se modélise pas naturellement comme une modification de ressource, mais il vaut mieux ne pas inventer systématiquement un verbe pour chaque opération.</p>
+</section>
+<section class="lesson-section">
+<h2>3. Utiliser les méthodes HTTP selon leur sémantique</h2>
+<table><thead><tr><th>Méthode</th><th>Intention</th><th>Propriété importante</th></tr></thead><tbody>
+<tr><td><code>GET</code></td><td>Lire une représentation</td><td>Ne doit pas déclencher de modification métier.</td></tr>
+<tr><td><code>POST</code></td><td>Créer une ressource ou soumettre une opération</td><td>Pas idempotent par défaut.</td></tr>
+<tr><td><code>PUT</code></td><td>Remplacer l’état de la ressource cible</td><td>Idempotent si le serveur respecte la sémantique.</td></tr>
+<tr><td><code>PATCH</code></td><td>Appliquer une modification partielle</td><td>L’idempotence dépend de l’opération et du format choisi.</td></tr>
+<tr><td><code>DELETE</code></td><td>Supprimer la ressource cible</td><td>Idempotent au sens de l’effet attendu, même si les réponses peuvent varier.</td></tr>
+</tbody></table>
+<p>Une méthode est idempotente si répéter la même requête a le même effet intentionnel sur le serveur que la lancer une fois. Cela ne signifie pas que la réponse HTTP doit être identique à chaque appel. Cette distinction est importante pour les réessais réseau.</p>
+</section>
+<section class="lesson-section">
+<h2>4. Concevoir les réponses</h2>
+<p>Définissez des conventions homogènes pour les réponses de succès, les erreurs, la pagination, les dates et les champs facultatifs. Par exemple :</p>
+<pre><code>{
+  "data": {
+    "id": "task_42",
+    "title": "Lire la documentation HTTP",
+    "status": "open",
+    "createdAt": "2026-10-10T10:30:00Z"
+  }
+}</code></pre>
+<p>Le wrapper <code>data</code> est un choix de conception, pas une obligation universelle. L’essentiel est de prendre une décision documentée et de la garder cohérente. Les dates doivent avoir un format et un fuseau explicites ; les champs facultatifs et la nullabilité doivent être spécifiés.</p>
+<p>Choisissez des codes HTTP adaptés : 200 pour une lecture ou modification réussie avec représentation, 201 pour une création, 204 lorsque le succès ne renvoie pas de corps, 400 ou 422 pour une requête invalide selon le contrat, 401 pour l’authentification, 403 pour une action interdite, 404 pour une ressource absente et 5xx pour les erreurs serveur.</p>
+</section>
+<section class="lesson-section">
+<h2>5. Statelessness et cache</h2>
+<p>Chaque requête doit contenir les informations nécessaires à son traitement ; le serveur ne doit pas dépendre d’un état de conversation implicite conservé entre deux requêtes. Cela ne signifie pas que l’application ne possède aucune donnée persistante : les ressources et données métier peuvent évidemment être stockées en base.</p>
+<p>HTTP permet de définir les conditions de mise en cache avec des en-têtes comme <code>Cache-Control</code>, <code>ETag</code> et <code>Last-Modified</code>. Le cache peut réduire la latence et la charge, mais il doit être configuré avec prudence pour les données privées. Un cache partagé ne doit pas divulguer une réponse personnalisée à un autre utilisateur.</p>
+</section>
+<section class="lesson-section">
+<h2>6. Valider, autoriser et sécuriser chaque requête</h2>
+<p>Ne faites jamais confiance au client. Validez la structure et les valeurs des paramètres, vérifiez l’identité de l’appelant et autorisez l’action sur la ressource précise. Le fait qu’un utilisateur soit connecté ne signifie pas qu’il peut lire ou modifier toutes les ressources.</p>
+<ul><li>Validez le corps JSON et les paramètres de chemin et de requête.</li><li>Utilisez des requêtes SQL paramétrées et des listes blanches pour les champs dynamiques.</li><li>Appliquez l’autorisation côté serveur à chaque opération sensible.</li><li>Limitez la taille des corps, la fréquence des requêtes et les volumes retournés.</li><li>Ne renvoyez jamais de secrets ou de stack traces dans les réponses.</li><li>Journalisez les événements utiles sans enregistrer de jetons ni de données sensibles.</li></ul>
+</section>
+<section class="lesson-section">
+<h2>7. Documenter le contrat avec OpenAPI</h2>
+<p>OpenAPI décrit les chemins, opérations, paramètres, schémas, réponses et mécanismes de sécurité d’une API HTTP. Une spécification exploitable réduit les ambiguïtés, facilite la génération de documentation et de clients, et permet de contrôler les changements du contrat.</p>
+<p>Pour chaque opération, documentez au minimum : l’objectif, les paramètres, le corps accepté, les réponses possibles, les erreurs, les permissions nécessaires, les règles de pagination et les exemples. Évitez une documentation qui ne décrit que les réponses de succès.</p>
+</section>
+<section class="lesson-section">
+<h2>8. Exemple d’endpoint Express</h2>
+<pre><code>app.get("/api/tasks/:id", requireAuthenticatedUser, async (req, res, next) =&gt; {
+  try {
+    if (!isValidTaskId(req.params.id)) {
+      res.status(400).json({
+        error: { code: "INVALID_TASK_ID", message: "Identifiant invalide." }
+      });
+      return;
+    }
+
+    const task = await taskRepository.findById(req.params.id);
+    if (!task || !canReadTask(req.user, task)) {
+      // Politique choisie ici : ne pas révéler l’existence d’une tâche inaccessible.
+      res.status(404).json({
+        error: { code: "TASK_NOT_FOUND", message: "Tâche introuvable." }
+      });
+      return;
+    }
+
+    res.status(200).json({ data: task });
+  } catch (error) {
+    next(error);
+  }
+});</code></pre>
+<p>Les helpers <code>requireAuthenticatedUser</code>, <code>isValidTaskId</code> et <code>canReadTask</code> sont propres à l’application et doivent être implémentés et testés. La règle 404 pour une ressource inaccessible vise à masquer son existence ; un contrat peut choisir 403 s’il assume cette divulgation, mais le choix doit être cohérent. Le middleware central doit transformer les erreurs inattendues en réponse 5xx générique sans exposer la stack trace.</p>
+</section>
+<section class="lesson-section">
+<h2>9. Tests et erreurs de conception fréquentes</h2>
+<ul><li>Vérifiez les codes de statut, schémas JSON et en-têtes.</li><li>Testez un appel non authentifié (401), un identifiant invalide (400), une ressource absente et une ressource appartenant à un autre utilisateur (404 ou 403 selon le contrat).</li><li>Vérifiez qu’un utilisateur ne peut pas lire ou modifier une ressource en changeant simplement son identifiant dans l’URL.</li><li>Testez les réessais et les effets de bord pour les opérations importantes.</li><li>Testez la pagination, le tri et le comportement du cache si présents.</li><li>Évitez les chemins inconsistants, les verbes HTTP mal utilisés, les erreurs non documentées et les réponses qui changent de forme sans raison.</li></ul>
+</section>
+<section class="lesson-section">
+<h2>10. Exercice pratique</h2>
+<p>Concevez une API REST pour gérer des tâches. Écrivez les opérations de liste, lecture, création, modification partielle et suppression. Pour chacune, définissez la méthode, l’URI, les paramètres, le corps, les codes de succès, les erreurs possibles et les permissions.</p>
+<h3>Critères de réussite</h3><p>Les méthodes HTTP ont une sémantique cohérente, les routes représentent des ressources, les réponses sont documentées, la validation et l’autorisation sont côté serveur et le contrat est testable.</p>
+</section>
+<section class="lesson-section">
+<h2>Sources à étudier</h2>
+<ul><li><a href="https://spec.openapis.org/oas/latest.html">OpenAPI Specification</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview">MDN — Vue d’ensemble HTTP</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Reference/Methods">MDN — Méthodes HTTP</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Reference/Status">MDN — Codes de statut HTTP</a></li><li><a href="https://expressjs.com/en/guide/routing/">Express — Guide du routage</a></li></ul>
+</section>
+<section class="lesson-section checklist">
+<h2>Validation des acquis</h2>
+<label><input type="checkbox"/> Je sais modéliser une API autour de ressources.</label>
+<label><input type="checkbox"/> Je choisis les méthodes et codes HTTP selon leur sémantique.</label>
+<label><input type="checkbox"/> Je sais expliquer idempotence, cache et statelessness.</label>
+<label><input type="checkbox"/> Je peux documenter et tester le contrat avec OpenAPI.</label>
+</section>
+<nav class="lesson-nav"><a class="nav-link" href="logique-metier-validation.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="codes-http.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html><p><strong>Repère pratique. </strong>Préfère des noms de ressources stables (`/orders`, `/orders/{id}`) et des relations explicites. Une action métier qui ne se modélise pas naturellement comme CRUD peut être représentée par une sous-ressource ou une opération documentée ; ne force pas toutes les actions dans des verbes arbitraires dans l’URL.</p><p><strong>Repère pratique. </strong>Distingue sûreté et idempotence : `GET` ne doit pas modifier l’état métier ; `PUT` peut remplacer une représentation et être idempotent ; `POST` peut créer une opération non idempotente. Les clients peuvent réessayer après un timeout sans savoir si le serveur a terminé : prévois une clé d’idempotence pour les opérations à risque.</p><p><strong>Repère pratique. </strong>Authentifier l’appelant ne signifie pas qu’il peut accéder à chaque ressource. Vérifie l’autorisation sur l’objet demandé côté serveur, valide les données d’entrée et limite la taille/quantité des résultats avant d’exécuter le travail coûteux.</p>

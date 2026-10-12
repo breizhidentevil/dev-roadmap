@@ -1,0 +1,70 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : HTTPS et en-têtes de sécurité
+Les références ci-dessous sont des points de départ documentaires pertinents ; elles n’impliquent pas une lecture exhaustive de chaque page.
+1. MDN — Strict-Transport-Security — https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+2. MDN — Content-Security-Policy — https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
+3. OWASP — HTTP Headers Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html
+4. OWASP — Transport Layer Security Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html
+5. MDN — X-Content-Type-Options — https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Protéger le transport et renforcer les politiques du navigateur.">
+  <title>HTTPS et en-têtes de sécurité — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">5. Sécurité applicative</p>
+    <h1>HTTPS et en-têtes de sécurité</h1>
+    <p class="lead">Protéger le transport et renforcer les politiques du navigateur.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Sécurité applicative</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>Tu dois pouvoir expliquer ce que garantit HTTPS, choisir quelques en-têtes de sécurité adaptés et vérifier leur présence sur les réponses réelles. Tu dois aussi comprendre qu’un en-tête mal configuré peut casser l’application ou créer un faux sentiment de sécurité.</p><ul><li>Distinguer chiffrement du transport, identité du serveur et protection côté navigateur.</li><li>Comprendre HSTS, CSP, nosniff et les politiques de référent.</li><li>Déployer les changements progressivement et surveiller les effets secondaires.</li></ul>
+</section><section class="lesson-section"><h2>1. Ce que HTTPS garantit</h2>
+<p>HTTPS utilise TLS pour protéger la confidentialité et l’intégrité des échanges et authentifier le serveur via son certificat. Il ne corrige pas une autorisation défaillante, une injection SQL ou une XSS. Les données peuvent encore être exposées par l’application, les logs, le navigateur ou un poste compromis.</p><p>En production, redirige HTTP vers HTTPS et assure-toi que les ressources, API et liens utilisés par la page ne réintroduisent pas de contenu non sécurisé. Le renouvellement du certificat, la chaîne de confiance et la configuration TLS doivent être surveillés.</p>
+</section><section class="lesson-section"><h2>2. HSTS : mémoriser l’usage de HTTPS</h2>
+<p><code>Strict-Transport-Security</code> indique au navigateur de privilégier HTTPS pour les connexions futures à l’hôte. Exemple :</p><pre><code>Strict-Transport-Security: max-age=31536000; includeSubDomains</code></pre><p>N’active <code>includeSubDomains</code> que si tous les sous-domaines concernés supportent HTTPS. Le paramètre <code>preload</code> implique un processus externe et des exigences strictes ; ne l’ajoute pas sans vérifier que le domaine est prêt et que l’engagement est voulu. HSTS n’est pris en compte que lorsqu’il est reçu sur une connexion HTTPS valide.</p>
+</section><section class="lesson-section"><h2>3. CSP : réduire les sources de contenu</h2>
+<p>La Content Security Policy définit les sources depuis lesquelles le navigateur peut charger des scripts, styles, images et autres ressources. Une politique de départ peut être restrictive :</p><pre><code>Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'</code></pre><p>Une application réelle doit compléter cette politique selon ses besoins, notamment pour les scripts, styles, API, polices et intégrations. Évite de copier une liste de domaines trop large ou de compter sur <code>'unsafe-inline'</code> comme solution durable. Les nonces ou hashes peuvent permettre une politique de scripts plus stricte.</p><p>Commence éventuellement par <code>Content-Security-Policy-Report-Only</code> pour observer les violations sans bloquer immédiatement les ressources, puis resserre la politique et passe en mode effectif après validation.</p>
+</section><section class="lesson-section"><h2>4. En-têtes complémentaires</h2>
+<ul><li><code>X-Content-Type-Options: nosniff</code> demande au navigateur de respecter le type MIME annoncé plutôt que de tenter certaines interprétations.</li><li><code>Referrer-Policy: strict-origin-when-cross-origin</code> limite les informations de provenance envoyées à d’autres origines, tout en conservant un comportement utile dans de nombreux cas.</li><li><code>frame-ancestors</code> dans CSP contrôle les sites qui peuvent intégrer la page dans une frame.</li><li><code>Permissions-Policy</code> permet de restreindre l’accès à certaines fonctionnalités du navigateur, selon les besoins du produit.</li></ul><p>Ne copie pas une liste sans comprendre son effet. Par exemple, interdire toute intégration en frame peut casser un flux légitime d’administration ou d’intégration partenaire.</p>
+</section><section class="lesson-section"><h2>5. Déploiement et vérification</h2>
+<p>Les en-têtes doivent être définis à un niveau cohérent : application, reverse proxy ou CDN. Évite les valeurs contradictoires ajoutées par plusieurs couches. Vérifie les réponses HTML, API, erreurs et redirections, pas uniquement la page d’accueil.</p><p>Tu peux inspecter les en-têtes avec l’onglet Réseau du navigateur ou une commande GET qui conserve les en-têtes sans afficher le corps :</p><pre><code>export APP_URL="https://app.example.test"
+curl -sS -D - -o /dev/null "$APP_URL/"</code></pre><p>Une requête HEAD (<code>curl -I</code>) peut suivre un chemin différent de GET selon le serveur. Vérifie aussi la chaîne de redirections avec <code>curl -sS -D - -o /dev/null -L "$APP_URL/"</code>, puis teste séparément les routes API, les réponses 404/500 et les ressources statiques. Ces commandes inspectent les réponses HTTP ; elles ne prouvent pas à elles seules que le navigateur applique la politique comme prévu.</p><h3>Matrice de vérification</h3><ul><li>HTTP redirige vers HTTPS sans boucle et sans rétrograder une URL sensible.</li><li>La réponse HTML principale, une route API, une ressource statique et une page d’erreur portent les en-têtes attendus.</li><li>La CSP en mode rapport produit des rapports utiles sans exposer de données sensibles ; les violations légitimes sont examinées avant le mode bloquant.</li><li>HSTS n’est testé qu’après validation du HTTPS sur tous les hôtes inclus ; <code>includeSubDomains</code> et <code>preload</code> ne sont pas ajoutés par défaut.</li></ul>
+</section><section class="lesson-section"><h2>Déployer les en-têtes sans casser l’application</h2>
+<p>Les en-têtes de sécurité doivent être testés sur les réponses HTML, les erreurs, les redirections et les sous-domaines concernés. HTTPS protège le transport entre les points terminaux, mais ne rend pas l’application sûre contre les contrôles d’accès défaillants ou les scripts injectés.</p><p>Déploie une CSP en mode rapport avant d’appliquer une politique restrictive, analyse les violations puis retire progressivement les exceptions. Évite d’autoriser largement <code>unsafe-inline</code> ou <code>*</code> pour faire disparaître les erreurs. HSTS ne doit être activé qu’après confirmation que le domaine et les sous-domaines visés peuvent fonctionner durablement en HTTPS ; l’option preload a des conséquences de déploiement difficiles à annuler rapidement.</p><ul><li>Vérifier la chaîne de certificats, le renouvellement et les redirections HTTP vers HTTPS.</li><li>Contrôler CSP, <code>X-Content-Type-Options</code> et les politiques de cadrage selon l’application.</li><li>Tester les ressources tierces, les connexions API, les iframes légitimes et les pages d’erreur.</li><li>Conserver un plan de retour arrière pour les politiques qui bloquent une fonctionnalité.</li></ul>
+<h2>Erreurs fréquentes</h2>
+<ul><li>Activer HSTS avant que HTTPS soit correctement opérationnel sur les sous-domaines visés.</li><li>Déployer une CSP copiée telle quelle, qui bloque des scripts nécessaires ou autorise trop de sources.</li><li>Penser que les en-têtes remplacent l’encodage de sortie, les contrôles d’accès ou les mises à jour.</li><li>Ne vérifier que le code 200 et oublier les pages d’erreur ou redirections.</li><li>Ajouter plusieurs valeurs contradictoires depuis le serveur et le proxy.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Sur une application de test que tu contrôles, relève les en-têtes existants, puis propose HSTS, CSP, nosniff et une politique de référent. Si tu ajoutes CSP, commence en mode rapport et observe les violations pendant que tu parcours les fonctionnalités principales.</p><p>Teste les pages de connexion, les formulaires, les images, les scripts, les appels API et les intégrations externes avant d’appliquer la politique en mode bloquant.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Écris un tableau avec chaque en-tête, la menace ciblée, la valeur choisie, les effets secondaires possibles et le test de validation.</p><p><strong>Réussite :</strong> HTTPS fonctionne sur tous les hôtes concernés ; HSTS est activé avec un périmètre compris ; la CSP est testée sur les parcours réels ; les en-têtes sont cohérents sur les réponses principales et d’erreur ; aucune politique n’est ajoutée sans justification ; les contrôles applicatifs restent en place.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Utilise ces références pour approfondir les mécanismes, vérifier les détails d’implémentation et comparer les recommandations selon ton environnement.</p>
+      <ol><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security" target="_blank" rel="noopener noreferrer">MDN — Strict-Transport-Security</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy" target="_blank" rel="noopener noreferrer">MDN — Content-Security-Policy</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — HTTP Headers Cheat Sheet</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Transport Layer Security Cheat Sheet</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options" target="_blank" rel="noopener noreferrer">MDN — X-Content-Type-Options</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer le mécanisme et son objectif de sécurité.</label>
+      <label><input type="checkbox"> Je peux appliquer une configuration adaptée à un cas concret.</label>
+      <label><input type="checkbox"> Je sais distinguer la protection apportée de ce qu’elle ne protège pas.</label>
+      <label><input type="checkbox"> Je peux tester le comportement attendu et documenter les limites.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="securite-sessions-tokens.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="gestion-secrets.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!-- SOURCES DOCUMENTAIRES
+- Documentation OpenAI — bonnes pratiques: https://platform.openai.com/docs/guides/prompt-engineering
+- GitHub Copilot — bonnes pratiques: https://docs.github.com/en/copilot/using-github-copilot/best-practices-for-using-github-copilot
+- OWASP — Top 10 for LLM Applications: https://owasp.org/www-project-top-10-for-large-language-model-applications/
+- MDN — JavaScript: https://developer.mozilla.org/fr/docs/Web/JavaScript
+- Git documentation: https://git-scm.com/docs
+Ces liens sont des points de départ documentaires ciblés ; ils ne constituent pas une affirmation de lecture intégrale de chaque ressource.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Apprendre à utiliser un assistant d’IA pour explorer un problème, accélérer certaines tâches et vérifier le résultat sans déléguer son jugement technique.">
+  <title>Utiliser l’IA comme outil de développement — Parcours Full Stack</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a href="/" target="_top">Parcours Full Stack</a>
+    <nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav>
+  </header>
+  <main class="lesson">
+    <p class="eyebrow">Tutoriel technique</p>
+    <h1>Utiliser l’IA comme outil de développement</h1>
+    <p class="lead">Apprendre à utiliser un assistant d’IA pour explorer un problème, accélérer certaines tâches et vérifier le résultat sans déléguer son jugement technique.</p>
+    
+<h2>1. Objectifs et prérequis</h2>
+<p>À la fin de ce module, vous saurez transformer une demande vague en question vérifiable, fournir le contexte utile à un assistant, demander une explication ou un petit changement, contrôler la réponse et conserver une trace propre du travail effectué. Vous devez déjà pouvoir lire un peu de code, lancer le projet et consulter les messages d’erreur. L’IA ne remplace pas ces compétences : elle les rend plus productives quand vous les mobilisez.</p>
+<h2>2. Le bon modèle mental : un collaborateur rapide, pas une autorité</h2>
+<p>Un modèle de langage produit une réponse plausible à partir du contexte et de ses apprentissages. Il peut proposer une solution correcte, mais aussi inventer une API, oublier un cas limite ou mélanger des versions de bibliothèques. Une réponse fluide n’est donc pas une preuve. Traitez chaque proposition comme une hypothèse à vérifier dans le code, les tests et la documentation officielle.</p>
+<p>Le risque augmente quand la question manque de contexte : version du langage, framework, contraintes métier, message d’erreur et résultat attendu. Avant de demander une solution, rassemblez ces éléments. Ne transmettez pas de secrets, jetons d’accès, données personnelles ou code confidentiel sans autorisation explicite et cadre approuvé.</p>
+<h2>3. Formuler une demande utile</h2>
+<p>Une bonne consigne précise le contexte, le résultat attendu, les contraintes et la forme de réponse souhaitée. Demandez une seule tâche à la fois, en particulier lorsque vous apprenez. Par exemple, au lieu de « corrige mon application », donnez le comportement attendu, le comportement observé, le message d’erreur et l’extrait minimal qui reproduit le problème.</p>
+<pre><code>Contexte : API TypeScript, Node.js, tests avec Vitest.
+Attendu : refuser un identifiant vide avec une erreur explicite.
+Observé : la fonction accepte "".
+Contraintes : ne pas ajouter de dépendance.
+Demande : explique d’abord la cause probable, puis propose un
+correctif minimal et deux tests couvrant le cas valide et le cas invalide.
+Signale les hypothèses et les points à vérifier.</code></pre>
+<p>Cette formulation limite les réponses hors sujet. Elle vous aide aussi à comparer plusieurs solutions : coût, lisibilité, sécurité, complexité et compatibilité avec le projet.</p>
+<h2>4. Un cycle de travail sûr</h2>
+<ol>
+<li><strong>Comprendre :</strong> définissez le problème et reproduisez-le sans IA si possible.</li>
+<li><strong>Découper :</strong> demandez une explication ou une proposition limitée à un fichier ou à une fonction.</li>
+<li><strong>Examiner :</strong> lisez chaque ligne et repérez les hypothèses, effets de bord et dépendances ajoutées.</li>
+<li><strong>Vérifier :</strong> consultez la documentation officielle, lancez les tests, le linter et le build.</li>
+<li><strong>Intégrer :</strong> appliquez un changement à la fois, puis inspectez le diff Git.</li>
+<li><strong>Documenter :</strong> notez ce qui a été décidé et pourquoi, pas seulement que « l’IA l’a suggéré ».</li>
+</ol>
+<p>Si la proposition est longue, demandez d’abord un plan et validez-le avant de générer du code. Pour un bug, demandez une hypothèse testable plutôt qu’une réécriture complète. Pour un concept nouveau, demandez une explication, un exemple minimal, puis un exercice sans solution immédiate.</p>
+<h2>5. Exemple : vérifier une proposition</h2>
+<p>Supposons que l’assistant propose de remplacer une boucle par <code>items.map(...)</code>. Ne retenez pas ce changement uniquement parce qu’il est plus court. Demandez-vous si le résultat de <code>map</code> est utilisé, si la fonction doit produire un tableau ou des effets de bord, si les valeurs nulles sont possibles et si le changement préserve l’ordre. Une transformation qui compile peut tout de même modifier le comportement.</p>
+<pre><code>function total(prices: number[]): number {
+  return prices.reduce((sum, price) => sum + price, 0);
+}
+
+// Tests à écrire avant ou après la proposition :
+total([])          // 0
+total([2, 3.5])    // 5.5</code></pre>
+<p>Vérifiez également les hypothèses métier : faut-il arrondir chaque prix, ou seulement le total ? Les nombres flottants peuvent produire des écarts de représentation. L’assistant doit vous aider à identifier cette question, pas décider de la règle métier à votre place.</p>
+<h2>6. Construire une chaîne de preuves</h2>
+<p>Pour chaque proposition générée, séparez l’affirmation, la preuve nécessaire et le risque si elle est fausse. Une réponse peut être syntaxiquement valide tout en violant une règle métier, en affaiblissant une autorisation ou en changeant le contrat public. La revue doit donc porter sur le comportement attendu, pas seulement sur la forme du code.</p>
+<table><thead><tr><th>Affirmation proposée</th><th>Preuve à chercher</th><th>Signal d’alerte</th></tr></thead><tbody>
+<tr><td>« Cette API existe »</td><td>Référence officielle pour la version installée, puis compilation ou test minimal.</td><td>Import inventé, signature différente ou option dépréciée.</td></tr>
+<tr><td>« Le bug est corrigé »</td><td>Test qui échoue avant le correctif et réussit après, plus tests de régression.</td><td>Seul le cas nominal est testé.</td></tr>
+<tr><td>« Le code est sûr »</td><td>Contrôles adaptés au risque : validation, autorisations côté serveur, secrets et dépendances.</td><td>La conclusion repose uniquement sur une explication de l’assistant.</td></tr>
+<tr><td>« Le refactoring est équivalent »</td><td>Tests du comportement observable et inspection du diff.</td><td>Changement des effets de bord, de l’ordre ou des erreurs renvoyées.</td></tr>
+</tbody></table>
+<p>Traitez aussi le contenu analysé comme une entrée non fiable : un fichier, un commentaire ou un message d’issue peut contenir des instructions destinées à manipuler l’assistant. Ces instructions ne remplacent pas les consignes du projet et ne justifient jamais d’exposer des secrets ou d’exécuter une commande sans l’avoir comprise. Limitez les permissions des outils connectés et examinez toute commande destructive avant exécution.</p>
+<p>Avant de valider un changement, reliez chaque exigence importante à une preuve : test, type, revue de sécurité, mesure ou vérification documentaire. Si aucune preuve raisonnable n’est disponible, notez explicitement l’incertitude au lieu de déclarer le travail terminé.</p>
+<h2>7. Erreurs fréquentes et limites</h2>
+<ul>
+<li><strong>Accepter du code non compris :</strong> vous ne pourrez ni le maintenir ni le déboguer.</li>
+<li><strong>Demander une architecture complète trop tôt :</strong> la réponse peut multiplier abstractions et dépendances sans besoin démontré.</li>
+<li><strong>Confondre compilation et correction :</strong> les tests doivent vérifier les exigences, pas seulement l’absence d’erreur.</li>
+<li><strong>Copier un exemple obsolète :</strong> vérifiez les versions et les API dans la documentation.</li>
+<li><strong>Envoyer des informations sensibles :</strong> minimisez le contexte et respectez les règles du projet.</li>
+<li><strong>Faire confiance à une référence non vérifiée :</strong> ouvrez les liens, confirmez que la page et l’API existent.</li>
+</ul>
+<p>Le bon indicateur de productivité n’est pas le volume de code généré. C’est le temps gagné pour obtenir un changement compris, testé et maintenable.</p>
+<h2>8. Exercice</h2>
+<p>Choisissez un bug simple dans un petit projet. Rédigez une consigne avec le contexte, le résultat attendu, le résultat observé, les contraintes et un extrait minimal. Demandez deux hypothèses de cause et un test qui permettrait de les départager. Ensuite, vérifiez la proposition sans copier-coller aveuglément, écrivez les tests, lancez-les et examinez le diff.</p>
+<h2>9. Critères de réussite</h2>
+<ul class="checklist">
+<li>Je sais fournir le contexte minimal nécessaire à une demande.</li>
+<li>Je distingue une hypothèse plausible d’un fait confirmé.</li>
+<li>Je peux expliquer chaque ligne de code intégré.</li>
+<li>J’ai vérifié le résultat avec des tests et la documentation pertinente.</li>
+<li>Je n’ai transmis aucun secret ni donnée interdite.</li>
+<li>Je peux décrire les limites de la solution et les risques restants.</li>
+</ul>
+
+    <section class="sources">
+      <h2>Sources documentaires</h2>
+      <p>Utilisez ces références pour approfondir les concepts et vérifier les détails liés aux versions.</p>
+      <ul><li><a href="https://platform.openai.com/docs/guides/prompt-engineering" target="_blank" rel="noopener noreferrer">Documentation OpenAI — bonnes pratiques</a></li>
+<li><a href="https://docs.github.com/en/copilot/using-github-copilot/best-practices-for-using-github-copilot" target="_blank" rel="noopener noreferrer">GitHub Copilot — bonnes pratiques</a></li>
+<li><a href="https://owasp.org/www-project-top-10-for-large-language-model-applications/" target="_blank" rel="noopener noreferrer">OWASP — Top 10 for LLM Applications</a></li>
+<li><a href="https://developer.mozilla.org/fr/docs/Web/JavaScript" target="_blank" rel="noopener noreferrer">MDN — JavaScript</a></li>
+<li><a href="https://git-scm.com/docs" target="_blank" rel="noopener noreferrer">Git documentation</a></li></ul>
+    </section>
+    <nav class="lesson-navigation" aria-label="Navigation entre les leçons">
+      <a rel="prev" href="open-source.html">← Précédent : Lire et contribuer à l’open source</a>
+      <a rel="next" href="choix-techniques.html">Suivant : Expliquer les choix techniques →</a>
+    </nav>
+  </main>
+  <footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

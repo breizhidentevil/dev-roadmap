@@ -1,0 +1,50 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Next.js
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. Next.js — Documentation — https://nextjs.org/docs
+2. Next.js — App Router — https://nextjs.org/docs/app
+3. Next.js — Server and Client Components — https://nextjs.org/docs/app/getting-started/server-and-client-components
+4. Next.js — Data fetching — https://nextjs.org/docs/app/getting-started/fetching-data
+5. Next.js — Caching — https://nextjs.org/docs/app/guides/caching
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Comprendre routage, rendu serveur et récupération des données." name="description"/>
+<title>Next.js — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">2. Frontend</p>
+<h1>Next.js</h1>
+<p class="lead">Comprendre le routage basé sur les fichiers, les composants serveur et client, le rendu et la récupération de données dans Next.js.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 9 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Expliquer le rôle de l’App Router et des segments de route.</li><li>Distinguer composants serveur et composants client.</li><li>Choisir où récupérer les données.</li><li>Comprendre les compromis du rendu et du cache.</li></ul>
+</section><section class="lesson-section"><h2>Fil directeur</h2><p>Next.js ajoute au modèle React des conventions de routage, des capacités de rendu serveur et des mécanismes de récupération et de cache. La première décision consiste à savoir où une opération doit s’exécuter, puis à traiter explicitement les erreurs, les permissions et la fraîcheur des données.</p></section><section class="lesson-section"><h2>1. Faire correspondre l’arborescence aux URL</h2><p>Avec l’App Router, les dossiers sous `app` définissent les segments de route. `page.tsx` rend une page, `layout.tsx` partage une structure, `loading.tsx` décrit un état de chargement et `error.tsx` une frontière de gestion d’erreur. Un segment dynamique comme `[id]` représente une ressource, mais ne valide pas l’identifiant.</p><p>Dans l’App Router, `error.tsx` doit être un composant client et commencer par la directive `"use client"`. Il reçoit notamment `error` et `reset` ; ce dernier permet de proposer une nouvelle tentative. N’affiche pas directement les détails internes de l’exception au visiteur.</p><pre><code>app/
+  products/page.tsx
+  products/[id]/page.tsx</code></pre><p>Prévois explicitement le cas où la ressource n’existe pas et valide les paramètres avant de les utiliser dans des opérations sensibles.</p></section><section class="lesson-section"><h2>2. Choisir la frontière serveur/client</h2><p>Les composants serveur sont le choix par défaut dans l’App Router. Ils peuvent accéder aux données côté serveur et éviter d’envoyer au navigateur du JavaScript inutile. Un composant client est nécessaire pour les Hooks d’état, les gestionnaires d’événements et les API du navigateur ; le fichier commence alors par la directive `"use client"`.</p><p>Garde cette frontière aussi étroite que possible. Les props transmises doivent être sérialisables selon les règles de React/Next.js. Toute donnée envoyée au client peut être inspectée : ne transmets pas de secrets et ne confonds pas masquage visuel et autorisation.</p></section><section class="lesson-section"><h2>3. Récupérer et valider les données</h2><p>Un composant serveur peut effectuer une récupération asynchrone. Vérifie le statut de la réponse, valide sa structure et traite séparément les erreurs et l’absence de résultat. Un type TypeScript seul ne valide pas un JSON à l’exécution.</p><pre><code>const response = await fetch(sourceUrl);
+if (!response.ok) {
+  throw new Error("Impossible de charger les produits");
+}
+const payload: unknown = await response.json();
+// Valider payload avant de le transmettre à l’interface.</code></pre><p>L’URL est fournie par la configuration du projet ; ne place pas d’identifiants privés dans le code client.</p></section><section class="lesson-section"><h2>4. Définir rendu, chargement et cache</h2><p>Le rendu serveur, l’hydratation client et le streaming peuvent être combinés pour afficher du contenu progressivement. Utilise `loading.tsx` ou des frontières de suspension lorsque le chargement doit être représenté, et prévois une voie claire pour les erreurs.</p><p>Le cache peut réduire le travail et la latence, mais il peut aussi servir des données périmées. Les valeurs par défaut et les API de cache changent selon les versions de Next.js : vérifie la documentation de la version installée et définis explicitement les besoins de fraîcheur et d’isolation.</p></section><section class="lesson-section"><h2>5. Sécuriser et vérifier le déploiement</h2><p>Contrôle l’autorisation côté serveur pour chaque lecture ou mutation sensible, y compris lorsque l’identifiant vient de l’utilisateur. Le fait qu’un bouton soit caché ne protège pas une route. Vérifie aussi que les réponses en cache ne partagent pas des données propres à un utilisateur entre sessions.</p><p>Avant déploiement, teste les routes directes, les identifiants inconnus, les états de chargement et d’erreur, les variables d’environnement, les chemins d’assets et les politiques de cache. Le mode développement ne reproduit pas nécessairement toutes les caractéristiques du build de production.</p></section><section class="lesson-section"><h2>Erreurs fréquentes et diagnostic</h2><ul><li>Ajouter `use client` à toute l’application par défaut.</li><li>Supposer qu’un type TypeScript valide le JSON reçu.</li><li>Confondre absence de résultat et panne inattendue.</li><li>Supposer que le cache se comporte de la même façon dans toutes les versions.</li><li>Vérifier les permissions uniquement dans l’interface.</li></ul></section><section class="lesson-section"><h2>Exercice guidé</h2><p>Crée une route de liste de produits et une route dynamique de détail. Charge les données dans un composant serveur, valide la réponse, puis ajoute un composant client pour une interaction locale. Gère ressource absente, chargement, erreur et politique de cache ; teste les permissions côté serveur.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul><li>L’arborescence correspond aux URL attendues.</li><li>Les composants client ne contiennent que les interactions nécessaires.</li><li>Les données externes sont vérifiées à l’exécution.</li><li>Les erreurs et ressources absentes ont des comportements distincts.</li><li>Permissions et cache sont définis et testés côté serveur.</li></ul></section>
+
+
+
+
+
+
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://nextjs.org/docs" rel="noopener noreferrer" target="_blank">Next.js — Documentation</a></li><li><a href="https://nextjs.org/docs/app" rel="noopener noreferrer" target="_blank">Next.js — App Router</a></li><li><a href="https://nextjs.org/docs/app/getting-started/server-and-client-components" rel="noopener noreferrer" target="_blank">Next.js — Server and Client Components</a></li><li><a href="https://nextjs.org/docs/app/getting-started/fetching-data" rel="noopener noreferrer" target="_blank">Next.js — Data fetching</a></li><li><a href="https://nextjs.org/docs/app/guides/caching" rel="noopener noreferrer" target="_blank">Next.js — Caching</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="outils-frontend.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="tests-frontend.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

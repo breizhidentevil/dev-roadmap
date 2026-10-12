@@ -1,0 +1,98 @@
+<!-- SOURCES DOCUMENTAIRES
+- Choose a License: https://choosealicense.com/
+- SPDX — License List: https://spdx.org/licenses/
+- npm Docs — package.json license field: https://docs.npmjs.com/cli/v10/configuring-npm/package-json#license
+- GitHub Docs — Licensing a repository: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository
+- Open Source Initiative — Approved licenses: https://opensource.org/licenses/
+Références ciblées servant de points d’entrée documentaires ; leur présence ne signifie pas que chaque ressource a été intégralement lue.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Dépendances, licences et publication de packages — tutoriel de la roadmap Full Stack 2026.">
+<title>Dépendances, licences et publication de packages — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Roadmap Full Stack 2026</a></header>
+<main class="lesson">
+<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="/" target="_top">Accueil</a> / Tutoriel</nav>
+<article>
+<header class="lesson-header"><h1>Dépendances, licences et publication de packages</h1><p>Publier un package réutilisable implique plus que construire un fichier JavaScript. Le dépôt doit indiquer les droits accordés aux utilisateurs, les dépendances doivent être compatibles avec la distribution prévue et le contenu publié doit être vérifiable. Une licence ne remplace pas les obligations liées aux dépendances, aux marques ou aux données ; elle fournit un cadre juridique qui doit être choisi et appliqué avec soin.</p></header>
+<section><h2>Objectifs pédagogiques</h2><ul><li>Comprendre le rôle d’une licence open source et les différences générales entre familles de licences.</li><li>Inventorier les licences des dépendances et repérer les incompatibilités potentielles.</li><li>Préparer les métadonnées et le contenu d’un package publiable.</li><li>Automatiser des contrôles de contenu, de version, de tests et de provenance.</li></ul></section>
+<section><h2>Prérequis</h2><p>Connaître les bases du HTML, du CSS et du JavaScript, savoir inspecter une page dans les outils de développement du navigateur et pouvoir modifier un exemple simple. Les notions propres à ce sujet sont introduites progressivement. Il n’est pas nécessaire de maîtriser tous les outils cités avant de commencer.</p></section>
+<section><h2>1. Comprendre ce que permet une licence</h2><p>Le droit d’auteur protège généralement le code dès sa création. Publier un dépôt public ne signifie pas automatiquement autoriser sa réutilisation. Une licence explicite indique les permissions et obligations applicables. Les licences permissives, comme MIT ou BSD, autorisent généralement une réutilisation large sous certaines conditions, notamment la conservation des avis requis. Les licences avec copyleft imposent, dans certaines situations de redistribution, des obligations supplémentaires sur les œuvres dérivées ou les composants couverts.</p><p>Ces catégories ne suffisent pas à déterminer seules la compatibilité d’un projet. Le choix dépend de l’usage, de la distribution, des dépendances, des contributions et parfois du contexte professionnel. Ne copiez pas une licence choisie au hasard : l’auteur ou l’organisation doit être habilité à accorder les droits concernés. En cas d’incertitude juridique importante, faites examiner le cas par une personne compétente.</p></section><section><h2>2. Inventorier les dépendances</h2><p>Une dépendance peut embarquer du code, des notices, des polices, des images ou des données soumis à des conditions différentes. Établissez un inventaire à partir des dépendances directes et transitives, puis vérifiez les licences et avis requis. Le champ `license` d’un manifeste est utile, mais il ne prouve pas à lui seul que tous les fichiers distribués sont conformes. Certaines métadonnées sont absentes, imprécises ou utilisent des expressions qui demandent une vérification.</p><p>Définissez une politique pour les licences acceptées, les exceptions et les dépendances à faire examiner. Automatisez l’inventaire dans l’intégration continue et conservez les rapports utiles. Ne traitez pas un scanner comme un avis juridique définitif : il identifie des signaux à examiner, mais peut produire des faux positifs ou manquer des fichiers. Les notices de copyright et de licence doivent accompagner le package lorsque les conditions applicables l’exigent.</p></section><section><h2>3. Préparer le package publié</h2><p>Le manifeste doit fournir un nom unique, une version, une description, des points d’entrée corrects, les fichiers inclus et la licence choisie. Séparez les dépendances d’exécution des dépendances de développement. Pour TypeScript, publiez les déclarations et vérifiez que les chemins annoncés correspondent aux fichiers réellement inclus. Pour les environnements modernes, examinez les champs d’entrée utilisés par les outils ciblés et documentez les environnements pris en charge.</p><p>Contrôlez le contenu final avec un aperçu du package, par exemple `npm pack --dry-run`, puis inspectez l’archive produite. N’incluez pas de fichiers `.env`, clés privées, données de test sensibles, dumps, caches ou dossiers de développement inutiles. Un fichier `.npmignore` peut modifier le contenu distribué, mais son interaction avec `.gitignore` et les règles du registre doit être comprise. La vérification doit porter sur l’archive finale, pas uniquement sur les fichiers présents dans Git.</p></section><section><h2>4. Tester la consommation réelle</h2><p>Un package qui fonctionne dans son propre dépôt peut échouer chez un consommateur parce qu’un fichier n’a pas été publié, qu’un chemin est incorrect ou qu’une dépendance est seulement installée comme dépendance de développement. Construisez le package, installez l’archive dans un petit projet propre et testez les imports, les types, le build et les environnements annoncés. Ce test reproduit mieux la consommation réelle qu’un test exécuté uniquement depuis le monorepo.</p><p>Vérifiez les exports publics, les formats ESM ou CommonJS si le projet les prend en charge, et les fichiers nécessaires au runtime. Documentez les prérequis, exemples d’utilisation, limitations et politique de support. Une API publique devrait être volontaire : n’exposez pas accidentellement chaque fichier interne, car cela rend les refactorings plus difficiles et peut créer des engagements de compatibilité non souhaités.</p></section><section><h2>5. Publier de façon traçable et sûre</h2><p>La publication doit être liée à un tag et à une version validée. Exécutez les tests, vérifications de types, lint, audit des dépendances et contrôle du contenu avant d’utiliser les identifiants de publication. Les jetons doivent avoir les droits minimaux, être stockés dans un gestionnaire de secrets et ne jamais être inscrits dans le dépôt ou les logs. Séparez si possible la validation du code et l’étape qui possède le droit de publier.</p><p>Après publication, vérifiez que le registre contient les fichiers et métadonnées attendus, puis testez l’installation depuis le registre. Préparez une procédure pour publier un correctif, déprécier une version ou révoquer un jeton compromis. La suppression d’une version publiée n’est pas toujours possible ou souhaitable ; la prévention et une communication claire sont donc importantes. Pour les contributions externes, expliquez comment les droits sur les contributions sont gérés avant d’accepter le code.</p></section>
+<section><h2>Exemple pratique</h2><p>Le fragment suivant illustre une décision de conception à tester dans le contexte complet du produit.</p><pre><code>{
+  &quot;name&quot;: &quot;@exemple/format-date&quot;,
+  &quot;version&quot;: &quot;1.2.0&quot;,
+  &quot;description&quot;: &quot;Utilitaires de formatage de dates&quot;,
+  &quot;license&quot;: &quot;MIT&quot;,
+  &quot;files&quot;: [&quot;dist&quot;, &quot;README.md&quot;, &quot;LICENSE&quot;],
+  &quot;types&quot;: &quot;./dist/index.d.ts&quot;,
+  &quot;exports&quot;: {
+    &quot;.&quot;: &quot;./dist/index.js&quot;
+  }
+}</code></pre><p>Cet extrait illustre des métadonnées, pas un manifeste universel prêt à publier. Vérifiez que les fichiers existent après le build, que la licence choisie est réellement celle du projet et que le champ `exports` correspond au format de module livré. Testez l’installation de l’archive produite dans un projet indépendant et inspectez les fichiers réellement inclus.</p></section>
+<section><h2>Pièges fréquents et compromis</h2><ul><li>Supposer qu’un dépôt public est automatiquement libre de réutilisation.</li><li>Examiner seulement les dépendances directes.</li><li>Croire que le champ `license` garantit la conformité de tous les fichiers.</li><li>Publier des fichiers secrets ou des sources de développement inutiles.</li><li>Tester le package uniquement depuis son dépôt d’origine.</li></ul><p>Une recommandation générale est un point de départ, pas une preuve de qualité. Vérifiez le parcours complet, les états moins fréquents et les contraintes du produit avant de conclure qu’une solution est appropriée.</p></section>
+<section><h2>Exercice pratique</h2><p>Préparez un package fictif ou réel. Choisissez une licence après avoir comparé les obligations pertinentes, inventorie les licences des dépendances directes et transitives, puis inspectez l’archive produite. Installez-la dans un projet propre et vérifiez imports, types, README, licence, fichiers inclus et absence de secrets. Documentez les contrôles automatisables et les points qui exigent une revue humaine.</p></section>
+<section><h2>Critères de réussite</h2><ul><li>La licence choisie est explicite et correspond à l’intention de publication.</li><li>Les dépendances et notices requises sont inventoriées.</li><li>Le contenu publié ne contient ni secrets ni fichiers inutiles.</li><li>Le package fonctionne depuis une installation indépendante.</li><li>La publication est liée à une version testée et à des identifiants protégés.</li></ul><p>Considérez l’exercice terminé lorsque chaque critère peut être démontré avec un exemple reproductible. Expliquez vos choix, les tests réalisés et les limites restantes ; l’absence d’erreur visible ne suffit pas à prouver qu’une interface est accessible, compréhensible ou rapide.</p></section>
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — seconde passe</h2>
+<h3>Objectifs opérationnels</h3>
+<ul>
+  <li>Identifier la licence déclarée du projet et les obligations potentielles des dépendances.</li>
+  <li>Contrôler le contenu réel d’un package avant sa publication.</li>
+  <li>Vérifier les points d’entrée, fichiers inclus, métadonnées et procédure de consommation.</li>
+</ul>
+<h3>Explications et méthode</h3>
+<p>Une licence détermine les permissions et conditions applicables au code distribué. La licence du projet ne remplace pas l’examen des licences tierces, des notices, des fichiers copiés ni des obligations de redistribution. La compatibilité dépend des licences précises, du mode de distribution et du contexte ; en cas d’incertitude juridique, une revue qualifiée est nécessaire.</p>
+<p>Le contenu publié n’est pas toujours identique au dépôt. Un package peut inclure des tests, des fichiers locaux, des secrets ou omettre les déclarations de types et les fichiers requis. Inspecter l’archive produite est plus fiable que supposer que le champ files ou .npmignore exprime parfaitement l’intention.</p>
+<p>Les consommateurs doivent pouvoir résoudre les entrées déclarées et exécuter le package dans un projet propre. Vérifie le package depuis l’archive générée, les exports ESM/CommonJS si les deux sont annoncés, les types TypeScript, les fichiers de licence et l’absence de secrets.</p>
+
+<h3>Exemple commenté</h3>
+<pre><code>{
+  &quot;name&quot;: &quot;@exemple/format-utils&quot;,
+  &quot;version&quot;: &quot;1.2.0&quot;,
+  &quot;license&quot;: &quot;MIT&quot;,
+  &quot;files&quot;: [&quot;dist&quot;, &quot;README.md&quot;, &quot;LICENSE&quot;],
+  &quot;main&quot;: &quot;./dist/index.cjs&quot;,
+  &quot;module&quot;: &quot;./dist/index.js&quot;,
+  &quot;types&quot;: &quot;./dist/index.d.ts&quot;,
+  &quot;exports&quot;: {
+    &quot;.&quot;: {
+      &quot;types&quot;: &quot;./dist/index.d.ts&quot;,
+      &quot;import&quot;: &quot;./dist/index.js&quot;,
+      &quot;require&quot;: &quot;./dist/index.cjs&quot;
+    }
+  }
+}
+
+# Contrôle du contenu qui sera empaqueté :
+npm pack --dry-run</code></pre>
+<h3>Pièges à éviter</h3>
+<ul>
+  <li>Choisir une licence par défaut sans vérifier les droits sur tout le code distribué et les contributions intégrées.</li>
+  <li>Supposer que le champ license garantit à lui seul la conformité de toutes les dépendances.</li>
+  <li>Publier un package sans inspecter l’archive, ou laisser des tokens, fichiers .env et données de test confidentielles dans le contenu.</li>
+</ul>
+<h3>Exercice d’application</h3>
+<p>Prépare un package fictif. Vérifie la licence et les notices, inventorie les licences des dépendances, configure les fichiers publiés et les exports, puis inspecte `npm pack --dry-run`. Installe l’archive produite dans un projet vierge et teste les imports et les types.</p>
+<h3>Critères de réussite</h3>
+<ul>
+  <li>La licence du projet, les notices nécessaires et les risques des dépendances sont recensés ; les incertitudes sont signalées.</li>
+  <li>L’archive ne contient ni secrets ni fichiers de développement inutiles et inclut les fichiers nécessaires à la consommation.</li>
+  <li>Un projet vierge peut installer le package et résoudre les exports et déclarations annoncés.</li>
+</ul>
+</section>
+<section class="sources-documentaires"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les notions et de vérifier les recommandations. Consultez les pages de référence adaptées à la version et au contexte de votre projet.</p><ul><li><a href="https://choosealicense.com/" target="_blank" rel="noopener noreferrer">Choose a License</a></li><li><a href="https://spdx.org/licenses/" target="_blank" rel="noopener noreferrer">SPDX — License List</a></li><li><a href="https://docs.npmjs.com/cli/v10/configuring-npm/package-json#license" target="_blank" rel="noopener noreferrer">npm Docs — package.json license field</a></li><li><a href="https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository" target="_blank" rel="noopener noreferrer">GitHub Docs — Licensing a repository</a></li><li><a href="https://opensource.org/licenses/" target="_blank" rel="noopener noreferrer">Open Source Initiative — Approved licenses</a></li></ul></section>
+</article>
+<nav class="lesson-navigation" aria-label="Navigation entre les tutoriels">
+<a rel="prev" href="documentation-decisions.html">← Tutoriel précédent</a>
+<a href="/" target="_top">Sommaire</a>
+<a rel="next" href="routage-frontend.html">Tutoriel suivant →</a>
+</nav>
+</main>
+</body>
+</html>

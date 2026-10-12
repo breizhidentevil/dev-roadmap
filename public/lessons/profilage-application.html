@@ -1,0 +1,109 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Profilage d’application
+Domaine documentaire : performance
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. Chrome DevTools — Performance — https://developer.chrome.com/docs/devtools/performance/
+2. web.dev — Apprendre les performances Web — https://web.dev/learn/performance
+3. web.dev — Core Web Vitals — https://web.dev/articles/vitals
+4. Node.js — Profilage — https://nodejs.org/en/learn/diagnostics/poor-performance
+5. PostgreSQL — EXPLAIN — https://www.postgresql.org/docs/current/using-explain.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Mesurer les performances réelles, localiser un goulot d’étranglement et vérifier qu’une optimisation améliore l’expérience sans régression.">
+  <title>Profilage d’application — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">Architecture et ingénierie Full Stack</p>
+    <h1>Profilage d’application</h1>
+    <p class="lead">Mesurer les performances réelles, localiser un goulot d’étranglement et vérifier qu’une optimisation améliore l’expérience sans régression.</p>
+    <div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+    <section class="lesson-section">
+<h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir transformer un symptôme de lenteur en hypothèse mesurable, choisir l’outil adapté à la couche suspectée et démontrer qu’une modification améliore le scénario sans régression importante.</p>
+<ul>
+<li>Établir une référence reproductible avec scénario, environnement, volume d’échantillons et percentiles.</li>
+<li>Distinguer CPU, mémoire, réseau, base de données et attente de concurrence.</li>
+<li>Lire une trace navigateur, un profil backend et un plan SQL de premier niveau.</li>
+<li>Comparer avant/après en gardant les mêmes conditions et en documentant les limites.</li>
+</ul>
+<p><strong>Prérequis :</strong> savoir lancer une application, lire des métriques simples et exécuter une requête SQL.</p>
+</section>
+    
+<section class="lesson-section">
+<h2>1. Mesurer avant d’optimiser</h2>
+<p>Le profilage observe l’exécution pour répondre à une question précise : quelle partie explique le coût mesuré dans un scénario défini ? Commence par un symptôme observable — par exemple, une route lente pour les comptes possédant beaucoup de commandes — et transforme-le en hypothèse réfutable. « La route est lente » est un symptôme ; « le tri en mémoire après le chargement de toutes les lignes domine le temps » est une hypothèse qu’une trace peut confirmer ou infirmer.</p>
+<p>Établis une fiche de référence avant toute modification :</p>
+<ul><li>scénario et données utilisés, taille du jeu de données et nombre de répétitions ;</li><li>versions, build, matériel, réseau et état du cache ;</li><li>latence p50 et p95 (et p99 si le volume permet une estimation stable), débit et taux d’erreur ;</li><li>CPU, mémoire, éventuelle pression du ramasse-miettes et temps passé dans les dépendances.</li></ul>
+<p>Le p50 décrit l’expérience médiane ; le p95 montre la partie lente de la distribution. Un percentile calculé sur quelques requêtes est très instable : indique le nombre d’échantillons et évite d’en tirer une conclusion ferme. La moyenne seule peut masquer une minorité de requêtes très lentes. Conserve les données brutes ou au moins les mesures résumées afin que l’expérience soit reproductible.</p>
+<p>Ne commence pas par optimiser la fonction qui paraît complexe. Commence par déterminer où le temps est réellement passé, puis choisis un outil capable de tester l’hypothèse.</p>
+</section>
+<section class="lesson-section">
+<h2>2. Distinguer les familles de goulots</h2>
+<p>La même latence totale peut avoir des causes différentes. Une faible utilisation CPU accompagnée d’une forte latence peut indiquer une attente réseau, un pool de connexions saturé ou un verrou ; une utilisation CPU élevée peut révéler un calcul ou une sérialisation coûteuse.</p>
+<table><thead><tr><th>Signal observé</th><th>Hypothèses à tester</th><th>Prochaine preuve utile</th></tr></thead><tbody>
+<tr><td>CPU élevé, latence qui suit le volume</td><td>Calcul coûteux, boucle, sérialisation, rendu</td><td>Profil CPU, fonctions dominantes et fréquence d’appel</td></tr>
+<tr><td>Mémoire qui augmente continuellement</td><td>Références conservées, cache non borné, fuite</td><td>Instantanés de tas comparés et taille après collecte</td></tr>
+<tr><td>CPU faible, requêtes en attente</td><td>Réseau, base, verrou, pool saturé</td><td>Trace par étape, durée d’attente et saturation du pool</td></tr>
+<tr><td>Latence SQL élevée</td><td>Plan inadéquat, mauvais index, trop d’allers-retours</td><td>Plan d’exécution, lignes estimées/réelles et buffers</td></tr>
+<tr><td>p50 stable, p95 qui se dégrade</td><td>Contention, files d’attente, données extrêmes ou dépendance intermittente</td><td>Distribution par route/segment et traces des requêtes lentes</td></tr>
+</tbody></table>
+<p>Ces signaux orientent l’enquête mais ne prouvent pas une cause. Instrumente les étapes avec des durées et un identifiant de corrélation ; évite les étiquettes à cardinalité élevée dans les métriques. Une mesure par utilisateur ou par identifiant de commande est plutôt à réserver à des traces ou journaux protégés.</p>
+</section>
+<section class="lesson-section">
+<h2>3. Profiler le navigateur</h2>
+<p>Dans Chrome DevTools, enregistre le scénario lent dans l’onglet Performance. Examine la chronologie : longues tâches du thread principal, recalculs de style, mise en page, peinture, chargement des ressources et activité réseau. Une tâche JavaScript longue peut retarder les interactions même si le transfert réseau est rapide.</p>
+<p>Procédure de diagnostic :</p>
+<ol><li>Reproduis le scénario avec une liste, un formulaire ou un parcours représentatif.</li><li>Repère la plage temporelle où la page cesse de répondre ou tarde à afficher son contenu.</li><li>Développe la tâche dominante et identifie les fonctions ou événements qui occupent le thread.</li><li>Formule une modification ciblée, puis enregistre à nouveau le même scénario.</li></ol>
+<p>Par exemple, si chaque frappe filtre plusieurs milliers de lignes et reconstruit un grand DOM, teste d’abord le filtrage incrémental, la limitation du travail ou la virtualisation de la liste. Ne modifie pas simultanément le réseau, le rendu et le modèle de données : tu ne saurais pas quelle modification a produit l’effet.</p>
+<p>Les Core Web Vitals apportent des mesures centrées utilisateur : LCP pour le chargement du contenu principal, INP pour la réactivité et CLS pour la stabilité visuelle. Les traces de développement peuvent différer de la production à cause du build, des extensions, du matériel ou du cache. Protège aussi les captures et traces qui peuvent contenir des URLs, contenus ou identifiants sensibles.</p>
+</section>
+<section class="lesson-section">
+<h2>4. Profiler le backend et les requêtes SQL</h2>
+<p>Pour une API, sépare les temps de validation, accès base, appel externe et sérialisation. Si la durée totale est de 900 ms et que l’appel externe représente 700 ms, optimiser une boucle locale ne changera presque rien. Les traces distribuées aident à relier les étapes ; les journaux doivent inclure un identifiant de corrélation et des durées sans enregistrer de secrets.</p>
+<p>Pour PostgreSQL, <code>EXPLAIN</code> affiche le plan estimé ; <code>EXPLAIN ANALYZE</code> exécute la requête et rapporte les mesures observées. Cette dernière commande exécute réellement l’instruction : sois prudent avec les requêtes qui modifient des données et utilise un environnement sûr ou une transaction annulée lorsque cela convient.</p>
+<pre><code>EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, created_at
+FROM orders
+WHERE customer_id = 42
+ORDER BY created_at DESC
+LIMIT 20;</code></pre>
+<p>Compare lignes estimées et réelles, type de scan, jointures, buffers et nombre d’appels. Une estimation très éloignée peut conduire l’optimiseur à choisir un plan médiocre ; un index peut aider la lecture mais augmente l’espace et le coût des écritures. Teste avec des données et une distribution proches du réel : un plan rapide sur dix lignes ne prouve rien sur plusieurs millions.</p>
+</section>
+<section class="lesson-section">
+<h2>5. Valider l’optimisation et éviter les pièges</h2>
+<p>Après la modification, relance le même scénario avec le même jeu de données et des conditions comparables. Compare plusieurs répétitions, les percentiles, le débit, le taux d’erreur et les ressources consommées. Si les mesures sont bruitées, augmente le nombre d’essais ou utilise un environnement plus contrôlé au lieu de choisir le résultat le plus favorable.</p>
+<ul><li>Ne confonds pas corrélation et cause : une trace peut montrer deux événements proches sans lien causal.</li><li>Ne conclus pas à partir d’un environnement minuscule ou d’un unique appel froid.</li><li>Vérifie les effets secondaires : cache périmé, charge déplacée vers la base, mémoire supplémentaire ou complexité de synchronisation.</li><li>Conserve une référence et documente les versions, données, commandes et limites de l’expérience.</li><li>Automatise les mesures seulement si le scénario est stable et le seuil tient compte du bruit du runner.</li></ul>
+<p>Une optimisation n’est réussie que si elle améliore la métrique pertinente sans dégrader la correction, la sécurité ou une autre dimension importante. Si l’hypothèse n’est pas confirmée, retire la modification ou reformule le diagnostic au lieu de la conserver par préférence esthétique.</p>
+</section>
+<section class="lesson-section">
+<h2>6. Exercice pratique</h2>
+<p>Choisis une page ou une route d’API lente et définis un scénario reproductible. Mesure une référence, recueille une trace ou un profil, puis formule une hypothèse qui peut être confirmée ou réfutée. Applique une seule modification et répète les mesures.</p>
+<p>Remets un mini-rapport qui contient le symptôme, l’environnement, le nombre d’échantillons, p50/p95, le taux d’erreur, la preuve issue du profil, le changement testé et les limites de la conclusion. Si tu ne disposes pas d’une application lente, utilise un petit exemple local et explique pourquoi il ne représente pas forcément la production.</p>
+</section>
+<section class="lesson-section">
+<h2>Critères de réussite</h2>
+<ul><li>Le scénario et l’environnement peuvent être reproduits par une autre personne.</li><li>Les mesures incluent une distribution (au minimum p50 et p95) et un nombre d’échantillons explicite.</li><li>L’hypothèse s’appuie sur une trace, un profil ou un plan, pas seulement sur une intuition.</li><li>La comparaison avant/après utilise les mêmes conditions et montre les éventuels compromis.</li><li>Le rapport distingue ce qui est observé, ce qui est supposé et ce qui reste inconnu.</li></ul>
+</section>
+
+    <section class="lesson-section">
+      <h2>Sources documentaires</h2>
+      <p>Les ressources ci-dessous sont des références pour poursuivre l’apprentissage. Elles servent de points de départ ciblés ; consulte les sections pertinentes et vérifie les détails qui dépendent de la version des outils ou de ton environnement.</p>
+      <ol><li><a href="https://developer.chrome.com/docs/devtools/performance/" target="_blank" rel="noopener noreferrer">Chrome DevTools — Performance</a></li>
+<li><a href="https://web.dev/learn/performance" target="_blank" rel="noopener noreferrer">web.dev — Apprendre les performances Web</a></li>
+<li><a href="https://web.dev/articles/vitals" target="_blank" rel="noopener noreferrer">web.dev — Core Web Vitals</a></li>
+<li><a href="https://nodejs.org/en/learn/diagnostics/poor-performance" target="_blank" rel="noopener noreferrer">Node.js — Profilage</a></li>
+<li><a href="https://www.postgresql.org/docs/current/using-explain.html" target="_blank" rel="noopener noreferrer">PostgreSQL — EXPLAIN</a></li></ol>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="architecture-hexagonale.html">← Architecture hexagonale</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="cache-http-cdn.html">Cache HTTP et CDN →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

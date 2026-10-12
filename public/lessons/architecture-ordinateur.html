@@ -1,0 +1,67 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Architecture d’un ordinateur
+Domaine documentaire : systems
+Références consultées pour vérifier l’existence et l’adéquation générale des ressources. Elles servent de base de travail, pas de classement absolu des cinq meilleures ressources.
+1. Remzi H. Arpaci-Dusseau et Andrea C. Arpaci-Dusseau — Operating Systems: Three Easy Pieces — https://pages.cs.wisc.edu/~remzi/OSTEP/
+2. MDN — Event loop — https://developer.mozilla.org/en-US/docs/Web/JavaScript/Event_loop
+3. Linux Kernel Documentation — https://www.kernel.org/doc/html/latest/
+4. Linux man-pages — https://man7.org/linux/man-pages/
+5. MDN — Web performance — https://developer.mozilla.org/en-US/docs/Web/Performance
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Comprendre CPU, mémoire vive, stockage et périphériques.">
+  <title>Architecture d’un ordinateur — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">0. Informatique générale et fonctionnement des systèmes</p>
+    <h1>Architecture d’un ordinateur</h1>
+    <p class="lead">Comprendre CPU, mémoire vive, stockage et périphériques.</p>
+<div class="lesson-meta"><span>Tutoriel complet · Niveau débutant</span><span>Durée indicative : 2 h</span></div>
+<section class="lesson-section"><h2>Objectifs</h2><ul><li>Comprendre le rôle du processeur, de la mémoire, du stockage et du système d’exploitation.</li><li>Suivre le trajet d’un programme depuis son lancement jusqu’à ses entrées-sorties.</li><li>Relier ces notions au diagnostic des applications Web.</li></ul></section>
+<section class="lesson-section"><h2>1. Les composants essentiels</h2><p>Le processeur exécute les instructions et effectue les opérations arithmétiques et logiques. La mémoire vive conserve les données et instructions utilisées par les programmes en cours. Le stockage persistant conserve les fichiers et les données après l’arrêt de la machine. Les périphériques réseau, graphiques et de stockage échangent des données avec le système via des contrôleurs et des pilotes.</p><p>Ces éléments ont des caractéristiques différentes. La mémoire vive est généralement beaucoup plus rapide que le stockage persistant, mais elle est volatile. Un processeur peut exécuter énormément d’instructions, mais il attend parfois la mémoire, le réseau ou le disque. Les performances dépendent donc du composant qui limite réellement le traitement.</p></section>
+<section class="lesson-section"><h2>2. Processeur, cœurs et concurrence</h2><p>Un cœur exécute un flux d’instructions. Plusieurs cœurs peuvent exécuter plusieurs tâches en parallèle, sous réserve de la charge et de la capacité du logiciel à les exploiter. Le système d’exploitation planifie les processus et threads pour partager le temps processeur. La concurrence décrit plusieurs tâches qui progressent sur une période ; le parallélisme signifie qu’elles s’exécutent réellement en même temps.</p><p>Une application Node.js peut traiter de nombreuses opérations d’entrée-sortie sans bloquer un thread JavaScript par connexion, mais un calcul CPU long dans la boucle principale bloque les autres traitements. Une application peut donc être limitée par le processeur même si elle paraît « asynchrone ».</p></section>
+<section class="lesson-section"><h2>3. Mémoire et processus</h2><p>Un processus possède un espace d’adressage et des ressources gérées par le système. Les objets JavaScript résident en mémoire et le ramasse-miettes récupère certaines allocations devenues inaccessibles. Une fuite mémoire survient lorsque le programme conserve inutilement des références à des objets qui devraient pouvoir être libérés.</p><p>Le manque de mémoire peut provoquer ralentissements, pagination vers le stockage ou arrêt du processus. Lors d’un diagnostic, comparez la mémoire utilisée dans le temps, le nombre de requêtes, les caches et les objets conservés ; une valeur élevée isolée ne prouve pas une fuite.</p></section>
+<section class="lesson-section"><h2>4. Stockage, fichiers et bases de données</h2><p>Un disque ou SSD fournit une persistance, mais la latence d’accès est généralement supérieure à celle de la mémoire vive. Les bases de données utilisent des caches, des index et des écritures journalisées pour concilier performance et durabilité. La durabilité dépend aussi des paramètres de synchronisation, du système de fichiers et du matériel.</p><p>Ne confondez pas cache et source de vérité. Un cache peut être reconstruit ou expiré ; une donnée métier persistante doit disposer d’une stratégie de sauvegarde et de restauration testée.</p></section>
+<section class="lesson-section"><h2>5. Système d’exploitation et appels système</h2><p>Le système d’exploitation gère processus, mémoire virtuelle, fichiers, utilisateurs, permissions, réseau et périphériques. Les applications demandent certaines opérations par des interfaces contrôlées, notamment les appels système. Les pilotes traduisent les opérations du système en commandes adaptées au matériel.</p><p>Le terminal est une interface qui permet de lancer des programmes et d’inspecter l’état du système. Des commandes telles que <code>ps</code>, <code>top</code>, <code>free</code>, <code>df</code>, <code>du</code> et <code>ss</code> donnent des vues différentes. Avec <code>free -h</code>, regardez notamment la colonne <code>available</code> pour estimer la mémoire encore utilisable, plutôt que d’interpréter la seule colonne <code>free</code>. <code>df -h</code> mesure l’espace disponible sur un système de fichiers, tandis que <code>du -sh repertoire</code> estime l’espace occupé par ce répertoire. Ces mesures ne sont pas interchangeables : interprétez leur contexte avant de conclure.</p></section>
+<section class="lesson-section"><h2>6. Réseau et latence</h2><p>Une requête Web traverse plusieurs couches : application, transport, réseau, liaison et support physique. La latence dépend de la propagation, des files d’attente, des retransmissions, de la résolution DNS, de l’établissement TLS et du traitement serveur. Une application lente n’est donc pas nécessairement limitée par son code métier.</p><p>Mesurez séparément le temps de résolution, connexion, TLS, attente serveur et téléchargement quand les outils le permettent. Distinguez débit — quantité transférée par unité de temps — et latence — délai avant d’obtenir un résultat.</p></section>
+<section class="lesson-section"><h2>7. Relier le matériel aux performances Web</h2><ul><li>CPU élevé : profilage des fonctions, algorithmes, sérialisation ou compression.</li><li>Mémoire en hausse : recherche de rétention, caches sans limite ou objets volumineux.</li><li>Disque saturé : taille des journaux, index, I/O et sauvegardes.</li><li>Latence réseau : DNS, TLS, distances, retransmissions et dépendances externes.</li><li>Temps d’attente SQL : requêtes, index, verrous et pool de connexions.</li></ul><p>La bonne méthode consiste à formuler une hypothèse, collecter une mesure, modifier un facteur et comparer les résultats. Optimiser sans mesure peut déplacer le coût ou rendre le système plus complexe sans gain démontré.</p></section>
+<section class="lesson-section"><h2>8. Exercice</h2><p>Lancez un serveur local et observez son processus. Chargez une page, inspectez les connexions réseau, puis comparez la consommation avant et pendant une charge répétée. Rédigez une hypothèse pour chaque variation et indiquez quelle mesure supplémentaire permettrait de la vérifier.</p><h3>Critères de réussite</h3><ul><li>Je distingue CPU, mémoire vive, stockage et réseau.</li><li>Je peux expliquer processus, thread, concurrence et parallélisme.</li><li>Je sais choisir des commandes de diagnostic adaptées.</li><li>Je relie une mesure à une hypothèse testable.</li></ul></section>
+
+<section class="lesson-section"><h2>9. Méthode de diagnostic : partir d’une hypothèse</h2>
+<p>Lorsqu’une application ralentit, évite de conclure immédiatement que le processeur est insuffisant. Une mesure d’utilisation CPU élevée peut indiquer un calcul coûteux, mais elle peut aussi être la conséquence d’un travail qui s’accumule. À l’inverse, un CPU peu utilisé ne prouve pas que la machine est disponible : le processus peut attendre le disque, le réseau ou un verrou.</p>
+<p>Formule une hypothèse, choisis une mesure qui peut la réfuter, puis change une variable à la fois. Sous Linux, <code>top</code> ou <code>htop</code> aide à repérer les processus actifs ; <code>free -h</code> montre la mémoire et le swap ; <code>iostat</code> (fourni par le paquet adapté à la distribution) aide à examiner les entrées-sorties ; <code>vmstat</code> donne une vue synthétique de plusieurs ressources. Ces outils n’ont pas tous les mêmes options sur tous les systèmes : vérifie leur manuel.</p>
+<pre><code># Examiner les processus et la mémoire
+top
+free -h
+
+# Mesurer les ressources sur un intervalle
+vmstat 1</code></pre>
+<p>Un seul échantillon est rarement suffisant. Compare une période normale à une période lente, note les conditions de test et observe les percentiles de latence si l’application en fournit. Ne partage pas une capture de processus ou de journaux sans vérifier qu’elle ne révèle ni identifiants sensibles ni arguments de commande contenant des secrets.</p>
+<p><strong>Cas pratique :</strong> si une page est lente mais que le CPU reste bas, mesure ensuite la latence des appels réseau, le temps passé en base et l’attente disque. Si le CPU est saturé, profile le processus pour localiser le calcul dominant avant d’ajouter des ressources. Le bon diagnostic est celui qui relie un symptôme à une cause mesurée.</p></section>
+
+<section class="lesson-section"><h2>10. Mini-lab reproductible : observer une requête locale</h2>
+<p>Pour isoler le temps de connexion et le temps de réponse sans dépendre d’un site externe, créez un répertoire temporaire ne contenant aucun fichier sensible. Dans un terminal, lancez le serveur lié uniquement à l’interface de boucle locale :</p>
+<pre><code>tmp=$(mktemp -d)
+printf '&lt;h1&gt;Test local&lt;/h1&gt;\n' &gt; "$tmp/index.html"
+cd "$tmp"
+python3 -m http.server 8000 --bind 127.0.0.1</code></pre>
+<p>Laissez ce processus actif et ouvrez un second terminal. Vérifiez l’écoute puis mesurez une requête HTTP locale :</p>
+<pre><code>ss -ltnp 'sport = :8000'
+curl -sS -o /dev/null -w 'connexion=%{time_connect}s premier_octet=%{time_starttransfer}s total=%{time_total}s\n' http://127.0.0.1:8000/</code></pre>
+<p>Cette mesure ne comprend ni résolution DNS ni négociation TLS : l’adresse est locale et le serveur utilise HTTP. Elle sert à apprendre à lire les champs de mesure, pas à estimer les performances d’un service distant. Arrêtez le serveur avec <code>Ctrl+C</code>, puis supprimez le répertoire temporaire avec <code>rm -rf -- "$tmp"</code> dans le terminal qui a créé la variable. Ne lancez pas le serveur depuis un répertoire personnel ou un dossier contenant des documents confidentiels.</p></section>
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://pages.cs.wisc.edu/~remzi/OSTEP/">Operating Systems: Three Easy Pieces</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Event_loop">MDN — Event loop</a></li><li><a href="https://www.kernel.org/doc/html/latest/">Linux Kernel Documentation</a></li><li><a href="https://man7.org/linux/man-pages/">Linux man-pages</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/Performance">MDN — Web performance</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je sais décrire les composants d’un ordinateur.</label><label><input type="checkbox"> Je comprends processus, mémoire et appels système.</label><label><input type="checkbox"> Je sais distinguer latence et débit et chercher un goulot d’étranglement.</label></section>
+    <nav class="lesson-nav"><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="processus-threads-memoire.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

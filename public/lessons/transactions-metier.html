@@ -1,0 +1,159 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Transactions et cohérence métier
+Domaine documentaire : database
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. PostgreSQL — Tutoriel SQL — https://www.postgresql.org/docs/current/tutorial-transactions.html
+2. PostgreSQL — Niveaux d’isolation — https://www.postgresql.org/docs/current/transaction-iso.html
+3. PostgreSQL — Contraintes — https://www.postgresql.org/docs/current/ddl-constraints.html
+4. MongoDB — Transactions — https://www.mongodb.com/docs/manual/core/transactions/
+5. Martin Fowler — Patterns of Enterprise Application Architecture — https://martinfowler.com/eaaCatalog/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Garantir qu’une opération métier composée de plusieurs écritures respecte les invariants, même en cas d’erreur ou de concurrence.">
+  <title>Transactions et cohérence métier — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">Architecture et ingénierie Full Stack</p>
+    <h1>Transactions et cohérence métier</h1>
+    <p class="lead">Garantir qu’une opération métier composée de plusieurs écritures respecte les invariants, même en cas d’erreur ou de concurrence.</p>
+    <div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+    <section class="lesson-section">
+<h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir concevoir une opération métier dont plusieurs écritures doivent réussir ensemble, expliquer ce qui se passe en cas de concurrence et distinguer une transaction locale d’un workflow distribué.</p>
+<ul>
+<li>Formuler les invariants métier avant de choisir le mécanisme de persistance.</li>
+<li>Encadrer les écritures dans une transaction et vérifier le résultat de chaque étape.</li>
+<li>Choisir entre contrainte, écriture conditionnelle, verrou et isolation renforcée selon le risque.</li>
+<li>Prévoir les répétitions de requêtes et les effets externes sans supposer qu’un rollback les annule.</li>
+</ul>
+<p><strong>Prérequis :</strong> savoir lire une requête SQL, une contrainte et le cycle requête/réponse d’une API.</p>
+</section>
+    
+<section class="lesson-section">
+<h2>1. Comprendre l’invariant métier</h2>
+<p>Une transaction métier est une opération cohérente du point de vue de l’utilisateur : réserver un article, transférer de l’argent, confirmer une commande ou attribuer une place. Elle peut nécessiter plusieurs lectures et écritures en base. L’enjeu n’est pas seulement de réussir chaque requête séparément ; il faut préserver des règles qui doivent toujours rester vraies. On appelle ces règles des <strong>invariants</strong>.</p>
+<p>Pour un transfert, l’invariant peut être « le montant débité d’un compte est égal au montant crédité sur l’autre ». Pour une réservation, « une place ne peut pas être attribuée à deux personnes ». Pour une commande, « une commande confirmée possède une ligne de commande et une quantité valide ». Énonce les invariants avant de choisir l’implémentation : ils déterminent quelles opérations doivent réussir ou échouer ensemble.</p>
+<p>Une transaction de base de données fournit généralement les propriétés ACID : atomicité (tout ou rien), cohérence (les contraintes restent respectées), isolation (les opérations concurrentes sont contrôlées) et durabilité (un commit validé persiste selon les garanties du système). ACID ne remplace toutefois pas la conception métier : la base ne peut protéger que les règles que tu lui exprimes.</p>
+</section>
+<section class="lesson-section">
+<h2>2. Encadrer les écritures atomiquement</h2>
+<p>Une transaction fournit une frontière de validation : avant le <code>COMMIT</code>, les écritures restent provisoires ; si une étape échoue, l’application annule l’ensemble avec <code>ROLLBACK</code>. Une transaction ne rend pas automatiquement correcte une règle métier : il faut vérifier que les conditions attendues sont satisfaites et que les contraintes de la base expriment les invariants critiques.</p>
+<pre><code>BEGIN;
+
+-- Validation préalable côté application : montant_cents > 0,
+-- comptes source/cible distincts et même devise.
+-- Verrouiller les comptes dans un ordre stable pour limiter les deadlocks.
+SELECT id
+FROM accounts
+WHERE id IN (10, 20)
+ORDER BY id
+FOR UPDATE;
+
+-- L'application exige exactement deux comptes existants.
+UPDATE accounts
+SET balance_cents = balance_cents - 2500
+WHERE id = 10 AND balance_cents >= 2500;
+-- rowCount doit valoir 1 ; sinon ROLLBACK.
+
+UPDATE accounts
+SET balance_cents = balance_cents + 2500
+WHERE id = 20;
+-- rowCount doit valoir 1 ; sinon ROLLBACK.
+
+INSERT INTO transfers (from_id, to_id, amount_cents)
+VALUES (10, 20, 2500);
+
+COMMIT;</code></pre>
+<p>Ce fragment illustre le flux PostgreSQL avec des montants en unités mineures entières (ici 2 500 centimes) ; il suppose que la table utilise <code>balance_cents</code> et <code>amount_cents</code>. La logique applicative doit vérifier le nombre de lignes renvoyées par le verrouillage, puis <code>rowCount</code> après chaque écriture ; si un contrôle échoue, elle exécute <code>ROLLBACK</code> et ne poursuit pas. Une contrainte <code>CHECK (balance_cents &gt;= 0)</code>, des clés étrangères et une contrainte d’unicité adaptée renforcent la protection côté base. Si le système gère plusieurs devises, l’égalité des devises doit être garantie ou le change traité comme une opération distincte.</p>
+<p>Avec un pilote Node.js, garde toutes les requêtes sur la même connexion transactionnelle, puis libère cette connexion dans un bloc de nettoyage, y compris en cas d’erreur. N’ouvre pas une transaction sur une connexion et n’exécute pas une partie du travail sur une autre connexion du pool : elle ne ferait pas partie de la même transaction.</p>
+<p>La transaction doit couvrir l’unité de cohérence métier, pas toute la durée de la requête HTTP. Évite les appels réseau, l’envoi d’e-mails et les attentes utilisateur à l’intérieur : ils allongent la durée des verrous et ne deviennent pas atomiques pour autant.</p>
+</section>
+<section class="lesson-section">
+<h2>3. La concurrence change le raisonnement</h2>
+<p>Deux requêtes peuvent lire la même valeur, décider toutes les deux qu’une action est possible, puis écrire un résultat qui viole l’invariant. Le contrôle « vérifier puis agir » en deux étapes applicatives n’est donc pas suffisant si un autre processus peut intervenir entre les deux.</p>
+<p>Choisis le mécanisme selon l’invariant et les garanties du moteur :</p>
+<table><thead><tr><th>Mécanisme</th><th>À privilégier lorsque</th><th>Limite à connaître</th></tr></thead><tbody>
+<tr><td>Contrainte <code>UNIQUE</code> ou <code>CHECK</code></td><td>La règle peut être exprimée directement sur les données.</td><td>Il faut traduire proprement la violation en erreur métier.</td></tr>
+<tr><td>Mise à jour conditionnelle</td><td>La décision peut être liée à l’état courant dans une seule instruction.</td><td>Le nombre de lignes modifiées devient une partie du contrat.</td></tr>
+<tr><td>Verrou de ligne</td><td>Un scénario doit lire puis modifier un enregistrement de façon coordonnée.</td><td>Les verrous peuvent provoquer attente, interblocage et baisse de débit.</td></tr>
+<tr><td>Isolation plus stricte</td><td>Plusieurs lectures doivent respecter une vue cohérente de données liées.</td><td>Le moteur peut annuler une transaction concurrente ; il faut traiter l’erreur.</td></tr>
+</tbody></table>
+<p>Pour une dernière unité en stock, une décrémentation conditionnelle est souvent plus simple qu’une lecture suivie d’une écriture séparée :</p>
+<pre><code>UPDATE inventory
+SET available = available - 1
+WHERE product_id = 42 AND available &gt; 0;
+
+-- 1 ligne modifiée : réservation obtenue.
+-- 0 ligne modifiée : stock absent ou épuisé.</code></pre>
+<p>Une transaction peut encore être nécessaire pour créer la commande et enregistrer la réservation ensemble. Les niveaux d’isolation ont des sémantiques propres au moteur : une transaction sérialisable peut échouer volontairement pour préserver la cohérence. Dans ce cas, ne réessaie que l’unité transactionnelle complète, avec un nombre de tentatives borné et un délai adapté.</p>
+</section>
+<section class="lesson-section">
+<h2>4. Définir les frontières et les effets externes</h2>
+<p>Un <code>COMMIT</code> local ne peut pas annuler un paiement déjà accepté par un prestataire ni retirer un e-mail déjà envoyé. Pour un workflow qui traverse plusieurs systèmes, définis les états intermédiaires et les règles de reprise au lieu de prétendre qu’une transaction distribuée existe automatiquement.</p>
+<p>Une approche fréquente consiste à écrire l’état métier et un événement à publier dans la même transaction :</p>
+<pre><code>BEGIN;
+UPDATE orders SET status = 'confirmed' WHERE id = 501;
+-- event_id doit être stable et protégé par une contrainte UNIQUE.
+INSERT INTO outbox(event_id, event_type, aggregate_id, payload)
+VALUES ('evt-501', 'OrderConfirmed', '501', jsonb_build_object('orderId', 501));
+COMMIT;</code></pre>
+<p>Un worker lit ensuite l’outbox, publie l’événement et marque sa livraison. Comme le worker peut s’arrêter après la publication mais avant l’enregistrement du succès, le même événement peut être publié plus d’une fois. Le consommateur doit donc dédupliquer ou rendre l’effet idempotent. L’outbox réduit le risque de perdre un événement entre la validation métier et sa publication ; elle ne garantit pas une livraison « exactement une fois » de bout en bout.</p>
+<p>Pour un paiement externe, utilise l’identifiant de commande comme clé d’idempotence si le prestataire le permet, conserve l’état du workflow et prévois une réconciliation des opérations dont le résultat est inconnu après un timeout. Une saga peut coordonner plusieurs étapes avec des actions compensatoires, mais une compensation est une nouvelle action métier, pas un rollback magique.</p>
+</section>
+<section class="lesson-section">
+<h2>5. Erreurs fréquentes et arbitrages</h2>
+<ul>
+<li><strong>Validation sans protection concurrente :</strong> une vérification en JavaScript ne remplace pas une contrainte ou une écriture atomique.</li>
+<li><strong>Résultat non contrôlé :</strong> une requête SQL peut réussir techniquement tout en modifiant zéro ligne.</li>
+<li><strong>Transaction trop longue :</strong> les appels réseau et les traitements coûteux gardent inutilement des ressources verrouillées.</li>
+<li><strong>Retry aveugle :</strong> une erreur de validation ou une contrainte métier ne se corrige pas en répétant la même requête.</li>
+<li><strong>Effet externe non idempotent :</strong> après un timeout, le client ignore parfois si l’opération a réussi ; une répétition peut créer un doublon.</li>
+</ul>
+<p>Pour diagnostiquer une transaction qui échoue, consigne un identifiant de corrélation, la catégorie d’erreur, le nombre de tentatives et la durée, sans enregistrer les secrets ou données sensibles. Distingue conflit de concurrence, contrainte violée, indisponibilité du moteur et erreur de programmation. Le message envoyé au client doit rester stable et ne pas exposer les détails SQL.</p>
+<p>Le bon niveau de protection dépend du coût d’une incohérence. Commence par les contraintes simples et les écritures conditionnelles, puis ajoute verrous ou isolation plus stricte lorsque l’invariant l’exige. Une stratégie plus complexe doit être justifiée par un scénario concret et testée sous concurrence.</p>
+</section>
+<section class="lesson-section">
+<h2>6. Exercice guidé</h2>
+<p>Construis une réservation de la dernière unité d’un produit. Écris le schéma minimal, une contrainte empêchant un stock négatif et une transaction qui crée la commande puis réserve l’unité. Prévois le cas où le stock est épuisé entre l’affichage du panier et la confirmation.</p>
+<ol>
+<li>Formule au moins deux invariants, par exemple « le stock ne devient jamais négatif » et « une commande confirmée possède une réservation ».</li>
+<li>Exécute deux tentatives concurrentes et vérifie qu’une seule peut obtenir la dernière unité.</li>
+<li>Ajoute un événement <code>OrderConfirmed</code> via une outbox transactionnelle plutôt qu’un appel direct au broker dans la transaction.</li>
+<li>Simule un timeout HTTP après le commit et explique comment une clé d’idempotence permet de retrouver le résultat existant.</li>
+<li>Documente les erreurs qui sont réessayables et celles qui doivent produire un refus métier.</li>
+</ol>
+</section>
+<section class="lesson-section">
+<h2>Critères de réussite</h2>
+<ul>
+<li>Les invariants métier sont écrits avant le choix de l’implémentation.</li>
+<li>Un échec à n’importe quelle étape empêche une validation partielle de l’opération locale.</li>
+<li>Les écritures conditionnelles et contraintes empêchent le stock négatif sous concurrence.</li>
+<li>Le code contrôle les lignes affectées et distingue conflit, refus métier et erreur technique.</li>
+<li>L’événement externe peut être repris sans perdre la cohérence locale, et le consommateur tolère les doublons.</li>
+<li>Le scénario de timeout ne crée pas une seconde commande lors d’une répétition.</li>
+</ul>
+</section>
+
+    <section class="lesson-section">
+      <h2>Sources documentaires</h2>
+      <p>Les ressources ci-dessous sont des références pour poursuivre l’apprentissage. Elles servent de points de départ ciblés ; consulte les sections pertinentes et vérifie les détails qui dépendent de la version des outils ou de ton environnement.</p>
+      <ol><li><a href="https://www.postgresql.org/docs/current/tutorial-transactions.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Tutoriel SQL</a></li>
+<li><a href="https://www.postgresql.org/docs/current/transaction-iso.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Niveaux d’isolation</a></li>
+<li><a href="https://www.postgresql.org/docs/current/ddl-constraints.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Contraintes</a></li>
+<li><a href="https://www.mongodb.com/docs/manual/core/transactions/" target="_blank" rel="noopener noreferrer">MongoDB — Transactions</a></li>
+<li><a href="https://martinfowler.com/eaaCatalog/" target="_blank" rel="noopener noreferrer">Martin Fowler — Patterns of Enterprise Application Architecture</a></li></ol>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="injection-dependances.html">← Injection de dépendances</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="frontieres-modules.html">Frontières entre modules →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

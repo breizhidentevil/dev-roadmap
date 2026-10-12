@@ -1,0 +1,62 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Modules et responsabilités backend
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. Martin Fowler — Bounded Context — https://martinfowler.com/bliki/BoundedContext.html
+2. Microsoft — Microservices et domaines — https://learn.microsoft.com/en-us/azure/architecture/microservices/model/domain-analysis
+3. NestJS — Modules — https://docs.nestjs.com/modules
+4. Node.js — Modules ECMAScript — https://nodejs.org/api/esm.html
+5. AWS — Monolithique modulaire — https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-decomposing-monoliths/monoliths.html
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Séparer routes, logique métier, accès aux données et configuration." name="description"/>
+<title>Modules et séparation des responsabilités — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">3. Backend</p>
+<h1>Modules et responsabilités backend</h1>
+<p class="lead">Découper le backend en modules dont les responsabilités sont cohérentes, les interfaces explicites et les dépendances dirigées vers des abstractions stables.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 10 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Regrouper le code par responsabilité métier.</li><li>Définir des contrats entre modules.</li><li>Réduire le couplage et éviter les dépendances circulaires.</li><li>Distinguer modularité interne et déploiement distribué.</li></ul>
+</section><section class="lesson-section"><h2>Fil conducteur</h2><p>Un bon module regroupe ce qui change ensemble et cache ses détails internes. Le test décisif est de pouvoir modifier son implémentation sans obliger les consommateurs à changer.</p></section>
+<section class="lesson-section"><h2>1. Organiser autour des responsabilités</h2>
+<p>Un module regroupe du code qui évolue pour une raison cohérente : commandes, comptes, facturation ou catalogue. Une organisation purement technique — tous les contrôleurs ensemble, tous les services ailleurs — peut devenir difficile à parcourir lorsque chaque changement métier traverse de nombreux dossiers.</p><p>Un découpage par fonctionnalité rapproche les règles, les cas d’usage et les tests qui changent ensemble. Il n’impose pas une architecture unique : une application peut conserver des couches internes tout en regroupant les fichiers par domaine. Le bon découpage facilite la compréhension et limite les modifications collatérales.</p>
+</section>
+<section class="lesson-section"><h2>2. Définir l’interface publique</h2>
+<p>Un module devrait exposer les opérations et types dont les autres modules ont réellement besoin, tout en gardant ses détails internes privés. Le contrat public peut être un service applicatif, une fonction, un ensemble de types ou une API HTTP selon le contexte.</p><pre><code>catalog/
+      index.ts        // interface publique
+      catalog.service.ts
+      catalog.repository.ts
+      catalog.types.ts
+      catalog.test.ts</code></pre><p>Les noms sont illustratifs. Évite que d’autres modules importent directement les fichiers internes du module : ces chemins deviennent une dépendance implicite qui rend les refactorisations risquées. Attention : un fichier <code>index.ts</code> est une convention de point d’entrée, pas une frontière imposée par TypeScript. Pour faire respecter la règle, ajoute des contrôles adaptés au projet, par exemple des règles de lint sur les imports ou des frontières de packages via <code>exports</code> lorsque le code est publié comme package Node.js.</p>
+</section>
+<section class="lesson-section"><h2>3. Couplage, cohésion et dépendances</h2>
+<p>La cohésion mesure si les éléments d’un module servent une même responsabilité ; le couplage décrit la dépendance entre modules. Cherche une cohésion forte et un couplage limité, sans transformer chaque fonction en module indépendant.</p><p>Une dépendance circulaire rend l’ordre d’initialisation, les tests et le raisonnement plus difficiles. Pour la casser, clarifie la propriété d’une règle métier, introduis une interface si elle représente une vraie frontière, ou déplace une responsabilité vers le module qui possède les données et invariants concernés. Une interface abstraite n’est pas utile si elle ne réduit aucun couplage réel.</p>
+</section>
+<section class="lesson-section"><h2>4. Dépendances entre domaines</h2>
+<p>Un module peut avoir besoin d’une information détenue par un autre. Préfère une interface explicite à l’accès direct à ses tables ou à ses structures internes. Cela permet au module propriétaire de préserver ses règles et de faire évoluer son stockage.</p><p>Ne duplique pas la logique métier dans plusieurs modules. Si un concept partagé apparaît, vérifie qu’il possède réellement le même sens dans chaque contexte : deux valeurs portant le même nom peuvent avoir des règles différentes. Les modèles partagés trop vastes finissent souvent par devenir un point de couplage global.</p>
+</section>
+<section class="lesson-section"><h2>5. Modularité et microservices</h2>
+<p>Un monolithe modulaire peut être déployé comme une seule application tout en gardant des frontières internes solides. Les microservices ajoutent des frontières réseau, des déploiements indépendants, de la latence, des pannes partielles, de l’observabilité distribuée et des enjeux de cohérence des données.</p><p>Commence généralement par des modules internes bien définis. Envisage une extraction en service lorsque des besoins réels le justifient : rythme de déploiement différent, mise à l’échelle distincte, propriété d’équipe ou contraintes d’isolation. Une séparation en processus n’est pas une amélioration automatique de l’architecture.</p>
+</section>
+
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Prends une application de vente en ligne fictive et propose des modules pour catalogue, panier, commandes et comptes. Dessine les dépendances, définis une interface publique par module et identifie les accès qui devraient être interdits. Explique quels critères justifieraient éventuellement une extraction en service séparé.</p><h3>Critères de réussite</h3><ul><li>Chaque module possède une responsabilité identifiable.</li><li>Les contrats publics sont limités et documentés.</li><li>Aucune dépendance circulaire n’est nécessaire.</li><li>Les invariants métier restent sous le contrôle de leur module propriétaire.</li><li>Le choix monolithe ou microservices est argumenté par des besoins concrets.</li></ul>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Créer des modules trop petits sans responsabilité claire.</li><li>Exposer tous les fichiers internes comme une API publique.</li><li>Partager directement les tables entre domaines.</li><li>Introduire des interfaces abstraites sans besoin concret.</li><li>Confondre découpage du code et découpage en microservices.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://martinfowler.com/bliki/BoundedContext.html" rel="noopener noreferrer" target="_blank">Martin Fowler — Bounded Context</a></li><li><a href="https://learn.microsoft.com/en-us/azure/architecture/microservices/model/domain-analysis" rel="noopener noreferrer" target="_blank">Microsoft — Microservices et domaines</a></li><li><a href="https://docs.nestjs.com/modules" rel="noopener noreferrer" target="_blank">NestJS — Modules</a></li><li><a href="https://nodejs.org/api/esm.html" rel="noopener noreferrer" target="_blank">Node.js — Modules ECMAScript</a></li><li><a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-decomposing-monoliths/monoliths.html" rel="noopener noreferrer" target="_blank">AWS — Monolithique modulaire</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="framework-backend.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="logique-metier-validation.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html><p><strong>Repère pratique. </strong>Commence par les cas d’usage et les règles métier, pas par une arborescence de dossiers générique. Un module « commandes » peut posséder les transitions de commande et exposer des opérations métier, tandis que l’accès SQL reste un détail interne.</p><p><strong>Repère pratique. </strong>Un import circulaire est souvent le symptôme d’une frontière mal placée. Repère qui doit connaître qui, puis déplace le contrat partagé vers un module stable ou inverse la dépendance via une interface ; évite de résoudre chaque cycle par un conteneur global.</p><p><strong>Repère pratique. </strong>Une frontière de module ne justifie pas à elle seule un service réseau séparé. Un microservice ajoute déploiement, observabilité, sécurité réseau, latence et cohérence distribuée ; extrais-le quand l’autonomie de livraison ou la contrainte opérationnelle compense ce coût.</p>

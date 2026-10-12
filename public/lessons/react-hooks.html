@@ -1,0 +1,49 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : React Hooks
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. React — Référence des Hooks — https://react.dev/reference/react
+2. React — Règles des Hooks — https://react.dev/reference/rules/rules-of-hooks
+3. React — Synchroniser avec les effets — https://react.dev/learn/synchronizing-with-effects
+4. React — Références — https://react.dev/learn/referencing-values-with-refs
+5. React — Hooks personnalisés — https://react.dev/learn/reusing-logic-with-custom-hooks
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Utiliser les hooks intégrés et créer des hooks personnalisés." name="description"/>
+<title>React Hooks — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">2. Frontend</p>
+<h1>React Hooks</h1>
+<p class="lead">Utiliser les Hooks pour gérer l’état, les effets et les références en respectant les règles de React.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 8 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Appliquer les règles d’appel des Hooks.</li><li>Distinguer état, effet et référence.</li><li>Éviter les effets superflus et les dépendances incorrectes.</li><li>Extraire une logique réutilisable.</li></ul>
+</section><section class="lesson-section"><h2>Fil directeur</h2><p>Les Hooks permettent à un composant fonctionnel de conserver un état et de synchroniser son cycle de vie avec des systèmes externes. Ils ne sont pas des fonctions à appeler librement : leur ordre doit rester stable entre les rendus.</p></section><section class="lesson-section"><h2>1. Respecter les règles des Hooks</h2><p>Appelle les Hooks au niveau supérieur d’un composant React ou d’un Hook personnalisé, avant tout retour conditionnel. Ne les appelle pas dans une boucle, une condition ou une fonction imbriquée : React associe l’état à l’ordre des appels. Les Hooks personnalisés commencent par `use` et composent d’autres Hooks pour partager une logique, pas un état global automatiquement.</p></section><section class="lesson-section"><h2>2. Utiliser useState pour l’état rendu</h2><p>`useState` convient aux informations qui changent et modifient l’interface. La valeur renvoyée correspond au rendu courant ; appeler le setter planifie le suivant. Quand la mise à jour dépend de la valeur précédente, utilise une fonction de mise à jour pour éviter de travailler sur une capture ancienne.</p><pre><code>setCount(current =&gt; current + 1);</code></pre><p>Si une valeur peut être dérivée des props et de l’état, calcule-la au lieu de la dupliquer dans un second état synchronisé.</p></section><section class="lesson-section"><h2>3. Réserver useEffect à la synchronisation externe</h2><p>Un effet sert à synchroniser le composant avec quelque chose qui vit hors de React : abonnement, minuterie, connexion ou API impérative. Son cycle comprend installation et, si nécessaire, nettoyage avant une nouvelle installation ou au démontage. Les dépendances doivent représenter toutes les valeurs réactives utilisées dans l’effet.</p><pre><code>useEffect(() =&gt; {
+  const controller = new AbortController();
+  void loadData(resourceId, { signal: controller.signal }).catch(error =&gt; {
+    if (error.name !== &quot;AbortError&quot;) console.error(error);
+  });
+  return () =&gt; controller.abort();
+}, [resourceId]);</code></pre><p>Ce motif transmet explicitement `resourceId` à la requête et annule la requête précédente lorsque l’identifiant change ou que le composant est démonté. `loadData` doit accepter et traiter le signal ; l’exemple ignore `AbortError` et journalise les autres erreurs, mais une interface réelle devrait aussi exposer un état d’erreur adapté. N’utilise pas un effet pour recalculer simplement une valeur que le rendu peut produire.</p></section><section class="lesson-section"><h2>4. Employer useRef et les Hooks personnalisés</h2><p>`useRef` conserve une valeur entre les rendus sans déclencher de nouveau rendu lorsqu’elle change. Il convient notamment pour référencer un élément DOM ou garder un identifiant de minuterie. Si la valeur doit apparaître à l’écran, un état est généralement plus approprié.</p><p>Un Hook personnalisé peut encapsuler un abonnement ou une logique de chargement. Il doit avoir un contrat clair, nettoyer les ressources et exposer les états utiles sans cacher des comportements surprenants.</p></section><section class="lesson-section"><h2>Erreurs fréquentes et diagnostic</h2><ul><li>Appeler un Hook dans une condition ou après un retour conditionnel.</li><li>Omettre une dépendance réactive d’un effet.</li><li>Employer useEffect pour calculer une valeur dérivée.</li><li>Créer une souscription sans nettoyage.</li><li>Mettre dans une ref une valeur qui doit déclencher un rendu.</li></ul></section><section class="lesson-section"><h2>Exercice guidé</h2><p>Crée un Hook `useWindowWidth` qui s’abonne au redimensionnement et retire l’écouteur au nettoyage. Puis crée un composant de chargement par identifiant qui annule la requête précédente. Vérifie les changements d’identifiant et le démontage.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul><li>Les Hooks sont appelés au niveau supérieur.</li><li>Les dépendances reflètent les valeurs réellement utilisées.</li><li>Chaque abonnement ou ressource externe est nettoyé.</li><li>L’état et les refs sont employés selon leur effet sur le rendu.</li><li>Le Hook personnalisé a un contrat documenté et des tests de cas limites.</li></ul></section>
+
+
+
+
+
+
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://react.dev/reference/react" rel="noopener noreferrer" target="_blank">React — Référence des Hooks</a></li><li><a href="https://react.dev/reference/rules/rules-of-hooks" rel="noopener noreferrer" target="_blank">React — Règles des Hooks</a></li><li><a href="https://react.dev/learn/synchronizing-with-effects" rel="noopener noreferrer" target="_blank">React — Synchroniser avec les effets</a></li><li><a href="https://react.dev/learn/referencing-values-with-refs" rel="noopener noreferrer" target="_blank">React — Références</a></li><li><a href="https://react.dev/learn/reusing-logic-with-custom-hooks" rel="noopener noreferrer" target="_blank">React — Hooks personnalisés</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="react-composants.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="react-evenements-formulaires.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

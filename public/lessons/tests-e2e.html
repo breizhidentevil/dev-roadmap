@@ -1,0 +1,78 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Tests end-to-end
+Les références sont des points de départ pertinents ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. Playwright — Writing tests — https://playwright.dev/docs/writing-tests
+2. Playwright — Best practices — https://playwright.dev/docs/best-practices
+3. Cypress — End-to-end Testing — https://docs.cypress.io/app/end-to-end-testing
+4. Testing Library — Guiding Principles — https://testing-library.com/docs/guiding-principles/
+5. Martin Fowler — Test Pyramid — https://martinfowler.com/articles/practical-test-pyramid.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Valider les parcours utilisateur essentiels dans une application complète.">
+  <title>Tests end-to-end — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">6. Tests, débogage et qualité</p>
+    <h1>Tests end-to-end</h1>
+    <p class="lead">Valider les parcours utilisateur essentiels dans une application complète.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Qualité et tests</span></div>
+    <section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>À la fin, tu dois pouvoir sélectionner les parcours critiques, écrire un scénario de navigateur stable, préparer les données et diagnostiquer les échecs sans transformer la suite en collection de tests lents et fragiles.</p><ul><li>Distinguer test E2E, test d’intégration et test unitaire.</li><li>Choisir des sélecteurs robustes et attendre les conditions utiles.</li><li>Organiser l’environnement, les comptes et les traces de diagnostic.</li></ul>
+</section><section class="lesson-section"><h2>1. Ce que valide un test E2E</h2>
+<p>Un test end-to-end exerce le système depuis une interface proche de celle de l’utilisateur : navigateur, frontend, API et dépendances nécessaires. Il vérifie qu’un parcours complet fonctionne, par exemple se connecter, créer une commande et voir la confirmation.</p><p>Cette portée est précieuse, mais un échec peut avoir plusieurs causes et le test est plus coûteux à exécuter. Il ne faut donc pas reproduire chaque combinaison de règles métier en E2E : teste les règles en unité, les contrats entre composants en intégration, et réserve les tests E2E aux parcours qui justifient ce coût.</p>
+</section><section class="lesson-section"><h2>2. Écrire un scénario lisible</h2>
+<p>Exemple avec Playwright :</p><pre><code>import { test, expect } from "@playwright/test";
+
+test("un utilisateur crée une tâche", async ({ page }) =&gt; {
+  await page.goto("/tasks");
+
+  await page.getByRole("button", { name: "Nouvelle tâche" }).click();
+  await page.getByLabel("Titre").fill("Préparer la release");
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Préparer la release" })
+  ).toBeVisible();
+});</code></pre><p>Les libellés doivent correspondre à l’interface de l’application. Les sélecteurs accessibles par rôle et nom reflètent mieux l’expérience utilisateur que des classes CSS internes. Si un composant ne peut pas être identifié de manière accessible, cela peut aussi révéler un problème d’accessibilité.</p>
+<p>Un scénario utile décrit une intention et un résultat observable : « créer une tâche et la retrouver dans la liste », plutôt que « cliquer sur le troisième bouton ». Évite aussi de vérifier seulement le toast de succès : si la confirmation s’affiche avant l’enregistrement ou si la liste n’est pas rafraîchie, le parcours peut sembler réussir alors que la ressource est perdue. Pour les opérations critiques, vérifie l’état final par l’interface ou par une préparation/inspection contrôlée hors du parcours utilisateur.</p>
+</section><section class="lesson-section"><h2>3. Éviter les attentes fragiles</h2>
+<p>N’utilise pas des pauses fixes comme <code>waitForTimeout(3000)</code> pour espérer que la page soit prête. Elles ralentissent les tests rapides et restent insuffisantes sur les environnements lents. Préfère les assertions qui attendent automatiquement l’état attendu, par exemple visibilité d’un élément, réponse d’une action ou navigation.</p><p>Ne dépends pas des coordonnées de souris, des classes CSS générées ou du texte ambigu si un rôle accessible et un libellé précis sont disponibles. Un test doit échouer quand le comportement change, pas parce qu’un détail de mise en page a été renommé sans effet utilisateur.</p>
+</section><section class="lesson-section"><h2>4. Données et authentification</h2>
+<p>Chaque test doit commencer dans un état connu. Utilise des comptes de test dédiés, crée les données via une API de préparation lorsque c’est approprié et supprime-les après usage. Évite que plusieurs tests modifient simultanément le même compte ou la même ressource.</p><p>Pour accélérer une suite, certains outils permettent de réutiliser un état authentifié. Protège le fichier de session et ne le partage pas avec des utilisateurs ou environnements de production. Il reste important de tester au moins un parcours réel de connexion lorsque l’authentification fait partie des risques fonctionnels à couvrir.</p>
+<p>Attribue à chaque test une ressource unique, par exemple un titre avec un suffixe propre à l’exécution, ou prépare une base isolée. Si plusieurs tests utilisent le même compte, évite qu’ils modifient la même ressource ; sinon, un test peut supprimer ce que l’autre attend. Pour les scénarios d’autorisation, prépare un compte réellement limité et vérifie qu’il ne peut ni lire ni modifier la ressource protégée, sans te contenter de masquer le bouton dans l’interface.</p>
+</section><section class="lesson-section"><h2>5. Fiabilité en CI et diagnostic</h2>
+<p>Les tests E2E doivent être exécutables de façon reproductible dans la CI : versions d’outils maîtrisées, application démarrée et prête, variables d’environnement explicites, base de test isolée et dépendances externes contrôlées. Active captures d’écran, vidéo ou traces au premier échec selon les capacités du runner, en veillant à ne pas capturer des secrets ou données réelles.</p><p>Les nouvelles tentatives automatiques peuvent aider à diagnostiquer un test intermittent, mais ne doivent pas servir à masquer durablement l’instabilité. Suis les tests qui échouent de façon aléatoire et traite la cause : données partagées, attente incorrecte, réseau externe ou état non nettoyé.</p>
+<p>Au premier échec, conserve une trace utile : étape échouée, URL, capture ou trace du navigateur, console et requêtes réseau pertinentes. Avant de publier ces artefacts, retire les cookies, jetons, données personnelles et informations métier confidentielles. Une trace trop complète peut devenir une fuite de données ; une trace trop pauvre oblige à reproduire l’incident à l’aveugle.</p>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Tester toute la logique métier uniquement dans le navigateur.</li><li>Employer des pauses fixes au lieu d’attendre un état précis.</li><li>Utiliser des sélecteurs dépendants du style interne.</li><li>Partager des données ou comptes entre tests parallèles.</li><li>Rendre les tests dépendants d’un service tiers réel.</li><li>Ignorer les tests intermittents parce qu’une relance finit par réussir.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Écris un test E2E qui ouvre la page de connexion d’une application de test, se connecte avec un compte dédié, crée une ressource et vérifie qu’elle apparaît dans la liste. Ajoute un scénario qui tente une action interdite avec un compte de droits limités.</p><p>Exécute les tests plusieurs fois et en parallèle si ton runner le permet. Vérifie que les données ne se chevauchent pas et qu’un échec produit des éléments utiles au diagnostic.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Choisis trois parcours utilisateur essentiels de ton projet et justifie pourquoi ils méritent un test E2E plutôt qu’un test plus bas dans la pyramide.</p><p><strong>Réussite :</strong> les tests couvrent un parcours de bout en bout ; les sélecteurs sont robustes et accessibles ; les attentes portent sur des états observables ; les données sont isolées ; les secrets et données personnelles sont exclus des artefacts ; les tests s’exécutent en CI et les échecs sont diagnostiquables. Exécute chaque scénario plusieurs fois et en parallèle si le runner le permet ; aucun test ne doit dépendre d’une ressource créée par un autre test.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Ces références permettent d’approfondir les choix d’implémentation et de confronter les exemples au framework et à la version utilisés dans ton projet.</p>
+      <ol><li><a href="https://playwright.dev/docs/writing-tests" target="_blank" rel="noopener noreferrer">Playwright — Writing tests</a></li><li><a href="https://playwright.dev/docs/best-practices" target="_blank" rel="noopener noreferrer">Playwright — Best practices</a></li><li><a href="https://docs.cypress.io/app/end-to-end-testing" target="_blank" rel="noopener noreferrer">Cypress — End-to-end Testing</a></li><li><a href="https://testing-library.com/docs/guiding-principles/" target="_blank" rel="noopener noreferrer">Testing Library — Guiding Principles</a></li><li><a href="https://martinfowler.com/articles/practical-test-pyramid.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Test Pyramid</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer le problème traité et les garanties recherchées.</label>
+      <label><input type="checkbox"> Je peux appliquer la méthode sur un cas concret.</label>
+      <label><input type="checkbox"> Je sais identifier les limites et les cas non couverts.</label>
+      <label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="tests-integration.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="cas-limites-regressions.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

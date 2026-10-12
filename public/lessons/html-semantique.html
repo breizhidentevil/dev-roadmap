@@ -1,0 +1,81 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : HTML sémantique
+Références de départ pour approfondir les notions ; le tutoriel constitue une synthèse pédagogique originale.
+1. MDN — HTML : structure du contenu — https://developer.mozilla.org/fr/docs/Learn_web_development/Core/Structuring_content
+2. WHATWG — HTML Living Standard — https://html.spec.whatwg.org/
+3. W3C WAI — Page Structure — https://www.w3.org/WAI/tutorials/page-structure/
+4. MDN — Éléments de section — https://developer.mozilla.org/fr/docs/Web/HTML/Element
+5. W3C WAI — Headings — https://www.w3.org/WAI/tutorials/page-structure/headings/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Structurer une page avec des éléments HTML adaptés et accessibles.">
+  <title>HTML sémantique — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">2. Frontend</p>
+    <h1>HTML sémantique</h1>
+    <p class="lead">Structurer le contenu avec des éléments HTML qui expriment leur rôle, améliorent l’accessibilité et rendent le document plus robuste.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 8 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Choisir les éléments HTML selon le sens du contenu.</li><li>Construire une hiérarchie de titres logique.</li><li>Structurer navigation, contenu principal, articles et formulaires.</li><li>Comprendre les bénéfices et limites de la sémantique native.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Le HTML décrit le sens du contenu</h2>
+    <p>HTML n’est pas seulement un moyen de placer des blocs à l’écran. Les éléments indiquent le rôle du contenu : titre, paragraphe, navigation, liste, bouton, formulaire ou article. Le CSS contrôle l’apparence et JavaScript le comportement ; utiliser l’élément approprié donne au navigateur et aux technologies d’assistance des informations déjà standardisées.</p><p>Préfère un élément natif à un <code>div</code> générique lorsqu’il correspond réellement à l’intention. Un <code>button</code> possède par exemple un comportement clavier et un rôle accessibles par défaut, contrairement à un <code>div</code> auquel on aurait seulement ajouté une classe.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Organiser la page</h2>
+    <pre><code>&lt;header&gt;
+      &lt;h1&gt;Catalogue&lt;/h1&gt;
+      &lt;nav aria-label="Navigation principale"&gt;...&lt;/nav&gt;
+    &lt;/header&gt;
+    &lt;main&gt;
+      &lt;section aria-labelledby="nouveautes"&gt;
+        &lt;h2 id="nouveautes"&gt;Nouveautés&lt;/h2&gt;
+        &lt;article&gt;
+          &lt;h3&gt;Produit récent&lt;/h3&gt;
+          &lt;p&gt;Description du produit.&lt;/p&gt;
+        &lt;/article&gt;
+      &lt;/section&gt;
+    &lt;/main&gt;
+    &lt;footer&gt;Informations de contact&lt;/footer&gt;</code></pre><p>Utilise un seul <code>main</code> visible représentant le contenu dominant de la page. <code>section</code> regroupe un thème, tandis que <code>article</code> représente un contenu autonome qui pourrait être compris séparément. Le choix dépend du sens, pas de la mise en page souhaitée.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Hiérarchie des titres</h2>
+    <p>Les titres structurent le document pour tous les lecteurs, y compris ceux qui naviguent par liste de titres. Choisis les niveaux selon la hiérarchie du contenu : un titre principal, puis des sous-parties, puis leurs sous-parties. Ne choisis pas un niveau uniquement parce que sa taille par défaut convient visuellement ; le CSS gère la présentation.</p><p>Chaque section titrée doit avoir un titre qui décrit son contenu. Les intitulés vagues comme « Divers » ou « Cliquez ici » sont moins utiles. La hiérarchie n’a pas besoin d’être artificiellement parfaite dans chaque détail, mais elle doit refléter l’organisation réelle de la page.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Liens, boutons et formulaires</h2>
+    <p>Un lien mène vers une ressource ou une destination ; un bouton déclenche une action. N’utilise pas un lien sans destination comme bouton, ni un bouton pour naviguer simplement vers une autre page. Les libellés doivent être compréhensibles hors contexte autant que possible.</p><p>Associe chaque champ de formulaire à un libellé explicite. Les attributs <code>name</code>, <code>type</code>, <code>required</code> et les contraintes adaptées aident le navigateur, mais la validation côté client ne remplace pas la validation serveur. Les messages d’erreur doivent être liés aux champs concernés et perceptibles par les technologies d’assistance.</p>
+    <pre><code>&lt;label for="courriel"&gt;Adresse e-mail&lt;/label&gt;
+&lt;input id="courriel" name="courriel" type="email"
+       aria-invalid="true" aria-describedby="courriel-erreur"&gt;
+&lt;p id="courriel-erreur"&gt;Saisis une adresse e-mail valide.&lt;/p&gt;</code></pre>
+    <p>Dans cet exemple, <code>aria-describedby</code> relie le champ au texte d’erreur et <code>aria-invalid="true"</code> indique un état réellement invalide. Ne pose cet état qu’après avoir constaté l’erreur ; retire-le ou remets-le à <code>false</code> lorsque le champ redevient valide. Le serveur doit appliquer la même règle métier indépendamment de cet affichage.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Accessibilité et validation</h2>
+    <p>Le HTML sémantique est une base importante, mais il ne garantit pas à lui seul une interface accessible. Il faut aussi vérifier le contraste, l’ordre du focus, les libellés, les messages d’erreur et le comportement clavier. N’ajoute pas des rôles ARIA lorsqu’un élément natif exprime déjà le même rôle, et ne change pas le rôle d’un élément sans reproduire les comportements attendus.</p><p>Valide le document avec un validateur HTML, puis teste-le au clavier et avec les outils d’accessibilité du navigateur. Les validateurs détectent des erreurs de syntaxe et de structure, mais ne remplacent pas une évaluation d’usage.</p>
+    </section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Employer des <code>div</code> pour tous les composants interactifs.</li><li>Choisir les titres en fonction de leur taille visuelle.</li><li>Confondre navigation et action.</li><li>Ajouter des rôles ARIA redondants ou incorrects.</li><li>Considérer un HTML valide comme une preuve suffisante d’accessibilité.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Analyse approfondie : choisir l’élément selon l’intention</h2>
+<p>La sémantique dépend du rôle du contenu, pas de son apparence. Un élément <code>&lt;nav&gt;</code> représente un ensemble important de liens de navigation ; un lien <code>&lt;a href&gt;</code> mène vers une destination ; un bouton <code>&lt;button&gt;</code> déclenche une action. Un élément générique stylé pour ressembler à un bouton ne fournit pas automatiquement les interactions clavier attendues.</p>
+<h3>Exemple : lien ou action ?</h3><pre><code>&lt;a href="/profil"&gt;Consulter mon profil&lt;/a&gt;
+&lt;button type="button" id="ouvrir-aide"&gt;Afficher l’aide&lt;/button&gt;</code></pre>
+<p>Le premier contrôle change de destination ; le second modifie l’interface. Pour un formulaire, un bouton sans attribut <code>type</code> peut soumettre le formulaire par défaut. Déclare <code>type="button"</code> pour une action qui ne doit pas déclencher la soumission, et <code>type="submit"</code> pour la validation prévue.</p>
+<h3>Structure des titres et régions</h3><p>Organise les titres selon la hiérarchie du contenu plutôt qu’en fonction de leur taille visuelle. Utilise CSS pour l’apparence. Les régions <code>&lt;main&gt;</code>, <code>&lt;header&gt;</code>, <code>&lt;footer&gt;</code> et <code>&lt;nav&gt;</code> ont un sens contextuel : plusieurs en-têtes ou pieds de page sont possibles, mais ils ne sont pas tous des régions de repérage selon leur emplacement.</p>
+<p>Valide le document, puis parcours-le sans souris. La validation syntaxique repère certaines erreurs, mais elle ne peut pas décider si les éléments choisis représentent correctement l’intention éditoriale.</p></section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Réécris une page composée uniquement de conteneurs génériques. Utilise les éléments appropriés pour l’en-tête, la navigation, le contenu principal, les sections, les articles, les listes et les actions. Ajoute des titres hiérarchisés et des libellés de formulaire, puis valide le résultat.</p><h3>Critères de réussite</h3><ul><li>La structure reflète le sens du contenu.</li><li>Les liens naviguent et les boutons déclenchent des actions.</li><li>La hiérarchie des titres est compréhensible.</li><li>Les champs disposent de libellés explicites.</li><li>Le document est validé puis testé au clavier.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Learn_web_development/Core/Structuring_content" target="_blank" rel="noopener noreferrer">MDN — HTML : structure du contenu</a></li><li><a href="https://html.spec.whatwg.org/" target="_blank" rel="noopener noreferrer">WHATWG — HTML Living Standard</a></li><li><a href="https://www.w3.org/WAI/tutorials/page-structure/" target="_blank" rel="noopener noreferrer">W3C WAI — Page Structure</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTML/Element" target="_blank" rel="noopener noreferrer">MDN — Éléments de section</a></li><li><a href="https://www.w3.org/WAI/tutorials/page-structure/headings/" target="_blank" rel="noopener noreferrer">W3C WAI — Headings</a></li></ul></section>
+        <nav class="lesson-nav"><a class="nav-link" href="navigateur-dom-devtools.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="accessibilite.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Contraste, sémantique et ARIA
+Domaine documentaire : accessibility
+Ces références sont des points de départ ciblés pour approfondir le sujet ; cette liste ne prétend pas que chaque page liée a été lue intégralement.
+1. W3C WAI — Comprendre le contraste minimum — https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html
+2. W3C WAI — Comprendre l’utilisation de la couleur — https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html
+3. MDN — ARIA — https://developer.mozilla.org/fr/docs/Web/Accessibility/ARIA
+4. MDN — HTML sémantique — https://developer.mozilla.org/en-US/docs/Glossary/Semantics
+5. W3C WAI — Formulaires accessibles — https://www.w3.org/WAI/tutorials/forms/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Contraste des couleurs, HTML sémantique, noms accessibles et usage raisonné d’ARIA.">
+  <title>Contraste, sémantique et ARIA — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">14. UX, accessibilité et qualité produit</p>
+    <h1>Contraste, sémantique et ARIA</h1>
+    <p class="lead">Associer lisibilité visuelle, structure HTML correcte et informations accessibles aux technologies d’assistance.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Lecture et mise en pratique</span></div>
+    <section class="lesson-section">
+<h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu sauras vérifier les contrastes de texte et d’interface, choisir les éléments HTML en fonction de leur sens, donner un nom accessible aux contrôles et employer ARIA uniquement lorsqu’il apporte une information nécessaire. Tu pourras repérer les erreurs classiques : texte transmis uniquement par la couleur, faux boutons, labels absents et rôles contradictoires.</p>
+<p>Prérequis : bases de HTML et CSS, sélecteurs, formulaires et notions d’accessibilité. Les ratios présentés ci-dessous reprennent les seuils courants des WCAG ; un audit de conformité complet doit tenir compte de l’ensemble des critères applicables.</p>
+</section><section class="lesson-section">
+<h2>1. Le contraste est mesurable</h2>
+<p>Le contraste décrit la différence de luminance entre deux couleurs. Une couleur peut sembler lisible sur un écran donné et devenir difficile à distinguer dans une autre luminosité, sur un écran de qualité différente ou pour une personne ayant une basse vision. C’est pourquoi le contraste ne se valide pas seulement à l’œil.</p>
+<p>Les WCAG fixent notamment un ratio de contraste de 4,5:1 pour le texte courant et de 3:1 pour le grand texte. Le grand texte correspond généralement à au moins 24 pixels CSS en graisse normale, ou environ 18,66 pixels CSS en gras. Certains composants graphiques et indicateurs visuels non textuels ont leurs propres exigences, souvent autour de 3:1 par rapport aux couleurs adjacentes pertinentes. Il faut consulter le critère applicable plutôt que d’appliquer un chiffre unique à toute l’interface.</p>
+<p>Le ratio va de 1:1 pour deux luminances identiques à 21:1 pour le noir pur sur blanc pur. Il dépend de la luminance relative, pas de la différence de teinte perçue. Deux couleurs très différentes pour une personne peuvent avoir un contraste insuffisant. Inversement, deux couleurs proches en teinte peuvent avoir un bon contraste si leur luminance diffère assez.</p>
+<p>Teste les états réels : texte normal, texte désactivé, placeholder, lien, focus, bordure de champ, icône informative et états d’erreur. Un texte dans un bouton doit rester lisible quand le bouton est survolé ou désactivé. Ne suppose pas que la palette fonctionne dans tous les thèmes.</p>
+</section><section class="lesson-section">
+<h2>2. Ne pas transmettre l’information par la couleur seule</h2>
+<p>Une erreur représentée uniquement par une bordure rouge peut ne pas être comprise par les personnes qui distinguent mal certaines couleurs ou qui utilisent une technologie d’assistance. Ajoute un message explicite, une icône accompagnée d’un nom accessible ou un autre indice perceptible. La couleur peut renforcer l’information, mais ne doit pas être son seul vecteur.</p>
+<p>Cette règle concerne aussi les graphiques, les états de sélection, les liens et les indicateurs. Dans un graphique à plusieurs séries, utilise des libellés, des motifs ou des formes en complément des couleurs. Pour un lien au milieu d’un paragraphe, un soulignement ou un autre indice permet de le distinguer du texte environnant. Un changement de teinte minime au survol ne suffit pas forcément.</p>
+<p>Les états interactifs doivent être visibles : focus clavier, sélection, validation, indisponibilité. Vérifie que l’indicateur de focus se distingue du fond et des bordures voisines. Les couleurs de marque ne doivent pas être considérées comme intouchables si elles rendent le contenu illisible ; ajuste la nuance, le fond ou la graisse pour atteindre une lisibilité suffisante.</p>
+</section><section class="lesson-section">
+<h2>3. La sémantique HTML fournit le sens</h2>
+<p>Le HTML sémantique décrit la fonction des éléments. Un `&lt;main&gt;` identifie le contenu principal, un `&lt;nav&gt;` une zone de navigation, un `&lt;button&gt;` une action, un `&lt;a href&gt;` une destination, un `&lt;label&gt;` le nom d’un champ. Cette structure est utilisée par les navigateurs, les moteurs de recherche, les technologies d’assistance et les outils de test.</p>
+<p>Un titre doit exprimer une hiérarchie logique, pas seulement une taille visuelle. Utilise les niveaux de titres pour structurer le contenu, sans choisir un niveau uniquement pour obtenir une apparence. Une liste de liens connexes peut être une liste HTML ; un tableau doit représenter des données tabulaires, pas servir à positionner des blocs.</p>
+<p>La sémantique native réduit le code à maintenir et offre des comportements connus. Si tu écris `&lt;div role=&quot;button&quot;&gt;`, tu dois encore gérer le focus et les touches appropriées. Un `&lt;button&gt;` natif fait déjà le travail de base. De même, un champ doit avoir une étiquette programmatiquement associée ; un texte placé visuellement à côté ne suffit pas nécessairement.</p>
+<p>Le nom accessible est souvent fourni par le texte visible, un `&lt;label&gt;` ou un nom de lien explicite. Évite les libellés répétés comme « En savoir plus » sans contexte lorsque plusieurs liens identiques mènent à des destinations différentes. Des formulations telles que « Lire la documentation des formulaires » rendent le but plus clair.</p>
+</section><section class="lesson-section">
+<h2>4. ARIA : compléter, pas réparer à l’aveugle</h2>
+<p>ARIA permet d’exposer un rôle, un nom, une description ou un état lorsque HTML seul ne suffit pas. Par exemple, `aria-expanded=&quot;true&quot;` peut indiquer qu’un panneau associé est ouvert ; `aria-describedby` peut relier un champ à une aide ou à une erreur ; `aria-live` peut annoncer une mise à jour dynamique adaptée.</p>
+<p>Mais ARIA ne change pas automatiquement le comportement visuel ou clavier. Déclarer `role=&quot;button&quot;` sur un élément ne le rend pas activable avec Entrée et Espace. Ajouter `aria-required=&quot;true&quot;` ne valide pas la saisie côté client ou serveur. Il faut fournir à la fois la sémantique, le comportement et les validations nécessaires.</p>
+<p>Respecte la règle pratique : si un élément HTML natif répond au besoin, utilise-le. N’ajoute pas un rôle qui contredit le rôle natif, et ne surcharge pas chaque élément avec des attributs redondants. Une accumulation d’ARIA incorrecte peut rendre l’interface plus confuse qu’une structure simple. Le nom accessible devrait généralement correspondre au texte visible pour éviter un décalage entre ce que voit une personne et ce que la technologie d’assistance annonce.</p>
+<p>Pour un bouton qui ouvre un panneau, le bouton peut référencer le panneau avec `aria-controls` et annoncer son état avec `aria-expanded`. Pour un champ invalide, `aria-invalid=&quot;true&quot;` peut indiquer l’état et `aria-describedby` peut associer le message. Il faut tester ces relations dans les navigateurs et technologies d’assistance visés.</p>
+</section><section class="lesson-section">
+<h2>5. Exemple de champ accessible</h2>
+<pre><code class="language-html">&lt;label for=&quot;email&quot;&gt;Adresse e-mail&lt;/label&gt;
+&lt;p id=&quot;email-help&quot;&gt;Utilisée pour confirmer la création du compte.&lt;/p&gt;
+&lt;input
+  id=&quot;email&quot;
+  name=&quot;email&quot;
+  type=&quot;email&quot;
+  autocomplete=&quot;email&quot;
+  aria-describedby=&quot;email-help email-error&quot;
+  aria-invalid=&quot;true&quot;
+  required
+/&gt;
+&lt;p id=&quot;email-error&quot;&gt;Saisis une adresse e-mail valide.&lt;/p&gt;</code></pre>
+<p>Cet exemple illustre l’association du label, de l’aide et du message d’erreur. En pratique, n’inclus l’identifiant `email-error` dans `aria-describedby` que lorsque le message existe, ou garde un conteneur stable avec un contenu adapté. L’attribut `required` exprime une contrainte native, mais le serveur doit également valider la valeur. Le message doit expliquer comment corriger le problème, et les données valides déjà saisies doivent être conservées.</p>
+<p>Pour les contrastes, définis des variables de thème plutôt que des couleurs éparpillées dans les composants. Teste le texte sur son fond effectif, y compris les transparences, images d’arrière-plan et états de survol. Les outils de mesure accélèrent la vérification, mais ils ne peuvent pas décider si le message est clair ou si la structure correspond au sens réel.</p>
+</section><section class="lesson-section">
+<h2>Pièges, limites et compromis</h2>
+<ul><li>Un ratio de contraste conforme ne garantit pas à lui seul l’accessibilité de la page.</li><li>Ne compte pas sur la couleur seule pour signaler erreur, sélection ou différence entre séries.</li><li>Les placeholders ne remplacent pas les labels et peuvent être difficiles à lire.</li><li>ARIA n’ajoute pas automatiquement un comportement clavier, une validation ou une apparence.</li><li>N’utilise pas des titres ou des tableaux uniquement pour leur style.</li><li>Les exigences diffèrent selon texte, grand texte, composants graphiques, états et contexte ; vérifie le critère exact.</li><li>Le texte visible et le nom accessible doivent rester cohérents afin d’éviter des commandes difficiles à découvrir.</li></ul>
+</section><section class="lesson-section">
+<h2>Exercice</h2>
+<p>Choisis un formulaire ou un tableau de bord. Mesure le contraste du texte courant, des grands titres, des liens, des bordures de champs et du focus. Repère les informations qui dépendent uniquement de la couleur. Remplace au moins deux éléments génériques par des éléments sémantiques adaptés, puis inspecte l’arbre d’accessibilité. Pour un champ en erreur, ajoute un label, une aide et un message associé. Teste la navigation clavier et documente ce qui a changé.</p>
+</section><section class="lesson-section">
+<h2>Critères de réussite</h2>
+<ul class="checklist"><li>Je connais les seuils courants 4,5:1 et 3:1 et sais qu’ils ne couvrent pas tout.</li><li>Les erreurs et états ne reposent pas uniquement sur la couleur.</li><li>Les actions, liens, titres et champs utilisent une sémantique adaptée.</li><li>Les contrôles possèdent un nom accessible et un état pertinent.</li><li>ARIA complète la sémantique native au lieu de la contredire.</li><li>J’ai vérifié les états focus, erreur, sélection et désactivation.</li></ul>
+</section>
+    <section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — seconde passe</h2>
+<h3>Objectifs opérationnels</h3>
+<ul>
+  <li>Vérifier le contraste du texte et des composants interactifs avec des mesures plutôt qu’à l’œil.</li>
+  <li>Choisir un élément HTML selon sa fonction et son comportement natif.</li>
+  <li>Relier les champs, aides et erreurs aux technologies d’assistance sans ajouter d’ARIA inutile.</li>
+</ul>
+<h3>Explications et méthode</h3>
+<p>Pour WCAG, le contraste minimum est généralement de 4,5:1 pour le texte courant et de 3:1 pour le grand texte. Les composants et indicateurs visuels non textuels ont également des exigences de contraste. La couleur ne doit pas être le seul moyen de transmettre une erreur ou un état.</p>
+<p>La sémantique est un contrat : un lien navigue, un bouton déclenche une action, un label nomme un champ. Un élément natif expose déjà rôle, nom et clavier. ARIA complète ce contrat lorsqu’il manque une information ; il ne corrige pas à lui seul une structure ou un comportement incorrect.</p>
+<p>Les messages d’erreur doivent être identifiables, associés au champ et formulés pour permettre une correction. Le texte indicatif d’un placeholder n’est pas un substitut durable à un label visible.</p>
+
+<h3>Exemple commenté</h3>
+<pre><code>&lt;label for=&quot;email&quot;&gt;Adresse e-mail&lt;/label&gt;
+&lt;input id=&quot;email&quot; name=&quot;email&quot; type=&quot;email&quot;
+       aria-describedby=&quot;email-help email-error&quot; aria-invalid=&quot;true&quot;&gt;
+&lt;p id=&quot;email-help&quot;&gt;Utilise une adresse que tu peux consulter.&lt;/p&gt;
+&lt;p id=&quot;email-error&quot;&gt;Saisis une adresse au format attendu.&lt;/p&gt;</code></pre>
+<h3>Pièges à éviter</h3>
+<ul>
+  <li>Choisir une couleur « qui semble assez contrastée » sans mesurer les couleurs réelles et les états de survol/focus.</li>
+  <li>Ajouter aria-label sur un contrôle qui a déjà un libellé visible, au risque de remplacer le nom entendu.</li>
+  <li>Utiliser role="button" sur un élément qui n’a ni activation clavier ni gestion de focus.</li>
+</ul>
+<h3>Exercice d’application</h3>
+<p>Audite un formulaire de trois champs et une carte d’état. Mesure les contrastes, supprime toute information portée uniquement par la couleur, associe les erreurs aux champs et teste le résultat au clavier ainsi qu’avec l’arbre d’accessibilité des DevTools.</p>
+<h3>Critères de réussite</h3>
+<ul>
+  <li>Les contrastes requis sont mesurés et satisfaits dans les états normaux, focus, erreur et désactivé selon le critère applicable.</li>
+  <li>Les éléments natifs sont privilégiés et chaque contrôle a un nom accessible pertinent.</li>
+  <li>Les erreurs sont visibles, liées au champ concerné et ne dépendent pas uniquement de la couleur.</li>
+</ul>
+</section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Les ressources suivantes sont des points de départ ciblés pour vérifier les notions et poursuivre l’apprentissage. Les versions et recommandations peuvent évoluer ; consulte les pages officielles à jour.</p><ol><li><a href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html" target="_blank" rel="noopener noreferrer">W3C WAI — Comprendre le contraste minimum</a></li><li><a href="https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html" target="_blank" rel="noopener noreferrer">W3C WAI — Comprendre l’utilisation de la couleur</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/Accessibility/ARIA" target="_blank" rel="noopener noreferrer">MDN — ARIA</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Glossary/Semantics" target="_blank" rel="noopener noreferrer">MDN — HTML sémantique</a></li><li><a href="https://www.w3.org/WAI/tutorials/forms/" target="_blank" rel="noopener noreferrer">W3C WAI — Formulaires accessibles</a></li></ol></section>
+    <nav class="lesson-nav" aria-label="Navigation entre les leçons">
+      <a href="navigation-clavier-lecteurs.html">← Précédent : Navigation clavier et lecteurs d’écran</a>
+      <a href="core-web-vitals.html">Suivant : Core Web Vitals et performances réelles →</a>
+    </nav>
+  </main>
+</body>
+</html>

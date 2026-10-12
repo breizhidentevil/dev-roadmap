@@ -1,0 +1,73 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Patterns de conception
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. Refactoring.Guru — Design Patterns — https://refactoring.guru/design-patterns
+2. SourceMaking — Design Patterns — https://sourcemaking.com/design_patterns
+3. Martin Fowler — Patterns of Enterprise Application Architecture — https://martinfowler.com/eaaCatalog/
+4. Microsoft — Design patterns — https://learn.microsoft.com/en-us/azure/architecture/patterns/
+5. Gang of Four — Design Patterns (publisher page) — https://www.pearson.com/en-us/subject-catalog/p/design-patterns-elements-of-reusable-object-oriented-software/P200000009485
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Reconnaître des problèmes récurrents et choisir des solutions proportionnées.">
+<title>Patterns de conception — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Parcours Full Stack · Architecture et exploitation</p>
+<h1>Patterns de conception</h1>
+<p class="lead">Un pattern de conception est un vocabulaire partagé pour décrire une structure de solution récurrente. Il aide à communiquer et à comparer des options, mais ne remplace ni le diagnostic du problème ni une conception simple.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Les patterns décrivent des compromis connus dans des contextes récurrents. Ils ne sont ni des bibliothèques à installer systématiquement, ni des règles imposant une structure identique à tous les projets.</p><ul><li>Expliquer ce qu’un pattern apporte et ce qu’il coûte.</li><li>Reconnaître quelques patterns courants dans du code existant.</li><li>Choisir une solution à partir du problème plutôt que du nom du pattern.</li><li>Éviter la sur-ingénierie et tester le comportement attendu.</li></ul>
+</section>
+<section class="lesson-section"><h2>1. Partir du problème, pas du catalogue</h2>
+<p>Avant d’appliquer un pattern, décrivez la difficulté en une phrase : « plusieurs fournisseurs doivent être appelés derrière un contrat commun », « l’objet doit être construit avec des règles de validation », ou « une opération doit être notifiée à plusieurs abonnés ». Ensuite, comparez la solution la plus simple à une solution structurée.</p><p>Un pattern devient utile lorsqu’il réduit le couplage, rend une variation explicite, clarifie un cycle de vie ou permet de tester une partie isolément. Il devient nuisible lorsqu’il ajoute des classes, des indirections ou un vocabulaire que l’équipe doit apprendre sans bénéfice observable.</p><p>Les patterns ont souvent des variantes. Il est plus important de comprendre l’intention et les conséquences que de reproduire exactement un diagramme trouvé dans un livre.</p>
+</section>
+<section class="lesson-section"><h2>2. Patterns de création</h2>
+<p><strong>Factory :</strong> centralise la sélection ou la construction d’un objet lorsque cette décision est non triviale. Par exemple, un service peut choisir un adaptateur de paiement selon une configuration validée. Pour un simple <code>new Report()</code>, une factory dédiée n’est probablement pas utile.</p><p><strong>Builder :</strong> construit progressivement un objet complexe, notamment lorsque de nombreux paramètres optionnels doivent être validés ensemble. Attention à ne pas créer un builder pour chaque objet de données simple.</p><p><strong>Singleton :</strong> vise une instance partagée. Il peut simplifier un accès à une ressource, mais introduit souvent un état global qui complique les tests, la concurrence et l’isolation. Une dépendance injectée avec une durée de vie explicite est souvent plus facile à maîtriser.</p><p>Le choix doit rendre les contraintes de construction plus visibles, pas simplement ajouter une couche de code.</p>
+</section>
+<section class="lesson-section"><h2>3. Patterns structurels</h2>
+<p><strong>Adapter :</strong> traduit l’interface d’une bibliothèque externe vers le contrat attendu par l’application. Exemple : transformer les réponses d’un fournisseur de paiement en types internes stables. L’adaptateur isole les changements du fournisseur, mais il doit traiter explicitement les erreurs, les unités et les différences de sémantique.</p><p><strong>Facade :</strong> propose une interface simplifiée devant plusieurs composants. Elle est utile pour éviter qu’un appelant connaisse l’ordre de plusieurs opérations. Une façade ne doit pas masquer des effets secondaires importants ni devenir une classe « qui fait tout ».</p><p><strong>Decorator :</strong> ajoute un comportement autour d’un objet respectant le même contrat, par exemple des métriques ou une mise en cache. Il permet de composer des comportements, mais l’ordre des décorateurs peut changer le résultat. Une mise en cache placée avant ou après une vérification d’autorisation n’a pas les mêmes implications.</p>
+</section>
+<section class="lesson-section"><h2>4. Patterns comportementaux</h2>
+<p><strong>Strategy :</strong> permet de substituer un algorithme derrière un contrat commun. Plusieurs règles de calcul de frais peuvent ainsi être choisies selon le contexte. Si une simple condition contient deux branches stables, des classes de stratégie peuvent être excessives.</p><p><strong>Observer :</strong> diffuse un événement à plusieurs abonnés. Il convient lorsque les émetteurs ne doivent pas connaître tous les destinataires, mais exige de traiter l’ordre, les erreurs, les doublons et la durée de vie des abonnements. Dans un système distribué, un événement asynchrone ajoute des problèmes de livraison et de cohérence.</p><p><strong>Command :</strong> représente une action comme un objet ou un message. Il peut faciliter la mise en file, la journalisation ou l’annulation, mais ne fournit pas automatiquement une transaction ou une garantie de livraison.</p><p><strong>State :</strong> rend explicites les comportements liés aux états d’un objet. Il est utile quand les transitions deviennent nombreuses et que certaines actions sont interdites dans certains états. Une énumération et une machine à états simple suffisent parfois.</p>
+</section>
+<section class="lesson-section"><h2>5. Comment décider et refactoriser</h2>
+<ol><li>Écrivez le besoin et les contraintes observables.</li><li>Identifiez ce qui varie : algorithme, fournisseur, construction, notification ou état.</li><li>Établissez une solution minimale et ses limites.</li><li>Comparez le coût du pattern : nouvelles abstractions, navigation, tests et concepts à transmettre.</li><li>Ajoutez des tests comportementaux avant la refactorisation.</li><li>Appliquez le pattern progressivement et vérifiez que le code appelant est réellement simplifié.</li></ol><p>Ne choisissez pas un pattern parce qu’il apparaît dans une liste d’entretien technique. Le bon choix dépend de la taille du problème, du rythme des changements et de l’équipe qui maintiendra le code.</p><ul><li>Un nom de pattern ne prouve pas que l’implémentation est bonne.</li><li>Un diagramme classique n’est pas forcément adapté aux paradigmes fonctionnels ou aux frameworks modernes.</li><li>Plus d’abstractions ne signifie pas automatiquement plus de testabilité.</li><li>Un pattern mal documenté peut devenir une convention locale que personne ne comprend.</li></ul>
+</section>
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Une application calcule les frais de livraison selon trois modes : standard, express et retrait en magasin. Plus tard, une quatrième règle pourrait être ajoutée. Proposez une première implémentation puis une évolution avec Strategy, sans écrire plus d’abstraction que nécessaire.</p><ol><li>À partir de combien de variations une stratégie séparée devient-elle intéressante dans votre cas ? Justifiez.</li><li>Où valider qu’un mode de livraison est autorisé pour une commande donnée ?</li><li>Comment tester chaque règle sans créer une commande HTTP réelle ?</li><li>Si les règles ne changent jamais et restent très courtes, quelle solution plus simple conserveriez-vous ?</li></ol><p><strong>Critères de réussite :</strong> vous formulez le problème avant de nommer le pattern, décrivez ses bénéfices et coûts, conservez les invariants au bon endroit et savez expliquer pourquoi une solution plus simple pourrait suffire.</p>
+</section>
+<section class="lesson-section"><h2>Atelier de validation : choisir un pattern à partir des forces en présence</h2>
+<p>Un pattern est utile quand il nomme une structure qui résout un problème récurrent. Il n’est pas un objectif en soi : comparez le coût de l’abstraction au coût réel des changements qu’elle permet.</p>
+<h3>Exemple : plusieurs fournisseurs de paiement</h3><pre><code>interface Paiement {
+  debiter(montantCentimes: number, reference: string): Promise&lt;"accepte" | "refuse"&gt;;
+}
+class PaiementSimule implements Paiement {
+  async debiter(): Promise&lt;"accepte" | "refuse"&gt; { return "accepte"; }
+}
+async function finaliser(paiement: Paiement, total: number, id: string) {
+  return paiement.debiter(total, id);
+}</code></pre>
+<p>L’interface et les implémentations peuvent illustrer Strategy/port-adapter si plusieurs fournisseurs doivent réellement être substituables. En production, il faut aussi définir idempotence, délais, erreurs ambiguës et rapprochement : le pattern seul ne résout pas ces propriétés.</p>
+<h3>Décision guidée</h3><ol><li>Décrivez le changement concret qui provoque la duplication ou le couplage.</li><li>Écrivez les invariants qui doivent rester vrais quelle que soit l’implémentation.</li><li>Comparez une solution directe, une fonction passée en paramètre et un objet de stratégie.</li><li>Ajoutez un test qui utilise deux implémentations sans modifier le code appelant.</li><li>Réévaluez l’abstraction si elle exige plus de configuration qu’elle ne retire de complexité.</li></ol>
+<h3>Pièges et exercice</h3><ul><li>Un Singleton global complique l’isolation des tests et masque les dépendances.</li><li>Une Factory n’est pas utile si elle ne fait que renommer un constructeur sans politique de création.</li><li>Ne choisissez pas un pattern seulement parce qu’il figure dans un catalogue.</li></ul>
+<p><strong>Exercice :</strong> comparez trois implémentations d’un calcul de frais de livraison. Choisissez un pattern uniquement si les variations le justifient et écrivez un test commun aux implémentations.</p>
+<p><strong>Critères de réussite :</strong> problème formulé avant le nom du pattern, alternative plus simple évaluée, invariants explicites et tests de substituabilité.</p></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces références permettent d’approfondir les concepts et de vérifier les détails propres aux outils. Les exemples du tutoriel sont synthétiques ; consultez la documentation officielle avant une mise en production.</p><ol><li><a href="https://refactoring.guru/design-patterns" target="_blank" rel="noopener noreferrer">Refactoring.Guru — Design Patterns</a></li>
+<li><a href="https://sourcemaking.com/design_patterns" target="_blank" rel="noopener noreferrer">SourceMaking — Design Patterns</a></li>
+<li><a href="https://martinfowler.com/eaaCatalog/" target="_blank" rel="noopener noreferrer">Martin Fowler — Patterns of Enterprise Application Architecture</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/" target="_blank" rel="noopener noreferrer">Microsoft — Design patterns</a></li>
+<li><a href="https://www.pearson.com/en-us/subject-catalog/p/design-patterns-elements-of-reusable-object-oriented-software/P200000009485" target="_blank" rel="noopener noreferrer">Gang of Four — Design Patterns (publisher page)</a></li></ol></section>
+<nav class="lesson-nav" aria-label="Navigation entre les compétences"><a href="separation-responsabilites.html">← Compétence précédente</a><a href="api-evolutives.html">Compétence suivante →</a></nav>
+</main>
+<footer class="site-footer"><p>Roadmap Full Stack 2026 · Apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

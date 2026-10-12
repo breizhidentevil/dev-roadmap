@@ -1,0 +1,56 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Index et performances SQL
+Références documentaires proposées comme points d’entrée ; cela ne signifie pas que chaque source a été intégralement étudiée.
+1. PostgreSQL — Indexes — https://www.postgresql.org/docs/current/indexes.html
+2. PostgreSQL — Examining index usage — https://www.postgresql.org/docs/current/indexes-examine.html
+3. Use The Index, Luke — SQL indexing — https://use-the-index-luke.com/
+4. PostgreSQL — EXPLAIN — https://www.postgresql.org/docs/current/using-explain.html
+5. MySQL — Optimization and Indexes — https://dev.mysql.com/doc/refman/8.4/en/optimization-indexes.html
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Comprendre comment un index accélère certaines lectures et ajoute des coûts d’écriture et de stockage." name="description"/>
+<title>Index et performances SQL — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">4. Bases de données et modélisation</p>
+<h1>Index et performances SQL</h1>
+<p class="lead">Comprendre comment un index accélère certaines lectures et ajoute des coûts d’écriture et de stockage.</p>
+<div class="lesson-meta"><span>Seconde passe pédagogique</span><span>Base de données</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Expliquer ce qu’un index accélère et ce qu’il coûte.</li><li>Choisir des index à partir des requêtes réellement exécutées.</li><li>Lire les bases d’un plan EXPLAIN.</li></ul></section>
+<section class="lesson-section"><h2>1. Rôle d’un index</h2><p>Un index est une structure auxiliaire qui aide le moteur à retrouver certaines lignes sans parcourir toute la table. Les index B-tree courants conviennent notamment aux égalités, aux plages de valeurs et à certains tris. Les clés primaires et contraintes UNIQUE créent généralement un index adapté dans les bases relationnelles.</p><pre><code>CREATE INDEX idx_commandes_client_date
+ON commandes (client_id, cree_le DESC);
+
+SELECT id, cree_le
+FROM commandes
+WHERE client_id = 42
+ORDER BY cree_le DESC
+LIMIT 20;</code></pre><p>L’index composé permet de filtrer par client puis de parcourir ses commandes récentes. L’ordre des colonnes compte : un index sur (client_id, cree_le) ne remplace pas nécessairement un index sur (cree_le, client_id).</p></section>
+<section class="lesson-section"><h2>2. Partir des requêtes réelles</h2><p>Un index n’est pas un accélérateur universel. Il doit correspondre à un filtre, un tri ou une jointure réelle, avec une sélectivité suffisante. Commence par capturer la requête, les paramètres représentatifs, la durée, le nombre de lignes renvoyées et la fréquence d’exécution. Teste aussi des paramètres fréquents et rares : le même plan n’est pas forcément optimal pour les deux.</p><p>Pour un index composé, l’ordre des colonnes compte. Dans cet exemple, un index sur <code>(client_id, cree_le)</code> peut aider une recherche filtrée par <code>client_id</code> et triée par <code>cree_le</code>, mais n’est pas équivalent à un index sur <code>(cree_le, client_id)</code>. L’ordre des colonnes doit correspondre aux filtres et tris réellement utilisés. Évite d’ajouter un index redondant sans comparer les préfixes et les contraintes déjà présentes.</p></section>
+<section class="lesson-section"><h2>3. Mesurer avec EXPLAIN</h2><pre><code>EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, cree_le
+FROM commandes
+WHERE client_id = 42
+ORDER BY cree_le DESC
+LIMIT 25;</code></pre><p><code>EXPLAIN</code> présente le plan estimé ; <code>EXPLAIN ANALYZE</code> exécute la requête et compare les estimations aux mesures. Inspecte les écarts de cardinalité, les boucles répétées, le tri, les lectures de blocs et le temps total. Un parcours séquentiel peut être le meilleur choix si une grande partie de la table est demandée.</p><p>Protocole : mesure avant, crée un seul index candidat, actualise les statistiques si nécessaire, répète les mesures sur des données représentatives, puis contrôle le coût d’écriture et l’espace. Ne teste pas uniquement sur une table minuscule et ne publie pas de chiffres de benchmark sans préciser données, cache et environnement.</p></section>
+<section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Indexer toutes les colonnes « au cas où ».</li><li>Ignorer l’ordre des colonnes d’un index composé.</li><li>Mesurer sur une table minuscule ou une seule exécution.</li><li>Considérer tout parcours séquentiel comme mauvais.</li><li>Ne pas comparer les plans avant et après modification.</li></ul></section>
+<section class="lesson-section"><h2>Exercice</h2><p>Analyse une requête qui recherche les commandes d’un client et les trie par date. Compare son plan avant et après la création d’un index composé. Note les lignes estimées et réelles, la durée, puis réfléchis au coût supplémentaire sur les insertions.</p><h3>Critères de réussite</h3><ul><li>L’index répond à une requête identifiée.</li><li>Les plans sont comparés dans des conditions similaires.</li><li>Le compromis stockage/écriture est expliqué.</li><li>Tu acceptes de ne pas conserver l’index si le gain n’est pas démontré.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://www.postgresql.org/docs/current/indexes.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Indexes</a></li>
+<li><a href="https://www.postgresql.org/docs/current/indexes-examine.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Examining index usage</a></li>
+<li><a href="https://use-the-index-luke.com/" rel="noopener noreferrer" target="_blank">Use The Index, Luke — SQL indexing</a></li>
+<li><a href="https://www.postgresql.org/docs/current/using-explain.html" rel="noopener noreferrer" target="_blank">PostgreSQL — EXPLAIN</a></li>
+<li><a href="https://dev.mysql.com/doc/refman/8.4/en/optimization-indexes.html" rel="noopener noreferrer" target="_blank">MySQL — Optimization and Indexes</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"/> Je sais proposer un index à partir d’une requête.</label><label><input type="checkbox"/> Je sais lire les informations principales d’un plan.</label><label><input type="checkbox"/> Je sais expliquer le coût des index sur les écritures.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="jointures-agregations.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="transactions.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

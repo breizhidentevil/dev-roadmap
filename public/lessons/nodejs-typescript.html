@@ -1,0 +1,78 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Node.js et TypeScript
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. Node.js — Documentation — https://nodejs.org/docs/latest/api/
+2. Node.js — Introduction — https://nodejs.org/en/learn/getting-started/introduction-to-nodejs
+3. TypeScript — Guide de configuration — https://www.typescriptlang.org/tsconfig/
+4. TypeScript — Modules — https://www.typescriptlang.org/docs/handbook/modules.html
+5. Node.js — Environment variables — https://nodejs.org/en/learn/command-line/how-to-read-environment-variables-from-nodejs
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Exécuter du JavaScript côté serveur et structurer un projet typé." name="description"/>
+<title>Node.js et TypeScript — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">3. Backend</p>
+<h1>Node.js et TypeScript</h1>
+<p class="lead">Comprendre l’exécution JavaScript côté serveur, structurer les modules et compiler TypeScript avec une configuration reproductible et des frontières d’entrée explicites.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 9 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Distinguer Node.js du navigateur.</li><li>Comprendre modules, scripts npm et configuration TypeScript.</li><li>Gérer l’asynchronisme et les erreurs.</li><li>Valider les données externes et protéger la configuration.</li></ul>
+</section><section class="lesson-section"><h2>Fil conducteur</h2><p>Le chemin d’une application serveur est : charger la configuration, initialiser les dépendances, démarrer le processus, traiter les entrées asynchrones, puis arrêter proprement les ressources.</p></section>
+<section class="lesson-section"><h2>1. Node.js : JavaScript hors du navigateur</h2>
+<p>Node.js exécute JavaScript en dehors du navigateur et fournit des API pour le système de fichiers, le réseau, les processus et d’autres tâches serveur. Il n’expose pas automatiquement le DOM ou <code>window</code>. Le modèle d’E/S non bloquantes permet de gérer de nombreuses opérations réseau sans créer un thread par requête, mais du calcul synchrone long peut bloquer la boucle d’événements.</p><pre><code>console.log("Node", process.version);
+    console.log("Répertoire courant", process.cwd());</code></pre><p>Choisis une version de Node.js maintenue et cohérente avec les dépendances du projet. Documente la version attendue, par exemple avec un fichier de version et le champ <code>engines</code> si cela convient au workflow. <code>engines</code> décrit une plage compatible mais ne garantit pas, à lui seul, que chaque poste ou chaque pipeline utilise cette version : configure le gestionnaire de versions et vérifie la version dans la CI.</p>
+</section>
+<section class="lesson-section"><h2>2. Modules et scripts</h2>
+<p>Node.js prend en charge les modules CommonJS et ECMAScript. Le choix détermine la syntaxe d’importation et certaines règles de résolution ; configure le projet de façon cohérente et suis la documentation de la version de Node utilisée.</p><pre><code>// src/math.ts
+    export function add(a: number, b: number): number {
+      return a + b;
+    }</code></pre><p>Dans <code>package.json</code>, les scripts nomment les tâches courantes comme développement, compilation et tests. Évite de compter sur une commande disponible uniquement sur ton poste ; déclare les outils du projet comme dépendances de développement et documente les étapes nécessaires.</p>
+</section>
+<section class="lesson-section"><h2>3. Compiler et configurer TypeScript</h2>
+<p>TypeScript ajoute un système de types statique à JavaScript et doit être transformé en JavaScript pour l’exécution standard. Le fichier <code>tsconfig.json</code> contrôle notamment les fichiers inclus, la cible JavaScript, les modules et le niveau de vérification.</p><pre><code>{
+      "compilerOptions": {
+        "target": "ES2022",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "strict": true,
+        "outDir": "dist",
+        "rootDir": "src"
+      },
+      "include": ["src/**/*.ts"]
+    }</code></pre><p>La configuration doit correspondre au mode de modules et à la version Node du projet. Les options ci-dessus sont un point de départ, pas une configuration universelle. Une compilation réussie ne garantit pas que les données externes sont valides à l’exécution.</p>
+</section>
+<section class="lesson-section"><h2>4. Asynchronisme et erreurs</h2>
+<p>Les opérations de fichiers et de réseau sont souvent asynchrones. Avec <code>async</code>/<code>await</code>, les erreurs doivent être traitées au bon niveau et les ressources libérées lorsque nécessaire. Évite les appels synchrones coûteux dans les chemins de requête d’un serveur.</p><pre><code>async function loadConfig() {
+      try {
+        const value = await readConfig();
+        return value;
+      } catch (error) {
+        throw new Error("Impossible de charger la configuration", { cause: error });
+      }
+    }</code></pre><p><code>readConfig</code> est ici une fonction illustrative. Ajoute le contexte utile à une erreur sans y inclure de secrets. Une erreur doit être traitée, propagée ou transformée explicitement, pas ignorée silencieusement.</p>
+</section>
+<section class="lesson-section"><h2>5. Entrées, configuration et sécurité</h2>
+<p>Les types TypeScript ne valident pas les valeurs reçues par HTTP, les fichiers ou les variables d’environnement. Traite ces valeurs comme inconnues, vérifie leur format et convertis-les en types internes validés avant de les utiliser.</p><p>Les secrets et paramètres spécifiques à l’environnement doivent venir d’une configuration protégée plutôt que du code source. Vérifie les variables obligatoires au démarrage et échoue tôt avec un message explicite si une configuration indispensable manque. Ne journalise pas les mots de passe, jetons ou clés.</p>
+</section>
+
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Crée un petit programme Node.js en TypeScript qui lit une configuration, valide ses paramètres, exécute une fonction asynchrone et renvoie un code de sortie cohérent en cas d’erreur. Ajoute des scripts de compilation et de test, puis exécute le programme à partir du JavaScript compilé.</p><h3>Critères de réussite</h3><ul><li>Le projet possède une configuration TypeScript stricte et documentée.</li><li>Les modules sont configurés de façon cohérente.</li><li>Les entrées externes sont validées à l’exécution.</li><li>Les erreurs utiles sont propagées sans divulguer de secrets.</li><li>Le build et les tests fonctionnent depuis une installation propre.</li></ul>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Utiliser des API du navigateur dans un processus Node.js.</li><li>Mélanger des conventions de modules incompatibles.</li><li>Supposer que TypeScript valide les données à l’exécution.</li><li>Bloquer la boucle d’événements avec du calcul synchrone long.</li><li>Ignorer les erreurs ou écrire des secrets dans les logs.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://nodejs.org/docs/latest/api/" rel="noopener noreferrer" target="_blank">Node.js — Documentation</a></li><li><a href="https://nodejs.org/en/learn/getting-started/introduction-to-nodejs" rel="noopener noreferrer" target="_blank">Node.js — Introduction</a></li><li><a href="https://www.typescriptlang.org/tsconfig/" rel="noopener noreferrer" target="_blank">TypeScript — Guide de configuration</a></li><li><a href="https://www.typescriptlang.org/docs/handbook/modules.html" rel="noopener noreferrer" target="_blank">TypeScript — Modules</a></li><li><a href="https://nodejs.org/en/learn/command-line/how-to-read-environment-variables-from-nodejs" rel="noopener noreferrer" target="_blank">Node.js — Environment variables</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="tests-frontend.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="cycle-requete-reponse.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html><p><strong>Repère pratique. </strong>Node.js fournit des API serveur et un modèle d’E/S non bloquantes, mais une tâche CPU longue bloque tout de même la boucle d’événements. Déporte les calculs réellement coûteux ou découpe-les ; « asynchrone » ne signifie pas « parallèle ».</p><p><strong>Repère pratique. </strong>Sépare la vérification des types de la transformation du code : TypeScript n’effectue pas automatiquement une validation des données à l’exécution. Une réponse JSON, une variable d’environnement ou un message de file doit être vérifié comme une donnée inconnue à la frontière.</p><p><strong>Repère pratique. </strong>Traite les variables d’environnement comme des chaînes potentiellement absentes ou mal formées. Valide-les au démarrage, échoue avec un message exploitable et ne journalise jamais les secrets.</p>

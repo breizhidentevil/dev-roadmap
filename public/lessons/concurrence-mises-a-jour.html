@@ -1,0 +1,107 @@
+ <!-- SOURCES DOCUMENTAIRES
+- PostgreSQL — Transaction Isolation: https://www.postgresql.org/docs/current/transaction-iso.html
+- MDN — HTTP Conditional Requests: https://developer.mozilla.org/en-US/docs/Web/HTTP/Conditional_requests
+- RFC 9110 — If-Match: https://www.rfc-editor.org/rfc/rfc9110.html#name-if-match
+- Microsoft — Optimistic concurrency: https://learn.microsoft.com/en-us/ef/core/saving/concurrency
+- Martin Kleppmann — Designing Data-Intensive Applications: https://dataintensive.net/
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Détecter les conflits lorsque plusieurs utilisateurs modifient la même donnée et choisir entre écrasement, contrôle de version, fusion et verrouillage.">
+<title>Concurrence et mises à jour perdues — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Concurrence et mises à jour perdues</h1>
+<p class="lead">Détecter les conflits lorsque plusieurs utilisateurs modifient la même donnée et choisir entre écrasement, contrôle de version, fusion et verrouillage.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Une mise à jour perdue se produit lorsque deux opérations lisent un même état, le modifient indépendamment et que l’écriture finale efface une partie du travail précédent. Le problème peut apparaître dans une base de données, une API, un éditeur collaboratif ou un formulaire ouvert dans plusieurs onglets. À la fin, vous saurez repérer cette course, ajouter un contrôle de version et choisir une politique de résolution adaptée au sens des données.</p>
+<h2>2. Exemple d’une mise à jour perdue</h2>
+<p>Imaginez un compteur qui vaut 10. Deux requêtes lisent cette valeur. La première calcule 11 et écrit 11 ; la seconde, qui avait elle aussi calculé 11 à partir de l’ancienne valeur, écrit 11. Deux incréments ont été demandés mais le compteur n’a augmenté que d’une unité. La difficulté ne vient pas d’une syntaxe incorrecte : chaque requête était cohérente isolément, mais leur interleaving ne l’était pas.</p>
+<p>Une autre situation concerne un document. Alice ouvre la version 4 et modifie le titre. Bob ouvre aussi la version 4 et modifie le contenu. Si chaque formulaire renvoie l’intégralité du document sans vérifier sa version, la dernière sauvegarde peut écraser le changement de l’autre personne, même si elle n’a jamais vu ce changement.</p>
+<h2>3. Éviter la lecture-modification-écriture naïve</h2>
+<p>Pour un compteur, l’incrément doit généralement être réalisé par une instruction atomique côté base de données plutôt que par une lecture puis une écriture depuis l’application :</p>
+<pre><code>UPDATE counters
+SET value = value + 1
+WHERE id = :id;</code></pre>
+<p>Cette instruction évite la course spécifique à l’incrément dans les conditions normales d’un moteur relationnel. Elle ne suffit pas à protéger tous les invariants métier, mais elle illustre une règle générale : quand l’opération peut être exprimée comme une mutation atomique, laissez le système de stockage l’exécuter au lieu de calculer une nouvelle valeur à partir d’une copie périmée.</p>
+<p>Pour les documents, il faut souvent détecter que l’état a changé depuis la lecture. Une colonne de version ou un horodatage fiable peut servir de jeton de concurrence. L’écriture n’est acceptée que si la version actuelle correspond à celle que l’utilisateur avait lue.</p>
+<h2>4. Contrôle optimiste par version</h2>
+<pre><code>UPDATE articles
+SET title = :title,
+    body = :body,
+    version = version + 1
+WHERE id = :id
+  AND version = :expectedVersion
+RETURNING id, version;</code></pre>
+<p>Avec PostgreSQL, <code>RETURNING</code> permet de récupérer la nouvelle version si une ligne a été modifiée. Si aucune ligne n’est retournée, le serveur ne doit pas annoncer un succès : il peut s’agir d’une version périmée ou d’une ressource absente. Le contrat doit choisir s’il renvoie un conflit ou distingue le cas absent par une vérification adaptée, sans introduire une course dans le contrôle de concurrence.</p>
+<p>Une version entière est souvent plus claire qu’un timestamp, car les horloges peuvent avoir une précision limitée ou diverger. Les timestamps restent utiles pour l’affichage, mais ils ne sont pas toujours un jeton de concurrence fiable. Le choix doit garantir que chaque modification pertinente change le jeton observé par le client.</p>
+<h2>5. Utiliser HTTP : ETag et If-Match</h2>
+<p>Une API HTTP peut exposer un <code>ETag</code> qui identifie la représentation courante. Le client renvoie ensuite <code>If-Match</code> avec la valeur qu’il a lue. Le serveur ne réalise la modification que si la représentation correspond encore à ce jeton. Cela déplace le contrôle de concurrence dans le contrat HTTP, plutôt que de le laisser comme une convention implicite du frontend.</p>
+<pre><code>GET /api/articles/42
+ETag: "v7"
+
+PATCH /api/articles/42
+If-Match: "v7"
+Content-Type: application/json
+
+{ "title": "Nouveau titre" }</code></pre>
+<p>Si la ressource a changé entre les deux requêtes, le serveur peut répondre <code>412 Precondition Failed</code>. Une réponse <code>409 Conflict</code> est également utilisée par certaines API pour signaler un conflit métier, selon le contrat. Il faut documenter le comportement, et surtout effectuer la comparaison et l’écriture de façon atomique côté serveur.</p>
+<p>Pour <code>If-Match</code>, utilisez le validateur fort exact reçu dans l’<code>ETag</code> ; un ETag faible préfixé par <code>W/</code> ne satisfait pas cette précondition. Si votre API exige une précondition et que le client omet <code>If-Match</code>, vous pouvez documenter une réponse <code>428 Precondition Required</code>. Le test de concurrence essentiel est : deux clients lisent <code>"v7"</code>, le premier écrit et obtient <code>"v8"</code>, puis le second envoie encore <code>"v7"</code> et reçoit un échec sans écraser la première modification.</p>
+<h2>6. Que faire lorsqu’un conflit est détecté ?</h2>
+<p>Détecter le conflit ne résout pas le problème métier. Plusieurs politiques sont possibles :</p>
+<ul>
+<li>Demander à l’utilisateur de recharger et de réappliquer ses changements.</li>
+<li>Afficher une comparaison entre la version initiale, la version actuelle et la modification locale.</li>
+<li>Fusionner automatiquement les champs indépendants si les règles métier le permettent.</li>
+<li>Utiliser une structure collaborative spécialisée pour des modifications simultanées à grande échelle.</li>
+</ul>
+<p>Ne faites pas de fusion automatique sur la seule base du fait que deux changements concernent des champs différents sans comprendre leurs dépendances. Modifier la date de fin d’un contrat peut dépendre de sa date de début ; changer deux champs séparés peut donc enfreindre une règle métier. La fusion doit être fondée sur les invariants du domaine.</p>
+<h2>7. Mise à jour partielle et sémantique des champs</h2>
+<p>Une requête qui transmet seulement les champs modifiés réduit le risque d’écraser des champs sans rapport, mais ne supprime pas tous les conflits. Deux utilisateurs peuvent modifier le même champ ; une règle métier peut dépendre de plusieurs champs ; et la sémantique de <code>null</code>, d’un champ absent ou d’une collection remplacée doit être définie.</p>
+<p>Un endpoint <code>PATCH</code> ne garantit pas par lui-même la fusion. Si le serveur reçoit un patch puis le combine avec l’état actuel, il peut préserver les changements indépendants, mais doit toujours contrôler les invariants et décider quoi faire lorsque deux mises à jour touchent la même propriété. Un contrôle de version peut être appliqué au document entier ou à une unité plus fine selon les exigences.</p>
+<h2>8. Verrouillage pessimiste ou optimiste ?</h2>
+<p>Le verrouillage pessimiste empêche certaines modifications concurrentes pendant une période. Il peut être approprié pour des opérations courtes où le conflit coûterait cher, mais il ajoute des attentes et un risque de deadlock. Le contrôle optimiste laisse les clients travailler librement, puis rejette une sauvegarde périmée. Il convient souvent aux formulaires et documents où les conflits sont rares et où une résolution utilisateur est acceptable.</p>
+<p>Pour des systèmes à forte concurrence, mesurez le taux de conflits et le coût des retries. Si chaque mise à jour échoue régulièrement, un verrouillage, une sérialisation ou un autre modèle de données peut être préférable. Si les conflits sont rares, un jeton de version est souvent plus simple et plus scalable.</p>
+<h2>9. Erreurs fréquentes</h2>
+<ul>
+<li>Faire confiance au fait que le formulaire était à jour au moment de son ouverture.</li>
+<li>Mettre à jour toute la ligne sans vérifier sa version.</li>
+<li>Utiliser un timestamp non fiable comme seul jeton de concurrence.</li>
+<li>Retourner un succès alors que la requête n’a modifié aucune ligne.</li>
+<li>Fusionner automatiquement des champs sans vérifier les invariants métier.</li>
+<li>Confondre un code HTTP de conflit avec une stratégie réelle de résolution.</li>
+</ul>
+<h2>10. Exercice et critères de réussite</h2>
+<p>Construisez un endpoint de modification d’article avec un numéro de version. Simulez deux clients qui lisent la version 3. Le premier sauvegarde et produit la version 4 ; le second tente de sauvegarder la version 3. Vérifiez que sa requête est rejetée, que la version du premier client est préservée et que l’API fournit assez d’information pour permettre une résolution explicite.</p>
+<ul class="checklist">
+<li>Je peux expliquer une mise à jour perdue à partir d’un scénario de concurrence.</li>
+<li>Je sais employer une mise à jour atomique quand elle correspond à la règle métier.</li>
+<li>Je peux implémenter un contrôle de version et détecter une sauvegarde périmée.</li>
+<li>Je distingue détection du conflit et politique de résolution.</li>
+<li>Je choisis une stratégie adaptée au coût et à la fréquence des conflits.</li>
+</ul>
+
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://www.postgresql.org/docs/current/transaction-iso.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Transaction Isolation</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Conditional_requests" target="_blank" rel="noopener noreferrer">MDN — HTTP Conditional Requests</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110.html#name-if-match" target="_blank" rel="noopener noreferrer">RFC 9110 — If-Match</a></li>
+<li><a href="https://learn.microsoft.com/en-us/ef/core/saving/concurrency" target="_blank" rel="noopener noreferrer">Microsoft — Optimistic concurrency</a></li>
+<li><a href="https://dataintensive.net/" target="_blank" rel="noopener noreferrer">Martin Kleppmann — Designing Data-Intensive Applications</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="isolation-transactions-verrous.html">← Précédent : Isolation des transactions et verrous</a><a rel="next" href="plans-execution-sql.html">Suivant : Plans d’exécution SQL →</a></nav>
+
+<section class="lesson-workshop"><h2>Atelier approfondi — Empêcher les écrasements silencieux</h2><h3>Objectifs opérationnels</h3><ul><li>Expliquer les garanties et les limites du mécanisme présenté.</li><li>Choisir une stratégie adaptée à un cas réaliste et justifier ses compromis.</li><li>Vérifier le comportement avec des tests reproductibles plutôt que par intuition.</li></ul><h3>Explications et exemple guidé</h3><p>Une mise à jour perdue survient lorsque deux acteurs lisent la même version d’une donnée, calculent chacun une modification puis enregistrent successivement leurs résultats : la seconde écriture peut effacer la première. Deux approches courantes sont le verrouillage pessimiste et le contrôle optimiste de concurrence.</p><pre><code>UPDATE documents
+SET body = :newBody, version = version + 1
+WHERE id = :id AND version = :expectedVersion;
+-- si rowCount = 0 : version périmée, signaler un conflit</code></pre><p>Le contrôle optimiste compare une version ou un ETag au moment de l’écriture. HTTP permet notamment <code>If-Match</code> ; un préconditionnement non satisfait se traduit généralement par 412. L’interface doit alors demander de recharger, fusionner ou réappliquer la modification plutôt que répéter automatiquement la même écriture.</p><h3>Pièges et limites</h3><ul><li>Piège : lire une version puis faire un UPDATE sans condition atomique.</li><li>Piège : transformer tout conflit en succès silencieux.</li><li>Piège : confondre un conflit de concurrence avec une panne transitoire réessayable.</li><li>Piège : fusionner automatiquement du texte ou des données métier sans règle de domaine explicite.</li></ul><h3>Exercice</h3><p>Ajoutez un champ de version à une ressource modifiable. Écrivez le contrat HTTP d’une mise à jour conditionnelle et testez deux clients qui enregistrent simultanément une version initiale identique.</p><h3>Critères de réussite</h3><ul><li>La vérification de version et l’écriture sont atomiques.</li><li>Une mise à jour périmée déclenche un conflit explicite.</li><li>Le client sait recharger ou présenter une résolution de conflit.</li><li>Les tests prouvent qu’aucune modification concurrente n’est silencieusement perdue.</li></ul></section>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

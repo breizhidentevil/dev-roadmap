@@ -1,0 +1,106 @@
+<!-- SOURCES DOCUMENTAIRES
+- OWASP API Security Top 10: https://owasp.org/www-project-api-security/
+- OWASP REST Security Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html
+- OWASP Input Validation Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+- RFC 9110 — HTTP Semantics: https://www.rfc-editor.org/rfc/rfc9110
+- OWASP Denial of Service Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Denial_of_Service_Cheat_Sheet.html
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Protéger les API contre les accès non autorisés, les entrées malveillantes, l’épuisement des ressources et les usages automatisés abusifs.">
+<title>Sécurité des API et prévention des abus — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Sécurité des API et prévention des abus</h1>
+<p class="lead">Protéger les API contre les accès non autorisés, les entrées malveillantes, l’épuisement des ressources et les usages automatisés abusifs.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Une API peut être exposée à des clients légitimes, à des scripts automatisés et à des acteurs qui cherchent à lire des données, contourner les règles métier ou consommer des ressources. La sécurité ne se limite pas à vérifier un jeton : elle combine authentification, autorisation, validation, limites de consommation, protection contre les abus et surveillance. Ce tutoriel fournit une méthode pour examiner ces couches sans supposer qu’un seul mécanisme peut tout empêcher.</p>
+<h2>2. Définir la frontière de confiance</h2>
+<p>Tout paramètre reçu du client est non fiable : chemin, query string, en-tête, corps JSON, nom de fichier, pagination ou identifiant. Le serveur doit valider les types, formats, plages numériques, longueurs et combinaisons de paramètres avant d’engager des opérations coûteuses. La validation côté navigateur améliore l’expérience, mais peut être contournée.</p>
+<p>Utilisez des schémas d’entrée explicites et refusez les champs inconnus lorsque cela convient au contrat. Évitez de lier automatiquement un objet JSON complet à un modèle de base contenant des propriétés sensibles comme `role`, `ownerId` ou `isVerified`. Ce risque, parfois appelé mass assignment, se réduit en construisant explicitement les champs que l’utilisateur a le droit de modifier.</p>
+<h2>3. Authentifier et autoriser chaque opération</h2>
+<p>Validez les jetons ou sessions selon le protocole utilisé, leur émetteur, leur audience, leur expiration et les autres propriétés pertinentes. Ne décodez pas simplement un jeton et ne considérez pas son contenu comme fiable sans vérifier sa signature ou sa provenance. Les clés et secrets doivent être stockés et renouvelés selon une procédure documentée.</p>
+<p>L’authentification ne suffit pas : chaque action doit vérifier la permission et l’accès à l’objet concerné. Les erreurs d’autorisation au niveau de l’objet sont particulièrement dangereuses lorsque le client choisit un identifiant. Un endpoint de lecture peut être protégé contre les utilisateurs anonymes tout en restant vulnérable si un utilisateur authentifié peut lire les ressources d’un autre compte.</p>
+<h2>4. Validation et erreurs sûres</h2>
+<p>Définissez les tailles maximales de corps, les types de contenu acceptés, les longueurs de chaînes et les plages de valeurs. Rejetez les fichiers trop volumineux ou les formats non pris en charge avant de les traiter. Utilisez des requêtes SQL paramétrées et des API sûres pour les commandes système ; la validation ne doit pas remplacer les protections contre l’injection.</p>
+<p>Les réponses d’erreur doivent être cohérentes et utiles sans révéler de traces internes, de requêtes SQL, de secrets ou de détails d’infrastructure. Un identifiant de corrélation peut aider le support à retrouver les journaux. Ne renvoyez pas systématiquement une réponse 200 avec un message d’erreur métier : les codes HTTP devraient refléter la nature du résultat et être documentés pour les clients.</p>
+<h2>5. Limiter les abus et l’épuisement des ressources</h2>
+<p>Les limites de débit réduisent certains abus, mais doivent être définies selon la ressource et le coût de l’opération. Une limite globale par adresse IP peut pénaliser des utilisateurs derrière un réseau partagé et être contournée par des réseaux distribués. Combinez si nécessaire plusieurs dimensions : compte, jeton, adresse réseau, endpoint, organisation et coût estimé de la requête.</p>
+<p>Ajoutez des limites de concurrence, des délais d’attente, des tailles de page maximales et des budgets de calcul. Une recherche complexe, un export ou une génération de rapport peut être plus coûteux qu’une simple lecture ; appliquez des limites adaptées au travail effectué. Les tâches lourdes peuvent passer par une file asynchrone, avec quotas, statut de traitement et possibilité d’annulation.</p>
+<p>Une limite de débit doit définir le comportement en cas de dépassement, par exemple une réponse <code>429 Too Many Requests</code> et éventuellement un en-tête indiquant quand réessayer. Le contrat doit éviter que les clients réessaient immédiatement en boucle. Les limites doivent aussi être observables afin de distinguer une attaque d’un pic légitime.</p>
+<h2>6. Idempotence et opérations sensibles</h2>
+<p>Les clients peuvent répéter une requête à cause d’un délai réseau, d’une relance automatique ou d’une double action. Pour une opération qui crée une commande ou déclenche un paiement, une répétition peut produire un effet métier dupliqué. Une clé d’idempotence liée à l’identité du client et au contenu pertinent de la requête peut permettre de reconnaître une répétition et de retourner le résultat déjà enregistré.</p>
+<p>L’idempotence doit être implémentée avec une persistance et des règles de concurrence correctes ; un simple cache en mémoire d’un seul serveur peut échouer lors d’un redémarrage ou d’une requête envoyée à une autre instance. Définissez la durée de conservation des clés, le traitement des contenus différents avec la même clé et le comportement lorsqu’une première requête est encore en cours.</p>
+<h2>7. CORS, CSRF et secrets clients</h2>
+<p>CORS contrôle quels scripts de navigateur peuvent lire certaines réponses cross-origin ; ce n’est pas un système d’authentification et il ne bloque pas tous les clients non navigateur. N’autorisez pas arbitrairement toutes les origines avec des identifiants. Si l’API utilise des cookies de session, analysez également les risques CSRF et appliquez les protections adaptées, notamment les attributs de cookie et les jetons anti-CSRF lorsque nécessaires.</p>
+<p>Ne placez pas de secrets durables dans le code d’une application web ou mobile distribuée aux utilisateurs : ils peuvent être extraits. Utilisez des jetons de portée limitée, des échanges côté serveur et des mécanismes de révocation. Les clés publiques destinées à identifier une application ne doivent pas être confondues avec un secret capable d’autoriser des opérations privilégiées.</p>
+<h2>8. Journaux, alertes et détection</h2>
+<p>Enregistrez les événements utiles à la sécurité : échecs répétés d’authentification, refus d’accès, dépassements de quota, changements de privilèges et comportements anormaux. Évitez de journaliser les mots de passe, jetons d’accès, secrets ou corps complets contenant des données personnelles. Les journaux eux-mêmes doivent être protégés contre l’accès non autorisé et les modifications.</p>
+<p>Définissez des seuils et une procédure de réponse. Une hausse de 401 peut signaler un client mal configuré, une attaque ou l’expiration d’un secret ; une hausse de 403 peut révéler des tentatives d’accès croisé. Les métriques doivent être interprétées avec le contexte et permettre de réduire les faux positifs sans masquer une attaque réelle.</p>
+<h2>9. Erreurs fréquentes</h2>
+<ul>
+<li>Traiter l’authentification comme un substitut à l’autorisation sur chaque objet.</li>
+<li>Accepter automatiquement tous les champs envoyés dans un objet JSON.</li>
+<li>Limiter uniquement par adresse IP sans considérer le compte et le coût.</li>
+<li>Exposer des secrets dans le client, les réponses d’erreur ou les journaux.</li>
+<li>Appliquer une limite uniforme à des opérations de coûts très différents.</li>
+<li>Ne pas définir le comportement des clients lors d’un dépassement de quota.</li>
+</ul>
+<h2>10. Exercice et critères de réussite</h2>
+<p>Examinez une API de commandes. Pour chaque endpoint, listez les entrées non fiables, l’identité requise, la règle d’accès à la ressource, les limites de taille et de fréquence et les erreurs attendues. La matrice suivante fournit des résultats observables à adapter au contrat HTTP du projet :</p>
+<h3>Matrice de tests minimale</h3><table><thead><tr><th>Scénario</th><th>Résultat attendu</th></tr></thead><tbody>
+<tr><td>Utilisateur anonyme sur une route protégée</td><td>Réponse 401 selon le contrat ; aucune donnée privée renvoyée.</td></tr>
+<tr><td>Utilisateur authentifié qui vise une commande d’un autre compte</td><td>Refus cohérent (403 ou 404 selon la politique documentée) ; aucune lecture ni mutation.</td></tr>
+<tr><td>Corps dépassant la taille maximale</td><td>Rejet avant traitement coûteux, généralement 413 ; aucune mutation persistée.</td></tr>
+<tr><td>Quota dépassé</td><td>429 et indication de reprise si le contrat fournit <code>Retry-After</code> ; pas de travail coûteux lancé.</td></tr>
+<tr><td>Même clé d’idempotence et même contenu, y compris en concurrence</td><td>Un seul effet métier ; résultat stable renvoyé aux répétitions.</td></tr>
+<tr><td>Même clé d’idempotence avec un contenu différent</td><td>Rejet explicite, par exemple 409, selon le contrat documenté.</td></tr>
+</tbody></table>
+<ul class="checklist">
+<li>Je valide côté serveur toutes les entrées et limite leur taille.</li>
+<li>Je contrôle les droits au niveau de l’objet et de l’action.</li>
+<li>Je limite les ressources selon le coût et l’identité de l’appelant.</li>
+<li>Je prévois les répétitions et les erreurs réseau pour les opérations sensibles.</li>
+<li>Je journalise les événements utiles sans exposer de secrets.</li>
+</ul>
+    <section class="lesson-workshop">
+<h2>Atelier approfondi — Défendre un endpoint contre les accès abusifs</h2>
+<h3>Objectifs opérationnels</h3>
+<ul><li>Analyser un endpoint du point de vue de l’identité, de l’autorisation et du coût de calcul.</li><li>Mettre en place des limites de ressources et des contrôles d’entrée proportionnés.</li><li>Vérifier que les contrôles résistent aux appels directs et aux requêtes répétées.</li></ul>
+<h3>Explications et exemple guidé</h3>
+<p>Une API peut être correctement authentifiée et rester vulnérable si elle permet à un utilisateur de lire l’objet d’un autre, d’envoyer un nombre illimité de requêtes ou de déclencher un traitement coûteux. Pour chaque endpoint, inventorie la ressource visée, les droits requis, la taille maximale des entrées, le coût estimé, les dépendances externes et les conséquences d’un appel répété.</p>
+<p>Applique les contrôles à plusieurs niveaux : validation de schéma et de taille avant traitement, autorisation au niveau de l’objet, quotas par compte ou clé, limites globales pour protéger le service et délais d’attente sur les dépendances. Un simple quota par adresse IP peut pénaliser des utilisateurs légitimes derrière un réseau partagé et peut être contourné ; combine les dimensions adaptées au contexte. Pour une mutation, pense à l’idempotence afin qu’une reprise réseau ne crée pas plusieurs commandes.</p>
+<pre><code>// Pseudo-code d'un endpoint de recherche
+validateQuery(query, { maxLength: 120, maxPageSize: 50 });
+await requirePermission(actor, 'search', tenant);
+await rateLimiter.consume(actor.id, 'search');
+return searchService.run(query, { timeoutMs: 800 });</code></pre>
+<p>Ce pseudo-code illustre l’ordre de contrôle, pas une implémentation prête à copier. Les limites doivent être appliquées côté serveur, mesurées et configurées en fonction des ressources disponibles. CORS ne remplace pas l’autorisation ; CSRF est pertinent notamment lorsque le navigateur joint automatiquement des cookies d’authentification. Ne renvoie pas de détails internes dans les erreurs.</p>
+<h3>Pièges et limites</h3>
+<ul><li>Protéger l’accès à l’endpoint sans vérifier l’autorisation sur l’objet demandé.</li><li>Valider uniquement dans l’interface cliente ou laisser les tailles de tableau et de page sans plafond.</li><li>Faire des retries automatiques sur une mutation non idempotente.</li><li>Confondre limitation de débit, protection contre les bots et contrôle des droits : ces mécanismes se complètent mais ne se remplacent pas.</li></ul>
+<h3>Exercice</h3>
+<p>Choisis un endpoint de recherche ou de téléchargement. Définis sa matrice d’autorisation, les limites d’entrée, les quotas, les timeouts et les événements de journalisation. Écris des tests pour un identifiant d’objet appartenant à un autre utilisateur, un payload trop grand, un dépassement de quota et une dépendance lente.</p>
+<h3>Critères de réussite</h3>
+<ul><li>L’identité et l’autorisation de la ressource sont vérifiées côté serveur.</li><li>Les entrées, le débit, la taille des réponses et le temps de calcul sont bornés.</li><li>Les mutations sensibles sont sûres face aux répétitions ou disposent d’une stratégie de reprise explicite.</li><li>Les tests couvrent les refus, les limites et la dégradation d’une dépendance.</li></ul>
+</section>
+    
+
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://owasp.org/www-project-api-security/" target="_blank" rel="noopener noreferrer">OWASP API Security Top 10</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP REST Security Cheat Sheet</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP Input Validation Cheat Sheet</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noopener noreferrer">RFC 9110 — HTTP Semantics</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Denial_of_Service_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP Denial of Service Cheat Sheet</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="securite-dependances.html">← Précédent : Dépendances et chaîne d’approvisionnement</a><a rel="next" href="rotation-secrets-chiffrement.html">Suivant : Rotation des secrets et chiffrement →</a></nav>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Tâches asynchrones et files d’attente
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. BullMQ — Documentation — https://docs.bullmq.io/
+2. Redis — Documentation — https://redis.io/docs/latest/
+3. AWS — Message Queues — https://aws.amazon.com/message-queue/
+4. Google Cloud — Processing backlogs — https://cloud.google.com/architecture/processing-backlogs
+5. Microsoft — Queue-Based Load Leveling pattern — https://learn.microsoft.com/en-us/azure/architecture/patterns/queue-based-load-leveling
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Déporter les traitements longs dans des jobs afin de rendre les requêtes plus rapides et les traitements plus résilients.">
+  <title>Tâches asynchrones et files d’attente — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">3. Backend</p>
+    <h1>Tâches asynchrones et files d’attente</h1>
+    <p class="lead">Découpler les traitements longs avec des jobs et des files comme BullMQ.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 11 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Identifier les opérations à déporter hors du cycle HTTP.</li><li>Comprendre producteur, file, worker, retries et file d’échec.</li><li>Concevoir des jobs idempotents et observables.</li><li>Gérer délais, échecs et cohérence entre base de données et file.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Quand utiliser une file</h2>
+    <p>Une requête HTTP devrait généralement terminer rapidement. L’envoi d’un courriel, la génération d’un rapport, le traitement d’une image ou l’import d’un gros fichier peut durer longtemps, échouer à cause d’une dépendance ou consommer beaucoup de ressources. Une file permet d’accepter la demande puis de traiter le travail indépendamment du cycle de la requête.</p><p>Le serveur peut répondre <code>202 Accepted</code> avec un identifiant de job et une URL de suivi. Cela signifie que le traitement est accepté, pas qu’il est déjà terminé. Pour une opération courte et nécessaire à la réponse immédiate, ajouter une file augmente inutilement la complexité.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Les composants d’une architecture</h2>
+    <ul><li><strong>Producteur :</strong> valide la demande et publie un message décrivant le travail.</li><li><strong>File :</strong> conserve les jobs en attente et organise leur livraison.</li><li><strong>Worker :</strong> consomme un job et exécute le traitement.</li><li><strong>Stockage d’état :</strong> permet de suivre attente, exécution, réussite ou échec.</li><li><strong>Supervision :</strong> mesure profondeur de file, âge des jobs, échecs et durée de traitement.</li></ul><p>La file absorbe des pointes, mais ne crée pas une capacité infinie. Si les producteurs génèrent plus de travail que les workers ne peuvent en traiter, le retard augmente : il faut limiter le débit, augmenter la capacité ou réduire le coût des jobs.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Exemple de lancement d’un job</h2>
+    <pre><code>// Pseudo-code : l’API de la file et la fonction hash dépendent du projet.
+const idempotencyKey = requireIdempotencyKey(request);
+const stableJobId = hash(`${user.id}:generate-report:${idempotencyKey}`);
+
+const job = await queue.add("generate-report", {
+  reportId,
+  requestedBy: user.id,
+  idempotencyKey
+}, {
+  jobId: stableJobId
+});
+
+return response.status(202).json({
+  jobId: job.id,
+  statusUrl: `/api/jobs/${job.id}`
+});</code></pre><p>La même intention doit réutiliser la même clé lors d’un retry HTTP ; une nouvelle demande reçoit une nouvelle clé. L’identifiant stable de job peut réduire les doublons, mais sa portée, le comportement en cas de doublon et la durée de conservation varient selon la bibliothèque. Ne considérez pas la déduplication de la file comme un registre métier permanent, surtout si les jobs terminés sont supprimés. Pour une création critique, persistez aussi la clé et le résultat dans la base.</p><p>Le message contient des identifiants et les informations minimales nécessaires, pas un objet gigantesque ou des secrets. Le worker relit les données nécessaires depuis la source de vérité, vérifie que le job est encore pertinent, effectue le travail puis enregistre le résultat et son état. L’endpoint <code>statusUrl</code> doit authentifier l’appelant et vérifier qu’il est autorisé à consulter ce job : un identifiant difficile à deviner n’est pas un contrôle d’accès.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Retries, doublons et idempotence</h2>
+    <p>Un worker peut terminer une action externe puis tomber en panne avant de confirmer la réussite. Le système peut alors relivrer le job. Dans de nombreux systèmes, une livraison « au moins une fois » implique de tolérer les doublons.</p><p>Un job idempotent peut être rejoué sans reproduire un effet indésirable. Utilise une clé d’idempotence, un état métier vérifiable ou une contrainte unique lorsque cela convient. Configure des tentatives limitées, un délai progressif et une politique distinguant erreurs temporaires et permanentes. Après épuisement des tentatives, place le job dans un état consultable ou une file d’échec dédiée.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Cohérence, sécurité et exploitation</h2>
+    <p>Publier un message et valider une transaction SQL sont deux opérations distinctes. Si l’une réussit et l’autre échoue, le système peut perdre un événement ou créer un job sans données correspondantes. Pour les cas critiques, étudie le pattern <em>transactional outbox</em>, qui écrit l’événement dans la même transaction que les données puis le publie de manière fiable. Le dispatcher peut republier après un crash : le worker doit donc dédupliquer à partir d’un identifiant stable et enregistrer l’effet métier de manière atomique lorsque c’est possible.</p><p>Ne place pas de mots de passe ou de tokens dans les messages. Protège l’accès à la file, définis des limites de taille et de durée, et rends les jobs observables avec un identifiant de corrélation. Prévois la fermeture propre des workers, la reprise après redémarrage et des alertes sur les files qui vieillissent.</p>
+    </section>
+    <section class="lesson-section"><h2>6. Ordonnancement et concurrence</h2>
+    <p>Un job qui met à jour la même ressource qu’un autre peut créer une course. Définis si l’ordre est important, si plusieurs jobs peuvent s’exécuter simultanément et comment éviter les mises à jour concurrentes. La concurrence améliore le débit mais augmente la charge sur les bases et les services externes.</p><p>Les tâches planifiées doivent aussi gérer les exécutions en double, les fuseaux horaires et les changements d’heure. Une exécution prévue à 02:30 n’a pas le même comportement lors d’un passage à l’heure d’été selon le système utilisé.</p>
+    </section>
+    <section class="lesson-section"><h2>7. Étude de cas : rendre un job reprenable sans doublon</h2>
+<p>Un client demande la génération d’un rapport. Le serveur enregistre une demande et publie un job ; le worker commence le traitement, puis tombe avant d’accuser réception. La file peut livrer le même message une nouvelle fois. Il faut donc concevoir en supposant des livraisons au moins une fois, sauf garantie plus forte documentée par le système choisi.</p>
+<ol><li>Attribuer un identifiant stable au job et enregistrer un état consultable : <code>queued</code>, <code>running</code>, <code>succeeded</code> ou <code>failed</code>.</li><li>Rendre l’effet métier idempotent : avant de créer le rapport ou de déclencher un paiement, vérifier une clé d’idempotence unique ou utiliser une contrainte transactionnelle.</li><li>Configurer un nombre maximal de tentatives, un délai progressif avec jitter et une liste de jobs définitivement échoués. Les erreurs permanentes (par exemple un fichier au format interdit) ne doivent pas être retentées sans limite.</li><li>Rendre le worker observable : durée, nombre de tentatives, âge du plus ancien job, profondeur de file et raison d’échec, sans exposer le contenu sensible des messages.</li></ol>
+<p><strong>Le piège de la double écriture :</strong> écrire dans une base puis publier dans une file n’est généralement pas atomique. Si la base réussit et que la publication échoue, le job manque ; si le message est publié puis la transaction échoue, le worker peut traiter une opération inexistante. Le pattern outbox consiste à écrire l’événement dans la même transaction que les données métier, puis à le publier depuis un processus dédié. Il ajoute de l’exploitation, mais réduit cette fenêtre d’incohérence.</p>
+<p>Une réponse HTTP <code>202 Accepted</code> signifie que la demande a été acceptée pour traitement, non que le résultat est garanti. Fournis un identifiant de suivi, une politique de conservation et un état terminal explicite. Prévois aussi ce qui se passe si le client réessaie la requête de création après un timeout : sans clé d’idempotence, il peut créer deux jobs.</p>
+<p><strong>Exercice de diagnostic :</strong> simule un worker qui échoue après l’écriture du résultat mais avant l’accusé de réception. Montre que la seconde livraison ne duplique pas l’effet. Ajoute ensuite une erreur permanente et vérifie qu’elle termine dans la file d’échec après la politique prévue.</p>
+<p><strong>Critère de réussite :</strong> le job peut être livré à nouveau, suivi et diagnostiqué sans produire d’effet métier en double ni disparaître silencieusement.</p></section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Répondre « terminé » alors que seul le job a été mis en file.</li><li>Ne pas prévoir les doublons ou les retries.</li><li>Relancer indéfiniment une erreur permanente.</li><li>Ignorer la profondeur et l’âge de la file.</li><li>Supposer que base de données et file sont mises à jour atomiquement.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Conçois le traitement asynchrone de génération d’un rapport PDF. Décris l’endpoint de lancement, le message, les états du job, les règles de retry, la stratégie contre les doublons et l’endpoint de consultation. Ajoute les métriques et alertes nécessaires.</p><h3>Critères de réussite</h3><ul><li>La réponse HTTP distingue acceptation et achèvement.</li><li>Les jobs ont des états et un identifiant de suivi.</li><li>Les doublons et les échecs définitifs sont gérés.</li><li>La capacité et le retard de la file sont observables.</li><li>La cohérence entre base et file est explicitement traitée.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><p>Références documentaires de départ pour approfondir les concepts et vérifier les détails propres aux outils utilisés.</p><ul>
+      <li><a href="https://docs.bullmq.io/" target="_blank" rel="noopener noreferrer">BullMQ — Documentation</a></li>
+      <li><a href="https://redis.io/docs/latest/" target="_blank" rel="noopener noreferrer">Redis — Documentation</a></li>
+      <li><a href="https://aws.amazon.com/message-queue/" target="_blank" rel="noopener noreferrer">AWS — Message Queues</a></li>
+      <li><a href="https://cloud.google.com/architecture/processing-backlogs" target="_blank" rel="noopener noreferrer">Google Cloud — Processing backlogs</a></li>
+      <li><a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/queue-based-load-leveling" target="_blank" rel="noopener noreferrer">Microsoft — Queue-Based Load Leveling pattern</a></li>
+    </ul></section>
+        <nav class="lesson-nav"><a class="nav-link" href="validation-schema.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="redis-cache.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

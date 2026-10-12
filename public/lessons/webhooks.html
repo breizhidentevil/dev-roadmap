@@ -1,0 +1,119 @@
+ <!-- SOURCES DOCUMENTAIRES
+- GitHub Docs — Webhooks: https://docs.github.com/en/webhooks
+- Stripe Docs — Webhooks: https://docs.stripe.com/webhooks
+- OWASP — Webhook Security: https://cheatsheetseries.owasp.org/
+- CloudEvents Specification: https://cloudevents.io/
+- AWS — Transactional outbox pattern: https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Recevoir des événements externes de manière sécurisée, tolérer les doublons et retards, puis traiter les événements de façon observable et fiable.">
+<title>Webhooks et intégrations tierces — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Webhooks et intégrations tierces</h1>
+<p class="lead">Recevoir des événements externes de manière sécurisée, tolérer les doublons et retards, puis traiter les événements de façon observable et fiable.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Un webhook permet à un service externe de notifier votre application lorsqu’un événement survient, au lieu de vous obliger à interroger régulièrement son API. Cette simplicité apparente cache des questions de sécurité et de fiabilité : l’émetteur peut réessayer, envoyer les événements dans le désordre, ou ne pas recevoir votre accusé de réception. À la fin, vous saurez concevoir un endpoint de réception, vérifier l’authenticité des messages, dédupliquer les événements et séparer l’acquittement du traitement métier.</p>
+<h2>2. Fonctionnement général</h2>
+<p>Le consommateur enregistre une URL auprès du fournisseur. Lorsqu’un événement se produit, le fournisseur envoie une requête HTTP, souvent un <code>POST</code> contenant un corps JSON, un identifiant d’événement, un type et des métadonnées. Votre endpoint vérifie la requête, enregistre l’événement et répond rapidement avec un statut convenu. Le traitement métier peut ensuite se faire en arrière-plan.</p>
+<p>Un webhook n’est pas une source de vérité absolue. Un événement peut être livré plusieurs fois, être retardé ou arriver après un événement plus récent. Selon le fournisseur, il peut aussi exister une durée maximale de retry et une procédure de rejeu. Consultez les garanties et limites documentées par chaque intégration.</p>
+<h2>3. Sécuriser la réception</h2>
+<p>Ne faites pas confiance à un webhook uniquement parce qu’il arrive à une URL difficile à deviner. Utilisez le mécanisme d’authentification recommandé par le fournisseur, souvent une signature HMAC calculée sur le corps brut avec un secret partagé. La vérification doit être effectuée avant de traiter les données, avec une comparaison résistante aux attaques temporelles lorsque le langage ou la bibliothèque le permet.</p>
+<pre><code>// Pseudocode : utilisez la bibliothèque cryptographique adaptée.
+const rawBody = await readRawRequestBody(request);
+const suppliedSignature = request.headers.get("provider-signature");
+
+if (!verifySignature(rawBody, suppliedSignature, webhookSecret)) {
+  return new Response("Signature invalide", { status: 400 });
+}</code></pre>
+<p>Le pseudo-code souligne un détail important : certains fournisseurs signent les octets exacts du corps reçu. Si votre framework parse puis sérialise le JSON, l’espace ou l’ordre des propriétés peut changer et invalider la signature. Suivez la documentation du fournisseur. Ne loguez pas le secret ni le corps complet s’il contient des données personnelles ou des jetons.</p>
+<p>Vérifiez également les limites de taille, les délais de traitement, le type de contenu et les protections réseau adaptées à votre environnement. Une liste d’adresses IP peut être une défense complémentaire si le fournisseur la publie, mais elle ne remplace pas la vérification cryptographique. Gardez les secrets hors du dépôt et prévoyez leur rotation.</p>
+<h2>4. Accuser réception rapidement</h2>
+<p>Les fournisseurs attendent généralement une réponse dans un délai limité. Effectuer plusieurs appels lents à des services tiers avant de répondre peut provoquer un timeout côté fournisseur, qui renverra alors le même événement. Une approche robuste consiste à vérifier la signature, à enregistrer durablement l’événement dans une file ou une table d’inbox, puis à acquitter la réception.</p>
+<p>Cette séquence exige une vraie persistance : répondre « reçu » avant que l’événement soit durablement enregistré risque de le perdre si le processus s’arrête. À l’inverse, si l’écriture réussit mais que la réponse réseau se perd, le fournisseur peut envoyer un doublon. Le système doit être capable de reconnaître ce doublon.</p>
+<h2>5. Déduplication et traitement au moins une fois</h2>
+<p>Utilisez l’identifiant stable fourni par l’émetteur, combiné au contexte nécessaire pour éviter les collisions entre comptes ou fournisseurs. Stockez cet identifiant avec un état de traitement et une contrainte d’unicité. Ne vous fiez pas à l’heure d’arrivée ou à l’égalité approximative des corps : deux événements légitimes peuvent avoir un contenu identique.</p>
+<pre><code>type IncomingEvent = {
+  provider: string;
+  eventId: string;
+  eventType: string;
+  receivedAt: string;
+  payload: unknown;
+};
+
+// À la réception :
+// 1. vérifier la signature ;
+// 2. insérer l'événement avec une contrainte unique ;
+// 3. mettre le traitement en file ;
+// 4. acquitter seulement après persistance durable.</code></pre>
+<p>Attention à la double écriture : enregistrer l’inbox puis publier séparément dans une file laisse une fenêtre où le processus peut tomber entre les deux. Si la file n’est pas elle-même le stockage durable de réception, écrivez l’inbox et une ligne d’outbox dans <strong>la même transaction</strong>, puis laissez un dispatcher publier l’outbox. Exemple SQL schématique (les tables et colonnes doivent être adaptées au schéma réel) :</p>
+<pre><code>BEGIN;
+
+WITH accepted AS (
+  INSERT INTO webhook_inbox
+    (provider, account_id, event_id, event_type, payload, status)
+  VALUES
+    (:provider, :account_id, :event_id, :event_type, :payload, 'pending')
+  ON CONFLICT (provider, account_id, event_id) DO NOTHING
+  RETURNING id
+)
+INSERT INTO outbox (topic, aggregate_id, payload)
+SELECT
+  'webhook.received',
+  id,
+  jsonb_build_object('inboxId', id)
+FROM accepted;
+
+COMMIT;</code></pre>
+<p>La contrainte unique doit porter sur le véritable périmètre d’unicité du fournisseur (ici fournisseur, compte et identifiant d’événement). Si aucun événement n’est inséré parce qu’il s’agit d’un doublon, aucune nouvelle ligne d’outbox n’est créée. Répondez positivement seulement après le commit durable, selon le contrat du fournisseur ; le dispatcher et le worker doivent eux aussi tolérer une publication ou une livraison répétée.</p>
+<p>Le traitement doit lui aussi être idempotent. Il peut être exécuté, puis le worker peut s’arrêter avant de marquer l’événement comme terminé. À la reprise, l’événement sera traité une nouvelle fois. Les mutations métier doivent donc utiliser une transaction, une clé de déduplication ou une opération qui tolère la répétition.</p>
+<h2>6. Ordre, versions et événements périmés</h2>
+<p>Ne supposez pas que les événements arrivent dans l’ordre où ils se sont produits. Si un client reçoit « paiement confirmé » puis « paiement en attente » avec retard, appliquer naïvement le dernier message reçu peut faire régresser l’état. Utilisez si possible une version, un numéro de séquence ou l’état courant consulté auprès de l’API du fournisseur. Définissez les transitions métier autorisées plutôt que de copier chaque payload sans contrôle.</p>
+<p>Un événement peut n’être qu’une notification indiquant qu’une ressource a changé. Dans ce cas, il peut être préférable de récupérer la ressource actuelle via l’API du fournisseur au lieu de considérer le contenu de l’événement comme exhaustif. Cette stratégie ajoute un appel réseau et nécessite elle aussi des délais, retries et règles de limitation.</p>
+<h2>7. Retries, erreurs et file de quarantaine</h2>
+<p>Un échec temporaire de traitement doit être réessayé selon une politique bornée. Les erreurs permanentes, les messages invalides ou les événements qui échouent toujours ne doivent pas être remis en boucle sans fin. Après un nombre déterminé d’essais, placez-les dans une file de quarantaine ou un état nécessitant une investigation, avec une procédure de rejeu contrôlée.</p>
+<p>Les réponses HTTP du endpoint doivent suivre les règles du fournisseur : un statut de succès peut arrêter ses retries, tandis qu’un statut d’erreur peut les déclencher. Il ne faut pas renvoyer un échec au fournisseur pour un problème métier déjà enregistré si le contrat indique que l’événement est pris en charge et que le traitement sera repris en interne. Documentez cette frontière clairement.</p>
+<h2>8. Observabilité et données sensibles</h2>
+<p>Chaque événement devrait pouvoir être retrouvé par son identifiant, le fournisseur, le type, l’heure de réception, le nombre de tentatives et l’état de traitement. Mesurez les retards, les erreurs de signature, les doublons et la taille de la file. Une alerte sur un événement bloqué peut être plus utile qu’un simple compteur d’erreurs HTTP.</p>
+<p>Conservez le minimum de données nécessaire, limitez les accès et définissez une durée de rétention. Les payloads peuvent contenir des informations personnelles, des adresses ou des identifiants internes. Préférez les logs structurés avec des champs expurgés aux journaux qui enregistrent systématiquement l’intégralité du corps.</p>
+<h2>9. Erreurs fréquentes</h2>
+<ul>
+<li>Accepter un webhook sans vérifier la signature ou le mécanisme d’authentification.</li>
+<li>Parser le corps avant la vérification alors que la signature porte sur les octets bruts.</li>
+<li>Faire tout le traitement métier avant l’accusé de réception et dépasser le délai du fournisseur.</li>
+<li>Répondre avec succès avant d’avoir persisté l’événement.</li>
+<li>Supposer une livraison unique ou un ordre strict.</li>
+<li>Oublier les retries bornés, la quarantaine et la procédure de rejeu.</li>
+</ul>
+<h2>10. Exercice et critères de réussite</h2>
+<p>Concevez un webhook fictif de confirmation de paiement. Définissez les contrôles de signature, la table d’inbox, la clé unique de déduplication et les statuts du worker. Simulez deux livraisons du même événement, un retard d’ordre et une panne du worker après l’écriture métier mais avant l’accusé de traitement. Décrivez comment le système évite une double confirmation et comment l’équipe retrouve un événement bloqué.</p>
+<ul class="checklist">
+<li>Je vérifie l’authenticité du message avant son traitement.</li>
+<li>Je persiste durablement l’événement avant de l’acquitter.</li>
+<li>Je supporte les doublons, les retards et les traitements rejoués.</li>
+<li>Je borne les retries et prévois une file de quarantaine.</li>
+<li>Je trace les événements sans exposer inutilement les données sensibles.</li>
+</ul>
+
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://docs.github.com/en/webhooks" target="_blank" rel="noopener noreferrer">GitHub Docs — Webhooks</a></li>
+<li><a href="https://docs.stripe.com/webhooks" target="_blank" rel="noopener noreferrer">Stripe Docs — Webhooks</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/" target="_blank" rel="noopener noreferrer">OWASP — Webhook Security</a></li>
+<li><a href="https://cloudevents.io/" target="_blank" rel="noopener noreferrer">CloudEvents Specification</a></li>
+<li><a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html" target="_blank" rel="noopener noreferrer">AWS — Transactional outbox pattern</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="idempotence-api.html">← Précédent : Idempotence des API</a><a rel="next" href="isolation-transactions-verrous.html">Suivant : Isolation des transactions et verrous →</a></nav>
+
+<section class="lesson-workshop"><h2>Atelier approfondi — Recevoir des événements externes de façon fiable</h2><h3>Objectifs opérationnels</h3><ul><li>Expliquer les garanties et les limites du mécanisme présenté.</li><li>Choisir une stratégie adaptée à un cas réaliste et justifier ses compromis.</li><li>Vérifier le comportement avec des tests reproductibles plutôt que par intuition.</li></ul><h3>Explications et exemple guidé</h3><p>Un webhook est une notification HTTP envoyée par un système externe. Il peut être dupliqué, retardé, désordonné ou rejoué. Le endpoint doit authentifier la provenance, valider le format, enregistrer l’événement de façon durable et répondre rapidement ; le traitement métier peut ensuite être délégué à une file.</p><ol><li>Lire le corps brut si la signature du fournisseur est calculée sur ses octets exacts.</li><li>Vérifier la signature avec une comparaison sûre et appliquer une fenêtre temporelle lorsque le protocole le prévoit.</li><li>Enregistrer un identifiant d’événement unique avec une contrainte d’unicité.</li><li>Répondre après acceptation durable, puis traiter de manière idempotente.</li></ol><p>Une signature valide prouve l’origine du message selon le protocole, mais ne remplace pas la validation du schéma, l’autorisation métier ni la protection contre le rejeu.</p><h3>Pièges et limites</h3><ul><li>Piège : parser puis re-sérialiser le JSON avant de vérifier une signature attendue sur le corps brut.</li><li>Piège : répondre succès avant toute persistance et perdre l’événement lors d’un crash.</li><li>Piège : supposer que chaque événement arrive une seule fois ou dans l’ordre.</li><li>Piège : exposer le secret de signature dans les logs.</li></ul><h3>Exercice</h3><p>Élaborez un endpoint de webhook de commande avec vérification de signature, table d’événements reçus, déduplication et file de traitement. Décrivez la stratégie en cas d’indisponibilité de la base ou d’échec du worker.</p><h3>Critères de réussite</h3><ul><li>La signature est vérifiée selon la documentation du fournisseur.</li><li>L’événement est persisté avant l’accusé de réception positif.</li><li>Les doublons ne produisent pas de double effet métier.</li><li>Les retries, échecs permanents et mécanismes de rejeu sont documentés et observables.</li></ul></section>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

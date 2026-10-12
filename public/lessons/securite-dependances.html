@@ -1,0 +1,101 @@
+<!-- SOURCES DOCUMENTAIRES
+- OWASP — Software Component Verification Standard: https://owasp.org/www-project-software-component-verification-standard/
+- OWASP — Dependency-Check: https://owasp.org/www-project-dependency-check/
+- GitHub — About dependency review: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review
+- npm — Audit: https://docs.npmjs.com/cli/commands/npm-audit
+- SLSA — Supply-chain Levels for Software Artifacts: https://slsa.dev/
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Réduire les risques introduits par les bibliothèques, les registres de paquets, les scripts d’installation et les artefacts de livraison.">
+<title>Dépendances et chaîne d’approvisionnement — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Dépendances et chaîne d’approvisionnement</h1>
+<p class="lead">Réduire les risques introduits par les bibliothèques, les registres de paquets, les scripts d’installation et les artefacts de livraison.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Une application moderne dépend de paquets directs et transitifs, d’outils de compilation, d’images de conteneur, d’actions CI et de registres externes. Une faille ou une compromission dans cette chaîne peut affecter le produit même si le code applicatif est correct. Ce tutoriel explique comment inventorier les composants, interpréter les alertes, verrouiller les versions et protéger le processus qui transforme le code source en artefact déployé.</p>
+<h2>2. Comprendre la chaîne de dépendances</h2>
+<p>Une dépendance directe est déclarée par le projet ; une dépendance transitive est requise par une autre bibliothèque. Une petite dépendance directe peut donc entraîner des dizaines de composants transitifs. L’inventaire doit inclure les paquets, leurs versions, leurs licences et, autant que possible, les artefacts effectivement livrés. Les outils d’inventaire peuvent produire une nomenclature logicielle (SBOM), utile pour savoir quels composants sont présents lors de la publication d’une nouvelle vulnérabilité.</p>
+<p>Les fichiers de verrouillage, comme `package-lock.json`, `pnpm-lock.yaml` ou `yarn.lock`, fixent les versions résolues et réduisent les différences entre postes et CI. Ils ne garantissent pas que le paquet est sûr ; ils rendent les résolutions plus reproductibles. Il faut les versionner et utiliser la commande d’installation adaptée au gestionnaire afin de respecter le verrouillage en intégration continue.</p>
+<h2>3. Évaluer les alertes de vulnérabilité</h2>
+<p>Un scanner compare les composants connus à des bases d’avis de sécurité. Une alerte ne signifie pas automatiquement que l’application est exploitable : la fonction vulnérable peut ne pas être utilisée, l’exposition peut être limitée ou un correctif de configuration peut exister. À l’inverse, une vulnérabilité de sévérité moyenne peut être critique dans un contexte donné si elle touche une frontière publique ou des données sensibles.</p>
+<p>Évaluez au minimum la version concernée, la version corrigée, l’exposition du composant, la possibilité d’atteindre le code vulnérable, les privilèges nécessaires et l’impact métier. Enregistrez une décision : mise à jour immédiate, mitigation temporaire, remplacement, ou acceptation documentée pour une durée limitée. Une exception ne devrait jamais devenir un moyen silencieux d’ignorer indéfiniment les alertes.</p>
+<pre><code># Exemple dans un projet Node.js
+npm audit
+npm audit fix</code></pre>
+<p>Ces commandes sont illustratives et leur comportement dépend du gestionnaire et des versions. Une commande de correction peut modifier des versions, introduire des changements incompatibles ou ne pas résoudre les vulnérabilités nécessitant une migration majeure. Examinez le diff, exécutez les tests et lisez les notes de version avant de fusionner.</p>
+<h2>4. Minimiser et mettre à jour</h2>
+<p>Chaque dépendance augmente la surface de maintenance et peut introduire du code exécuté au moment de l’installation, de la compilation ou à l’exécution. N’ajoutez pas un paquet pour quelques lignes de logique triviale sans comparer le bénéfice au coût. Vérifiez le mainteneur, l’activité du projet, la politique de publication, la licence, la provenance et les avis connus.</p>
+<p>Les mises à jour régulières réduisent l’accumulation de versions obsolètes. Automatisez les propositions de mise à jour, mais exigez des tests et une revue adaptée au risque. Les mises à jour de sécurité urgentes peuvent suivre un circuit accéléré, à condition de conserver une validation minimale et un plan de retour à une version connue si la correction casse le service.</p>
+<h2>5. Risques des registres et des noms de paquets</h2>
+<p>Les attaques de chaîne d’approvisionnement peuvent exploiter un compte mainteneur compromis, un paquet malveillant, une dépendance abandonnée, une erreur de nom ou un script d’installation dangereux. Vérifiez le nom exact et la provenance d’un paquet avant de l’ajouter. Évitez de copier des commandes d’installation depuis une source non vérifiée, surtout lorsqu’elles téléchargent puis exécutent immédiatement un script.</p>
+<p>Dans les environnements professionnels, configurez les registres autorisés, les scopes privés et les règles de publication. Protégez les jetons de publication et limitez leurs permissions. Un jeton qui permet de publier tous les paquets d’une organisation ne devrait pas être disponible dans les tâches CI qui ne font que tester le code.</p>
+<h2>6. Sécuriser l’intégration continue</h2>
+<p>La CI exécute du code et manipule parfois des secrets. Les actions ou plugins tiers doivent être considérés comme des dépendances. Épinglez les actions critiques à une référence immuable lorsque la plateforme le recommande, restreignez les permissions du jeton CI, séparez les workflows qui exécutent des contributions non fiables de ceux qui disposent de secrets et ne publiez pas d’artefact depuis une branche non protégée.</p>
+<p>Le principe de moindre privilège s’applique à chaque étape : une tâche de test n’a généralement pas besoin de droits de publication, et une tâche de publication n’a pas besoin d’un accès administratif complet au dépôt. Protégez les environnements de livraison, exigez une approbation pour les opérations sensibles et conservez des journaux permettant de retracer qui a produit et publié un artefact.</p>
+<h2>7. Provenance et artefacts</h2>
+<p>La provenance relie un artefact à son code source, à la révision, au processus de construction et à l’identité qui a déclenché le build. Une somme de contrôle permet de vérifier l’intégrité d’un fichier par rapport à une valeur de confiance, mais elle ne prouve pas à elle seule que l’artefact est digne de confiance. Il faut également protéger la source de la somme, les identifiants de signature et le système de construction.</p>
+<p>Une SBOM aide à répondre à la question « quels composants sont présents dans cette version ? ». Des attestations de construction peuvent documenter comment l’artefact a été produit. La maturité nécessaire dépend du risque : une application interne à faible impact et une plateforme qui distribue des paquets à de nombreux clients n’ont pas les mêmes exigences, mais les principes d’inventaire et de traçabilité restent utiles.</p>
+<h2>8. Plan de réponse à une dépendance compromise</h2>
+<p>Lorsqu’un avis indique qu’une bibliothèque utilisée est compromise, identifiez rapidement les versions présentes dans les applications et artefacts actifs. Déterminez si le paquet a été exécuté pendant l’installation ou au runtime, si des secrets étaient accessibles et si une exfiltration est plausible. Supprimer ou mettre à jour le paquet peut ne pas suffire si des identifiants ont été exposés : il peut être nécessaire de révoquer et renouveler les secrets, reconstruire les artefacts et examiner les journaux.</p>
+<p>Documentez la décision, le périmètre affecté, les versions corrigées, les tests et les mesures de surveillance. Préparez ce processus à l’avance : un inventaire à jour, des propriétaires identifiés et des builds reproductibles accélèrent fortement la réponse.</p>
+<h2>9. Erreurs fréquentes</h2>
+<ul>
+<li>Ignorer les dépendances transitives et ne suivre que les paquets déclarés directement.</li>
+<li>Exécuter une correction automatique sans revue ni tests.</li>
+<li>Considérer une faible note de sévérité comme une preuve d’absence de risque.</li>
+<li>Donner à toutes les tâches CI un accès complet aux secrets et à la publication.</li>
+<li>Supposer qu’une somme de contrôle suffit à établir la provenance.</li>
+<li>Ne pas prévoir de procédure pour une dépendance compromise ou un jeton de publication volé.</li>
+</ul>
+<h2>10. Exercice et critères de réussite</h2>
+<p>Sur un projet d’exemple, produisez la liste des dépendances directes et transitives, examinez les avis de sécurité, puis mettez à jour un paquet vulnérable. Vérifiez le diff du verrouillage, exécutez les tests et consignez la version corrigée. Dessinez ensuite le workflow CI en indiquant quelles étapes ont accès aux secrets et réduisez les permissions à ce qui est nécessaire.</p>
+<ul class="checklist">
+<li>Je sais inventorier les dépendances directes et transitives.</li>
+<li>Je peux évaluer une alerte au-delà de son seul score.</li>
+<li>Je verrouille les versions et révise les mises à jour.</li>
+<li>Je limite les secrets et permissions des workflows CI.</li>
+<li>Je sais identifier les versions touchées et réagir à une compromission.</li>
+</ul>
+    <section class="lesson-workshop">
+<h2>Atelier approfondi — Traiter une alerte de dépendance sans casser la livraison</h2>
+<h3>Objectifs opérationnels</h3>
+<ul><li>Remonter d’une dépendance vulnérable vers son chemin d’introduction.</li><li>Choisir une correction proportionnée au risque et vérifier qu’elle est réellement appliquée.</li><li>Rendre l’installation et la livraison plus reproductibles.</li></ul>
+<h3>Explications et exemple guidé</h3>
+<p>Une dépendance directe est déclarée par le projet ; une dépendance transitive est apportée par une autre bibliothèque. Une alerte ne dit pas toujours si le code vulnérable est atteignable dans ton usage, mais elle mérite une triage documentée : versions concernées, exposition, exploitabilité, correctif disponible, contraintes de compatibilité et délai de traitement. L’absence d’alerte ne prouve pas l’absence de risque.</p>
+<p>Dans un projet npm, conserve le lockfile et utilise <code>npm ci</code> en CI pour installer les versions verrouillées. Examine le chemin qui introduit le paquet avant de modifier la version ; un correctif forcé peut provoquer une rupture d’API ou un changement de comportement. Vérifie ensuite la version résolue, lance les tests et inspecte le diff du lockfile. Les scripts d’installation et les paquets exécutés pendant le build font partie de la surface de risque.</p>
+<pre><code>npm ci
+npm audit --omit=dev
+npm ls nom-du-paquet
+# Après correction : tests, build et revue du lockfile</code></pre>
+<p><code>npm audit --omit=dev</code> cible les dépendances non classées comme développement dans l’installation npm ; ce n’est pas un audit complet de la chaîne de construction. Les dépendances de développement, plugins et scripts d’installation peuvent exécuter du code dans la CI et accéder aux artefacts ou aux secrets disponibles. Exécute aussi un audit complet adapté au dépôt, distingue les risques de production de ceux du build et documente toute exclusion au lieu de la traiter comme une absence de risque.</p>
+<p>Ces commandes sont des points de départ, pas une politique universelle : les options d’audit doivent correspondre aux environnements et au niveau de risque. Complète le contrôle par une revue des permissions des jetons CI, des registres utilisés, de la provenance des artefacts et de la façon dont les secrets sont exposés aux scripts.</p>
+<h3>Pièges et limites</h3>
+<ul><li>Exécuter aveuglément une commande de correction majeure sans lire le diff ni les notes de version.</li><li>Ne surveiller que les dépendances directes ou ignorer les outils de build.</li><li>Considérer un audit propre comme une garantie de sécurité complète.</li><li>Donner à toutes les étapes de CI des secrets de publication alors qu’elles n’en ont pas besoin.</li></ul>
+<h3>Exercice</h3>
+<p>Sur un projet d’exemple, choisis une alerte de dépendance. Retrace le chemin transitif, identifie la version corrigée, évalue le risque et prépare une mise à jour. Fournis le diff du lockfile, les tests exécutés et une note expliquant pourquoi la correction est suffisante ou pourquoi un contournement temporaire reste nécessaire.</p>
+<h3>Critères de réussite</h3>
+<ul><li>Le chemin d’introduction et les versions concernées sont identifiés.</li><li>La correction est confirmée dans l’arbre de dépendances réellement installé.</li><li>Les tests et le build passent après la modification.</li><li>La décision de risque, les éventuelles exceptions et leur date d’expiration sont documentées.</li></ul>
+</section>
+    
+
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://owasp.org/www-project-software-component-verification-standard/" target="_blank" rel="noopener noreferrer">OWASP — Software Component Verification Standard</a></li>
+<li><a href="https://owasp.org/www-project-dependency-check/" target="_blank" rel="noopener noreferrer">OWASP — Dependency-Check</a></li>
+<li><a href="https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review" target="_blank" rel="noopener noreferrer">GitHub — About dependency review</a></li>
+<li><a href="https://docs.npmjs.com/cli/commands/npm-audit" target="_blank" rel="noopener noreferrer">npm — Audit</a></li>
+<li><a href="https://slsa.dev/" target="_blank" rel="noopener noreferrer">SLSA — Supply-chain Levels for Software Artifacts</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="rbac-abac-controle-acces.html">← Précédent : Contrôle d’accès par rôle et par ressource</a><a rel="next" href="securite-api-abus.html">Suivant : Sécurité des API et prévention des abus →</a></nav>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

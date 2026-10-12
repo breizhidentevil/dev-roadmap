@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Recueil du besoin et spécifications
+Domaine documentaire : gestion de projet
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. Atlassian — Requirements gathering — https://www.atlassian.com/work-management/project-management/requirements
+2. Agile Alliance — User Stories — https://agilealliance.org/glossary/user-stories/
+3. GOV.UK Service Manual — Understand users and their needs — https://www.gov.uk/service-manual/user-research/start-by-learning-user-needs
+4. Nielsen Norman Group — User Interviews — https://www.nngroup.com/articles/user-interviews/
+5. The Scrum Guide — https://scrumguides.org/scrum-guide.html
+
+Note : les cinq références documentaires ci-dessous sont reprises dans la liste visible de la page.-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Clarifier le problème à résoudre, les utilisateurs et les contraintes avant de choisir une solution technique.">
+<title>Recueil du besoin et spécifications — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Gestion de projet et produit</p>
+<h1>Recueil du besoin et spécifications</h1>
+<p class="lead">Clarifier le problème à résoudre, les utilisateurs et les contraintes avant de choisir une solution technique.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un contexte réel et justifier tes décisions en fonction des contraintes et des risques.</p>
+<ul><li>Comprendre les notions essentielles et le problème qu’elles permettent de résoudre.</li><li>Appliquer une méthode concrète et vérifier son résultat.</li><li>Identifier les limites, les compromis et les erreurs fréquentes.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Partir du problème, pas de la fonctionnalité demandée</h2>
+<p>Le recueil du besoin cherche à comprendre qui rencontre un problème, dans quel contexte, avec quelle fréquence et quelles conséquences. Une demande comme « ajouter un bouton d’export PDF » décrit déjà une solution. Le besoin peut être plus général : partager un rapport avec un client, archiver un résultat ou transmettre des données à un autre système. Selon le besoin réel, un PDF, un CSV ou une intégration peut être plus approprié.</p>
+<p>Identifie les parties prenantes : utilisateurs finaux, personnes qui financent ou valident le projet, équipes support, sécurité, exploitation et systèmes connectés. Leurs objectifs peuvent différer. Une solution pratique pour un utilisateur peut imposer une charge de maintenance excessive ou introduire un risque de confidentialité pour l’organisation.</p>
+<p>Les entretiens, l’observation de tâches, l’analyse de données existantes et l’examen des tickets support permettent de distinguer les faits des suppositions. Note les éléments incertains comme des hypothèses à vérifier. Une demande formulée par une seule personne ne prouve pas qu’elle représente l’ensemble des utilisateurs.</p></section>
+<section class="lesson-section"><h2>2. Poser des questions qui révèlent le contexte</h2>
+<p>Évite les questions qui invitent à approuver une solution (« Tu aimerais un bouton vert ? »). Préfère des questions sur les comportements réels : « Raconte-moi la dernière fois que tu as essayé de faire cette tâche », « Qu’est-ce qui a été difficile ? », « Que fais-tu lorsque cela échoue ? », « Quelle information te manque pour décider ? ». Demande des exemples concrets et observe, si possible, la tâche dans son contexte habituel.</p>
+<p>Recueille aussi les contraintes : date impérative, budget, appareils utilisés, accessibilité, réglementation, sécurité, disponibilité, volume attendu, langues, données à migrer et systèmes tiers. Distingue les contraintes obligatoires des préférences. Une préférence peut être négociée ; une obligation légale ou de sécurité peut bloquer la livraison.</p>
+<p>Une bonne synthèse décrit le problème, les personnes concernées, le contexte, les conséquences et les preuves disponibles. Elle peut inclure un parcours utilisateur, une carte d’expérience ou une liste d’hypothèses. Évite de présenter une hypothèse comme un fait simplement parce qu’elle semble plausible.</p></section>
+<section class="lesson-section"><h2>3. Transformer le besoin en exigences</h2>
+<p>Une exigence fonctionnelle décrit ce que le système doit permettre. Exemple : « Un gestionnaire peut exporter les commandes filtrées pour une période donnée ». Une exigence non fonctionnelle décrit une qualité ou une contrainte : « L’export de 10 000 lignes doit se terminer en moins de 10 secondes dans les conditions définies », « seuls les gestionnaires autorisés peuvent exporter ces données » ou « le service doit respecter les règles d’accessibilité convenues ».</p>
+<p>Les exigences doivent être compréhensibles, testables et non contradictoires. Les termes « rapide », « simple » ou « sécurisé » sont trop vagues sans contexte. Remplace-les par des seuils, scénarios ou règles vérifiables. Précise les cas limites : résultat vide, période invalide, utilisateur sans droits, fichier trop volumineux, interruption réseau et tentative répétée.</p>
+<p>Une user story peut résumer l’intention : « En tant que gestionnaire, je veux exporter les commandes d’une période afin de préparer le rapprochement comptable. » Elle ne suffit pas seule. Ajoute des critères d’acceptation, les règles métier et les contraintes qui permettent à l’équipe de savoir ce qui est terminé.</p>
+<pre><code>Fonctionnalité : export des commandes
+Étant donné un gestionnaire autorisé
+Et une période valide
+Quand il demande l'export
+Alors seules les commandes de la période sont incluses
+Et le fichier indique clairement les colonnes et le format
+Et un utilisateur non autorisé reçoit un refus contrôlé.</code></pre>
+<p>Ce format inspiré de Given/When/Then est un exemple. Il faut encore préciser le fuseau horaire des dates, l’inclusion des bornes, l’ordre des lignes, le format des montants et le comportement pour une période sans résultat.</p></section>
+<section class="lesson-section"><h2>4. Prioriser et gérer les changements</h2>
+<p>Le périmètre initial doit distinguer indispensable, souhaitable et hors périmètre. Définis un résultat minimal qui résout réellement le problème, puis identifie ce qui peut être livré plus tard. Cela ne signifie pas livrer une solution incomplète : les exigences de sécurité, d’intégrité des données et d’accessibilité applicables ne doivent pas être sacrifiées pour respecter une date.</p>
+<p>Les changements de besoin sont normaux lorsque l’équipe apprend. Évalue leur effet sur la valeur, le délai, le coût, les risques et les éléments déjà livrés. Garde une trace des décisions importantes et de leur justification, sans transformer chaque échange en bureaucratie. Les spécifications sont un support de coordination, pas un document qui remplace les discussions.</p>
+<p>Un prototype peut réduire l’incertitude sur une interaction ; un test utilisateur peut vérifier si les personnes comprennent le parcours ; un test technique peut valider une intégration. Choisis la méthode selon la question à résoudre. Un prototype visuel ne prouve pas la faisabilité de la charge en production, et un avis favorable en réunion ne remplace pas un test d’usage.</p></section>
+<section class="lesson-section"><h2>5. Erreurs fréquentes</h2>
+<ul><li><strong>Solution prématurée :</strong> la demande initiale est acceptée sans comprendre le problème sous-jacent.</li><li><strong>Utilisateurs absents :</strong> les spécifications sont produites uniquement par les décideurs ou les développeurs.</li><li><strong>Critères vagues :</strong> « facile à utiliser » ou « très rapide » ne permet pas une validation objective.</li><li><strong>Cas d’échec oubliés :</strong> seuls les scénarios idéaux sont décrits.</li><li><strong>Document figé :</strong> les décisions évoluent, mais la spécification n’est pas mise à jour ni communiquée.</li></ul>
+<p>Évite aussi la sur-spécification prématurée. Décrire chaque détail avant d’avoir testé les hypothèses peut coûter cher et figer une solution inadéquate. Documente précisément ce qui est risqué, coûteux à changer ou nécessaire à la validation, et garde le reste adaptable.</p></section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Un client demande « un tableau de bord avec des graphiques ». Prépare cinq questions d’entretien, distingue au moins trois besoins possibles, puis rédige deux exigences fonctionnelles et deux non fonctionnelles testables. Ajoute trois critères d’acceptation, un cas d’échec et une liste des hypothèses qui doivent être validées avant le développement.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je distingue besoin, solution, exigence et contrainte.</li><li>Je peux justifier les besoins par des observations ou des preuves.</li><li>Mes exigences sont compréhensibles et vérifiables.</li><li>Je couvre les cas limites, les permissions et les qualités attendues.</li><li>Je sais documenter une décision sans figer inutilement le produit.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les points de la leçon. Consulte les sections pertinentes et vérifie les détails qui dépendent des versions, des outils ou du contexte de ton projet.</p><ol><li><a href="https://www.atlassian.com/work-management/project-management/requirements" target="_blank" rel="noopener noreferrer">Atlassian — Requirements gathering</a></li>
+<li><a href="https://agilealliance.org/glossary/user-stories/" target="_blank" rel="noopener noreferrer">Agile Alliance — User Stories</a></li>
+<li><a href="https://www.gov.uk/service-manual/user-research/start-by-learning-user-needs" target="_blank" rel="noopener noreferrer">GOV.UK Service Manual — Understand users and their needs</a></li>
+<li><a href="https://www.nngroup.com/articles/user-interviews/" target="_blank" rel="noopener noreferrer">Nielsen Norman Group — User Interviews</a></li>
+<li><a href="https://scrumguides.org/scrum-guide.html" target="_blank" rel="noopener noreferrer">The Scrum Guide</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="migrations-livraison.html">← Migrations pendant la livraison</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="decoupage-taches-estimation.html">Découpage en tâches et estimation →</a></nav>
+
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — transformer un besoin en critères vérifiables</h2>
+<h3>Objectifs pédagogiques</h3>
+<ul><li>Séparer problème, besoin, solution et contrainte.</li><li>Recueillir des exemples concrets et les cas limites.</li><li>Rédiger des critères d’acceptation testables.</li></ul>
+<h3>Découverte</h3><p>Interroger les parties prenantes sur le problème, le contexte, les solutions actuelles, la fréquence et les conséquences; éviter de confondre la première solution proposée avec le besoin.</p>
+<h3>Périmètre</h3><p>Définir utilisateurs concernés, exclusions, dépendances, contraintes légales ou techniques et hypothèses à valider.</p>
+<h3>Scénarios</h3><p>Décrire un flux nominal, les erreurs, les permissions, les données absentes et les cas de reprise.</p>
+<h3>Critères</h3><p>Rédiger des critères observables avec données initiales, action et résultat attendu; éviter les termes « rapide », « simple » ou « intuitif » sans mesure.</p>
+<h3>Validation</h3><p>Faire relire les critères par les personnes qui accepteront le résultat et conserver la traçabilité entre besoin, décision et test.</p>
+<h3>Exercice pratique</h3><p>Spécifier une fonction de réinitialisation de mot de passe. Inclure acteurs, risques, scénario nominal, abus possibles, messages, critères d’acceptation et exclusions.</p>
+<h3>Critères de réussite</h3><ul><li>Le problème utilisateur est explicite.</li><li>Les hypothèses et exclusions sont identifiées.</li><li>Les critères sont testables sans interprétation subjective.</li><li>Les cas d’erreur et de sécurité sont inclus.</li></ul>
+</section>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Projet 2 — API et base de données
+Domaine documentaire : API HTTP, SQL, sécurité et tests
+Références de travail sélectionnées ; disponibilité et contenu précis à recontrôler lors de leur consultation.
+1. PostgreSQL — Tutoriel officiel — https://www.postgresql.org/docs/current/tutorial.html
+2. Fastify — Documentation officielle — https://www.fastify.io/docs/latest/
+3. OpenAPI Specification — https://spec.openapis.org/oas/latest.html
+4. OWASP — SQL Injection Prevention Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
+5. PostgreSQL — Indexes — https://www.postgresql.org/docs/current/indexes.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projet 2 — API et base de données — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a>
+  <span class="topbar-note">Parcours d’apprentissage</span>
+</header>
+<main class="lesson">
+  <p class="eyebrow">Projets pratiques et validation des acquis</p>
+  <h1>Projet 2 — API et base de données</h1>
+  <p class="lead">Construire une API HTTP typée, persistante et testée, dont le contrat et les règles de données peuvent être compris et vérifiés indépendamment de l’interface utilisateur.</p>
+
+  <section class="lesson-section">
+    <h2>1. Contexte et objectif</h2>
+    <p>Vous devez fournir le backend d’une petite application de gestion de tâches. Un client peut consulter les tâches, en créer, modifier leurs propriétés et supprimer celles qui ne sont plus utiles. Le serveur valide les entrées, applique les règles métier, interroge PostgreSQL et renvoie des réponses HTTP prévisibles.</p>
+    <p>Le but pédagogique n’est pas d’empiler des routes : il est de comprendre la frontière entre contrat HTTP, validation, logique applicative et persistance. Le projet doit permettre de démontrer qu’une donnée incorrecte est rejetée, qu’une donnée valide survit au redémarrage du processus et qu’un défaut de base de données ne produit pas une réponse trompeuse.</p>
+    <h3>Prérequis</h3>
+    <ul>
+      <li>Connaître les bases de JavaScript/TypeScript, les fonctions asynchrones et les modules.</li>
+      <li>Comprendre les méthodes HTTP, les codes de statut, JSON et les notions de table, clé primaire et contrainte SQL.</li>
+      <li>Savoir lancer des tests et lire une erreur de terminal. Les transactions et les index peuvent être appris pendant le projet.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>2. Périmètre fonctionnel</h2>
+    <h3>Inclus</h3>
+    <ul>
+      <li>Créer une tâche avec un titre obligatoire, une description facultative, un statut et une date d’échéance facultative.</li>
+      <li>Consulter une tâche par identifiant et lister les tâches avec pagination, tri stable et filtre facultatif par statut.</li>
+      <li>Modifier partiellement une tâche sans écraser les champs omis ; supprimer une tâche existante.</li>
+      <li>Fournir une route de santé simple, une documentation du contrat HTTP et des tests automatisés.</li>
+      <li>Initialiser et faire évoluer le schéma au moyen de migrations versionnées, puis fournir des données de démonstration non sensibles.</li>
+    </ul>
+    <h3>Hors périmètre de la première version</h3>
+    <ul>
+      <li>Comptes utilisateurs, connexion, permissions multi-utilisateurs, pièces jointes, notifications et synchronisation en temps réel.</li>
+      <li>Interface graphique complète, paiement, déploiement multi-région et optimisation prématurée de gros volumes.</li>
+    </ul>
+    <p class="note">La version pédagogique peut fonctionner en local avec des données fictives. Ne pas exposer publiquement une API sans authentification ni contrôles adaptés. Si une mise en ligne publique est ajoutée, l’authentification, les limites de débit, la politique CORS et la gestion des abus deviennent des exigences de conception, pas des options implicites.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>3. Contrat HTTP à implémenter</h2>
+    <p>Préfixe commun : <code>/api/v1</code>. Les réponses JSON doivent être documentées et cohérentes. Les exemples ci-dessous définissent le comportement attendu ; ils ne prétendent pas qu’une API est déjà implémentée.</p>
+    <table>
+      <thead><tr><th>Méthode et route</th><th>Comportement attendu</th><th>Réponse nominale</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /tasks</code></td><td>Liste triée de façon déterministe par date de création décroissante, puis par identifiant UUID croissant en cas d’égalité ; accepte <code>limit</code>, <code>offset</code> et <code>status</code>.</td><td><code>200</code> avec données et métadonnées de pagination.</td></tr>
+        <tr><td><code>POST /tasks</code></td><td>Valide puis crée une tâche.</td><td><code>201</code>, représentation créée et en-tête <code>Location</code>.</td></tr>
+        <tr><td><code>GET /tasks/:id</code></td><td>Retourne une tâche existante.</td><td><code>400</code> si l’UUID est mal formé, <code>200</code> si trouvé, <code>404</code> si l’UUID valide est absent.</td></tr>
+        <tr><td><code>PATCH /tasks/:id</code></td><td>Modifie uniquement les champs transmis, après validation.</td><td><code>400</code> si l’UUID est mal formé, <code>200</code> avec la tâche actualisée, <code>404</code> si l’UUID valide est absent.</td></tr>
+        <tr><td><code>DELETE /tasks/:id</code></td><td>Supprime une tâche existante.</td><td><code>400</code> si l’UUID est mal formé, <code>204</code> sans corps si supprimée, <code>404</code> si l’UUID valide est absent.</td></tr>
+        <tr><td><code>GET /health</code></td><td>Indique si le processus et la connexion requise à la base sont disponibles.</td><td><code>200</code> si prêt, <code>503</code> sinon, sans divulguer de secrets.</td></tr>
+      </tbody>
+    </table>
+    <h3>Règles de contrat</h3>
+    <ul>
+      <li>Identifiants UUID générés côté serveur ; ne jamais faire confiance à un identifiant fourni dans le corps de création. Un identifiant de route mal formé renvoie <code>400</code> avec un code stable tel que <code>INVALID_ID</code> ; un UUID valide mais absent renvoie <code>404</code>.</li>
+      <li><code>title</code> : chaîne non vide après suppression des espaces en bordure, 1 à 120 caractères ; <code>description</code> : chaîne facultative de 0 à 2 000 caractères ou valeur nulle si ce choix est documenté.</li>
+      <li><code>status</code> : une des valeurs <code>todo</code>, <code>in_progress</code> ou <code>done</code>. La valeur par défaut à la création est <code>todo</code>.</li>
+      <li><code>dueDate</code> : date au format ISO 8601 ou valeur nulle. Le contrat doit préciser la convention de fuseau horaire si un horodatage est utilisé.</li>
+      <li><code>limit</code> par défaut à 20 et plafonné à 100 ; <code>offset</code> entier positif ou nul. Une valeur invalide reçoit une erreur de validation, pas une conversion silencieuse.</li>
+      <li>Les erreurs utilisent une enveloppe stable, par exemple <code>{"error":{"code":"VALIDATION_ERROR","message":"...","fields":{}}}</code>. Ne jamais inclure de trace de pile, de requête SQL ni de secret dans une réponse publique.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>4. Modèle de données et persistance</h2>
+    <p>Créer une table <code>tasks</code> avec au minimum : <code>id UUID PRIMARY KEY</code>, <code>title VARCHAR(120) NOT NULL</code>, <code>description TEXT</code>, <code>status</code> contraint aux trois valeurs autorisées, <code>due_date DATE</code>, <code>created_at TIMESTAMPTZ NOT NULL</code> et <code>updated_at TIMESTAMPTZ NOT NULL</code>. Définir les valeurs par défaut et les contraintes dans PostgreSQL, pas uniquement dans le code TypeScript.</p>
+    <ul>
+      <li>Écrire une migration initiale, une migration de retour arrière si l’outil le permet et un jeu de données de démonstration reproductible.</li>
+      <li>Conserver les dates d’audit en UTC et documenter la conversion en entrée/sortie. Une date d’échéance sans heure peut être stockée en <code>DATE</code> pour éviter d’inventer un fuseau.</li>
+      <li>Utiliser des requêtes paramétrées pour toutes les valeurs utilisateur. Les noms de colonnes et directions de tri ne se paramètrent pas comme les valeurs : les choisir dans une liste blanche.</li>
+      <li>Réutiliser un pool de connexions et fermer proprement les connexions lors de l’arrêt. Une transaction est nécessaire dès qu’une opération doit réussir ou échouer comme un tout sur plusieurs écritures.</li>
+      <li>Ajouter des index pour une requête mesurée ou un besoin clair. Le tri fréquent par <code>created_at</code> peut justifier un index ; un index sur une colonne à peu de valeurs, comme le statut, ne doit pas être ajouté automatiquement sans considérer les requêtes et les volumes.</li>
+    </ul>
+    <p>Ne pas construire une requête SQL en concaténant le titre, le filtre ou l’identifiant reçu. Le typage TypeScript aide à prévenir certaines erreurs de programmation, mais ne remplace ni la validation à l’exécution ni les contraintes SQL : les requêtes HTTP restent des entrées non fiables.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>5. Architecture et choix techniques</h2>
+    <p>Stack de référence proposée : Node.js LTS, TypeScript en mode strict, Fastify pour le serveur HTTP, PostgreSQL pour la persistance, le pilote <code>pg</code> pour les requêtes SQL, un outil de migrations versionnées et Vitest pour les tests. Ce choix garde les couches visibles et permet d’apprendre SQL sans masquer toutes les requêtes derrière un ORM. Une autre stack est acceptable si le contrat, les contrôles et les tests restent équivalents.</p>
+    <pre><code>src/
+  app.ts              # création de l'application et des routes
+  server.ts           # démarrage et arrêt du processus
+  config/             # validation de la configuration
+  modules/tasks/
+    task.routes.ts    # contrat HTTP
+    task.schema.ts    # validation des entrées/sorties
+    task.service.ts   # règles applicatives
+    task.repository.ts# accès SQL paramétré
+  plugins/            # connexion DB et gestion d'erreurs
+migrations/
+tests/
+.env.example
+README.md</code></pre>
+    <p>Les routes traduisent HTTP vers les cas d’usage ; le service applique les règles métier ; le dépôt contient les requêtes et transforme les lignes SQL en objets de domaine. Pour une petite application, ces séparations peuvent rester légères : le but n’est pas de créer une classe par fonction, mais d’éviter de mélanger validation, SQL et réponse HTTP dans un unique gestionnaire de route.</p>
+    <p>Valider les variables d’environnement au démarrage. Fournir un <code>.env.example</code> avec des noms et valeurs factices, jamais le mot de passe réel. Garder la configuration de test distincte de la configuration de développement afin qu’un test ne puisse pas effacer une base personnelle par erreur.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>6. Étapes de réalisation</h2>
+    <ol>
+      <li><strong>Écrire le contrat :</strong> préciser les routes, les formes JSON, les statuts HTTP, la validation, la pagination et le format d’erreur avant de coder.</li>
+      <li><strong>Initialiser le projet :</strong> configurer TypeScript strict, les scripts de développement/test, le lint éventuel et la validation de la configuration.</li>
+      <li><strong>Créer le schéma :</strong> écrire et appliquer les migrations, les contraintes, les données de démonstration et une procédure de remise à zéro réservée à la base de test.</li>
+      <li><strong>Construire une tranche verticale :</strong> implémenter la création d’une tâche de bout en bout, de la requête HTTP à l’écriture SQL puis à la réponse.</li>
+      <li><strong>Ajouter les autres routes :</strong> lecture unitaire, liste paginée, modification partielle et suppression ; centraliser le traitement des erreurs sans masquer leur cause dans les journaux.</li>
+      <li><strong>Tester les cas limites :</strong> données invalides, ressource absente, identifiant mal formé, statut inconnu, pagination extrême, panne DB et tentatives d’injection.</li>
+      <li><strong>Documenter et livrer :</strong> générer ou maintenir une spécification OpenAPI, décrire les commandes, les variables, les migrations et les tests réellement passés.</li>
+    </ol>
+  </section>
+
+  <section class="lesson-section">
+    <h2>7. Critères d’acceptation mesurables</h2>
+    <ul>
+      <li>Les six routes listées dans le contrat répondent avec les statuts et formes JSON documentés, y compris les erreurs attendues.</li>
+      <li>Les cinq opérations CRUD passent par PostgreSQL ; une tâche créée reste consultable après redémarrage du serveur.</li>
+      <li>Une entrée avec titre vide, titre trop long, statut inconnu, pagination négative ou corps JSON invalide est rejetée sans écriture en base.</li>
+      <li>Un identifiant de route mal formé renvoie <code>400</code> ; un UUID valide mais absent renvoie <code>404</code> pour la lecture, la modification et la suppression. Une suppression réussie renvoie <code>204</code> sans corps.</li>
+      <li>La liste respecte le filtre de statut, le plafond de 100 éléments, le tri documenté et les métadonnées de pagination.</li>
+      <li>Les requêtes utilisent des paramètres SQL ; une chaîne contenant des caractères de syntaxe SQL reste une donnée et ne modifie pas la structure de la requête.</li>
+      <li>Les migrations peuvent être appliquées sur une base vide et le jeu de démonstration peut être chargé sans intervention manuelle non documentée.</li>
+      <li>Les tests automatisés couvrent les chemins nominaux, la validation, les ressources absentes et au moins une erreur de persistance ; les tests d’intégration utilisent une base isolée.</li>
+      <li>La documentation OpenAPI correspond aux routes et schémas réellement implémentés ; le README explique l’installation, la configuration et les commandes de vérification.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>8. Plan de tests</h2>
+    <h3>Tests unitaires</h3>
+    <ul>
+      <li>Tester la validation des champs, les valeurs par défaut, les règles de mise à jour partielle et la transformation des erreurs.</li>
+      <li>Vérifier les limites de pagination, les statuts permis et la construction sûre des options de tri.</li>
+    </ul>
+    <h3>Tests d’intégration</h3>
+    <ul>
+      <li>Utiliser une base PostgreSQL de test dédiée ; appliquer les migrations avant la suite et nettoyer les données entre tests de manière déterministe.</li>
+      <li>Tester chaque route via le client HTTP de test, puis vérifier l’état persistant en base. Tester au moins une contrainte SQL et un échec de connexion ou d’écriture.</li>
+      <li>Vérifier qu’une réponse d’erreur ne contient ni mot de passe, ni chaîne de connexion, ni trace de pile.</li>
+    </ul>
+    <h3>Commandes et preuves de livraison</h3>
+    <p>Documenter les scripts réels du projet, par exemple <code>npm run test</code>, <code>npm run lint</code> et une commande de vérification de types. Ne pas déclarer ces commandes réussies avant leur exécution. Conserver dans le compte rendu le résultat, l’environnement et les contrôles qui n’ont pas pu être effectués.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>9. Sécurité, fiabilité et exploitation</h2>
+    <ul>
+      <li>Valider les entrées à l’exécution et limiter la taille du corps de requête ; ne pas considérer une interface TypeScript comme une barrière de sécurité.</li>
+      <li>Employer des requêtes paramétrées, une liste blanche pour les fragments SQL dynamiques et un compte PostgreSQL aux droits minimaux nécessaires.</li>
+      <li>Ne pas renvoyer les détails internes des erreurs au client. Journaliser un identifiant de requête et un contexte utile sans journaliser secrets ou données personnelles inutiles.</li>
+      <li>Définir les délais d’attente, traiter les connexions indisponibles et fermer le serveur ainsi que le pool DB proprement à l’arrêt.</li>
+      <li>Pour une publication publique, ajouter au minimum authentification/autorisation adaptées, limitation de débit, CORS restrictif, HTTPS, sauvegardes, supervision et procédure de mise à jour des secrets.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>10. Livrables et définition de terminé</h2>
+    <ul>
+      <li>Code source structuré, migrations versionnées et données de démonstration non sensibles.</li>
+      <li>Contrat OpenAPI, exemples de requêtes/réponses et tableau des erreurs HTTP.</li>
+      <li>Tests unitaires et d’intégration reproductibles sur une base dédiée.</li>
+      <li>README avec versions requises, installation, variables d’environnement, démarrage, migrations, tests et dépannage.</li>
+      <li>Liste des limites connues, dont toute mesure de sécurité ou tout test de production non réalisé.</li>
+    </ul>
+    <p><strong>Terminé</strong> signifie que les critères d’acceptation sont vérifiés, que le projet peut être lancé à partir d’instructions propres, que les tests se reproduisent sur une base isolée et que les limites sont explicites. Une collection de routes qui renvoie des exemples codés en dur n’est pas une API persistante achevée.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>11. Checklist de validation</h2>
+    <div class="checklist">
+      <label><input type="checkbox"> Contrat HTTP et enveloppe d’erreur documentés.</label>
+      <label><input type="checkbox"> Schéma SQL, contraintes et migrations reproductibles.</label>
+      <label><input type="checkbox"> CRUD persistant et pagination vérifiés.</label>
+      <label><input type="checkbox"> Validation runtime et requêtes paramétrées vérifiées.</label>
+      <label><input type="checkbox"> Tests unitaires et d’intégration exécutés sur une base isolée.</label>
+      <label><input type="checkbox"> Gestion des pannes et absence de secrets dans les réponses vérifiées.</label>
+      <label><input type="checkbox"> Contrat OpenAPI et README synchronisés avec l’implémentation.</label>
+      <label><input type="checkbox"> Limites et tests non exécutés consignés.</label>
+    </div>
+    <p class="note small">Les cases de cette page ne sont pas enregistrées après fermeture. Consigner l’état durablement dans le suivi du projet. Cette fiche définit le travail attendu ; elle ne prouve pas que l’API a déjà été réalisée ou testée.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>Sources documentaires</h2>
+    <ul>
+      <li><a href="https://www.postgresql.org/docs/current/tutorial.html" rel="noopener noreferrer">PostgreSQL — tutoriel officiel</a></li>
+      <li><a href="https://www.fastify.io/docs/latest/" rel="noopener noreferrer">Fastify — documentation officielle</a></li>
+      <li><a href="https://spec.openapis.org/oas/latest.html" rel="noopener noreferrer">OpenAPI Specification</a></li>
+      <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html" rel="noopener noreferrer">OWASP — SQL Injection Prevention Cheat Sheet</a></li>
+      <li><a href="https://www.postgresql.org/docs/current/indexes.html" rel="noopener noreferrer">PostgreSQL — index</a></li>
+    </ul>
+    <p class="note small">Ces références sont choisies pour les concepts couverts par le projet. Leurs URL n’ont pas été recontrôlées en HTTP pendant cette exécution ; vérifier leur contenu et leur actualité avant de s’y appuyer pour une implémentation.</p>
+  </section>
+  <nav class="lesson-nav"><a class="nav-link" href="../index.html#24-projets-pratiques">↑ Retour aux projets</a><a class="nav-link" href="projet-1-site-frontend.html">← Projet précédent</a><a class="nav-link" href="projet-3-application-fullstack.html">Projet suivant →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

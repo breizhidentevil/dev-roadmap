@@ -1,0 +1,136 @@
+<!-- SOURCES DOCUMENTAIRES
+- OWASP — Authorization Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html
+- OWASP — Access Control: https://owasp.org/www-community/Access_Control
+- NIST — Role Based Access Control: https://csrc.nist.gov/projects/role-based-access-control
+- NIST SP 800-162 — Attribute Based Access Control: https://csrc.nist.gov/pubs/sp/800/162/upd2/final
+- OWASP ASVS: https://owasp.org/www-project-application-security-verification-standard/
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Concevoir des autorisations explicites, cohérentes et testables avec RBAC, ABAC et des contrôles appliqués côté serveur.">
+<title>Contrôle d’accès par rôle et par ressource — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Contrôle d’accès par rôle et par ressource</h1>
+<p class="lead">Concevoir des autorisations explicites, cohérentes et testables avec RBAC, ABAC et des contrôles appliqués côté serveur.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Un contrôle d’accès détermine qui peut effectuer quelle action sur quelle ressource et dans quel contexte. Une interface qui masque un bouton n’est pas un mécanisme d’autorisation : un utilisateur peut appeler directement l’API. Ce tutoriel présente les modèles RBAC et ABAC, la différence entre authentification et autorisation, la manière d’appliquer les règles côté serveur et les tests qui permettent de détecter les accès excessifs. Il suppose que vous connaissez les bases d’une API web et des utilisateurs authentifiés.</p>
+<h2>2. Authentification et autorisation</h2>
+<p>L’authentification répond à la question « qui présente cette identité ? ». L’autorisation répond à « cette identité peut-elle effectuer cette action sur cette ressource maintenant ? ». Une session valide ne donne pas automatiquement accès à toutes les données. Chaque endpoint sensible doit appliquer les règles correspondant à l’action demandée et à la ressource visée.</p>
+<p>Un risque fréquent est l’IDOR/BOLA : l’application accepte un identifiant de ressource fourni par le client, puis retourne l’objet sans vérifier que l’utilisateur y a droit. Remplacer `/orders/100` par `/orders/101` ne devrait pas permettre d’accéder à la commande d’un autre compte. Un identifiant difficile à deviner ne remplace pas un contrôle d’autorisation.</p>
+<h2>3. RBAC : permissions attribuées par rôle</h2>
+<p>Le contrôle d’accès basé sur les rôles (RBAC) associe des permissions à des rôles, puis attribue ces rôles aux utilisateurs. Par exemple, `support` peut consulter les tickets qui lui sont assignés, `manager` peut consulter ceux de son équipe, et `admin` peut gérer la configuration. Cette approche est lisible lorsque les responsabilités sont relativement stables et correspondent aux fonctions de l’organisation.</p>
+<p>Évitez de multiplier les rôles pour exprimer chaque nuance métier. Une collection de rôles comme `admin-france-lundi`, `admin-france-mardi` et `admin-allemagne-lundi` devient rapidement ingérable. Les rôles devraient représenter des responsabilités cohérentes ; les conditions liées à une ressource ou à une situation peuvent être évaluées séparément.</p>
+<pre><code>const permissionsByRole = {
+  reader: ["document:read"],
+  editor: ["document:read", "document:update"],
+  admin: ["document:read", "document:update", "user:manage"]
+};
+
+function hasPermission(role, permission) {
+  return permissionsByRole[role]?.includes(permission) ?? false;
+}</code></pre>
+<p>Cet exemple illustre une table de permissions, mais ne constitue pas à lui seul une architecture complète. Il faut valider la provenance du rôle, gérer les rôles absents ou inconnus comme un refus, tenir compte de la ressource concernée et appliquer la règle sur chaque opération sensible. Ne laissez pas le client choisir librement son propre rôle dans une requête.</p>
+<h2>4. ABAC : décisions fondées sur des attributs</h2>
+<p>Le contrôle d’accès basé sur les attributs (ABAC) évalue des attributs du sujet, de la ressource, de l’action et parfois de l’environnement. Une règle pourrait autoriser un utilisateur à modifier un document si son compte appartient à la même organisation que le document, si le document n’est pas archivé et si l’utilisateur possède la permission d’édition. Cette approche exprime mieux les relations et contraintes contextuelles.</p>
+<p>Les attributs doivent provenir de sources fiables. Si le client envoie `organizationId` ou `isAdmin`, il ne faut pas les considérer comme vrais simplement parce qu’ils figurent dans le JSON. Le serveur doit obtenir l’identité depuis une session ou un jeton validé, puis charger les attributs de ressource et les relations nécessaires. Un attribut périmé peut aussi entraîner une autorisation incorrecte.</p>
+<pre><code>function canEditDocument(user, document) {
+  if (!user || !document || user.active !== true) return false;
+  if (user.organizationId == null || document.organizationId == null) return false;
+  if (user.organizationId !== document.organizationId) return false;
+  if (document.status === &quot;archived&quot;) return false;
+
+  // permissions doit provenir du contexte d&#x27;autorisation côté serveur.
+  const permissions = Array.isArray(user.permissions) ? user.permissions : [];
+  return permissions.includes(&quot;document:update&quot;);
+}</code></pre>
+<p>Cette fonction rend les conditions explicites, mais les données `user` et `document` doivent avoir été authentifiées et chargées correctement. Il faut aussi décider comment traiter les valeurs absentes, les erreurs de base de données et les états incohérents : le comportement sûr par défaut est de refuser l’accès plutôt que d’autoriser en cas de doute.</p>
+<h2>5. Appliquer la règle au bon endroit</h2>
+<p>Les contrôles doivent être proches des opérations protégées, dans une couche serveur commune plutôt que dispersés uniquement dans les composants d’interface. Selon l’architecture, on peut utiliser un middleware, une politique d’autorisation ou un service dédié. Les requêtes à la base peuvent aussi intégrer les contraintes de propriétaire ou d’organisation pour éviter qu’une ressource non autorisée ne soit chargée par erreur.</p>
+<p>Il faut distinguer un refus d’autorisation d’une ressource inexistante. Certaines API renvoient 403 lorsqu’une ressource existe mais que l’utilisateur n’y a pas accès ; d’autres utilisent 404 afin de ne pas révéler son existence. Le choix doit être cohérent, documenté et appliqué sans fuite d’information dans le corps de réponse ou les journaux.</p>
+<h2>6. Principe du moindre privilège</h2>
+<p>Un compte doit disposer du minimum de droits nécessaire à son travail. Appliquez ce principe aux utilisateurs, aux comptes de service, aux tâches d’arrière-plan et aux accès à la base. Séparez les opérations ordinaires des opérations administratives, et exigez une authentification renforcée pour les actions particulièrement sensibles lorsque le risque le justifie.</p>
+<p>Les permissions doivent être retirées lorsque le besoin disparaît. Les comptes inactifs, les accès temporaires et les droits de prestataires doivent avoir un cycle de vie explicite. Les journaux d’audit devraient permettre de savoir qui a modifié les rôles et quand, sans enregistrer inutilement des secrets ou des données sensibles.</p>
+<h2>7. Tests d’autorisation</h2>
+<p>Testez les refus autant que les autorisations. Pour chaque action, vérifiez le cas autorisé, le cas sans session, le rôle insuffisant, la ressource appartenant à un autre utilisateur, l’organisation différente et les états particuliers comme un document archivé. Les tests doivent appeler l’API directement, sans dépendre de l’interface, afin de vérifier la vraie frontière de sécurité.</p>
+<p>Les tests fondés sur des matrices sont utiles : lignes pour les rôles ou types de sujet, colonnes pour les actions, et résultats attendus. Ajoutez des tests de non-régression lorsqu’un incident révèle une règle manquante. Si les politiques sont complexes, centralisez leur logique et fournissez des explications diagnostiques réservées aux environnements de développement, sans divulguer ces détails au client final.</p>
+<h2>8. Erreurs fréquentes et compromis</h2>
+<ul>
+<li>Masquer les boutons dans l’interface sans protéger les endpoints.</li>
+<li>Faire confiance à un identifiant, un rôle ou un attribut transmis par le client.</li>
+<li>Confondre rôle global et droit sur une ressource précise.</li>
+<li>Autoriser par défaut lorsque l’utilisateur, la ressource ou la politique est absent.</li>
+<li>Multiplier les rôles au lieu d’exprimer les conditions métier dans une politique.</li>
+<li>Tester seulement les accès autorisés, jamais les cas de refus.</li>
+</ul>
+<p>RBAC est souvent plus simple à administrer, tandis qu’ABAC peut représenter des conditions plus riches. Les deux peuvent être combinés : les rôles fournissent une permission générale, puis une politique vérifie le propriétaire, l’organisation ou l’état de la ressource. Le coût est la complexité de conception et de test ; documentez les règles avant qu’elles ne deviennent implicites.</p>
+<h2>9. Exercice et critères de réussite</h2>
+<p>Concevez les règles d’une application de documents avec trois rôles : lecteur, éditeur et administrateur. Ajoutez la contrainte que les utilisateurs ne peuvent consulter que les documents de leur organisation. Décrivez la décision d’accès pour lire, modifier, supprimer et partager un document. Implémentez des tests couvrant les autorisations et les refus, notamment lorsqu’un utilisateur remplace l’identifiant dans l’URL.</p>
+<ul class="checklist">
+<li>Je distingue authentification et autorisation.</li>
+<li>Je sais expliquer quand RBAC ou ABAC convient mieux.</li>
+<li>Je vérifie les droits côté serveur sur chaque ressource sensible.</li>
+<li>Je refuse par défaut si une condition d’autorisation n’est pas établie.</li>
+<li>Je teste explicitement les accès croisés entre utilisateurs et organisations.</li>
+</ul>
+    <section class="lesson-workshop">
+<h2>Atelier approfondi — Vérifier l’autorisation sur chaque ressource</h2>
+<h3>Objectifs opérationnels</h3>
+<ul><li>Construire une décision d’autorisation à partir de l’acteur, de l’action et de la ressource.</li><li>Choisir entre RBAC, ABAC ou une combinaison sans multiplier inutilement les règles.</li><li>Tester les refus, les frontières de tenant et les changements de privilège.</li></ul>
+<h3>Explications et exemple guidé</h3>
+<p>RBAC attribue des permissions à des rôles : par exemple, un rôle « éditeur » peut modifier des documents. ABAC évalue des attributs de l’acteur, de la ressource et du contexte : l’utilisateur appartient-il au bon tenant, est-il propriétaire du document, le document est-il publié, l’action est-elle autorisée dans ce contexte ? Les deux approches peuvent se combiner, mais la décision doit rester compréhensible et testable.</p>
+<pre><code>function canReadDocument(user, doc) {
+  if (!user || !doc || user.active !== true) return false;
+  if (user.id == null || user.tenantId == null || doc.tenantId == null) return false;
+  if (user.tenantId !== doc.tenantId) return false;
+
+  const roles = Array.isArray(user.roles) ? user.roles : [];
+  return roles.includes(&quot;admin&quot;) || doc.ownerId === user.id;
+}</code></pre>
+<p>Cet exemple est volontairement simple : dans une application réelle, les attributs doivent provenir de sources fiables côté serveur, la politique doit couvrir toutes les actions et les règles d’administration doivent être définies séparément. Ne te contente pas de masquer un bouton dans l’interface. L’API doit refaire la vérification au moment de lire ou de modifier la ressource, car un client peut fabriquer une requête directe avec un identifiant différent.</p>
+<p>Adopte le refus par défaut : une action n’est autorisée que si une règle explicite l’accorde. Écris des tests négatifs, notamment l’accès d’un utilisateur à la ressource d’un autre tenant, la modification d’un identifiant dans l’URL, la révocation d’un rôle et les actions sur une ressource supprimée ou en brouillon.</p>
+<h3>Pièges et limites</h3>
+<ul><li>Confondre authentification (« qui est connecté ? ») et autorisation (« peut-il effectuer cette action sur cette ressource ? »).</li><li>Faire confiance à un rôle, un tenant ou un propriétaire envoyé par le navigateur.</li><li>Tester uniquement les accès autorisés et oublier les accès interdits.</li><li>Créer des rôles trop nombreux ou des règles ABAC implicites difficiles à auditer.</li></ul>
+<h3>Exercice</h3>
+<p>Définis les permissions d’une application de documents pour lecteur, éditeur et administrateur. Ajoute la contrainte que chaque document appartient à un tenant. Écris une matrice acteur/action/ressource et au moins huit tests couvrant succès, refus, changement de rôle et tentative d’accès inter-tenant.</p>
+<h3>Critères de réussite</h3>
+<ul><li>Les règles sont évaluées côté serveur à chaque opération sensible.</li><li>La politique combine rôle et attributs seulement lorsque le besoin le justifie.</li><li>Le refus par défaut et l’isolation des tenants sont testés explicitement.</li><li>Les tests montrent à la fois les accès attendus et les tentatives qui doivent échouer.</li></ul>
+</section>
+    
+
+<section class="lesson-section">
+<h2>Matrice de tests : autoriser et refuser explicitement</h2>
+<p>Les exemples précédents supposent que l’utilisateur, ses rôles, ses permissions et les attributs de tenant sont construits par le serveur après authentification. Ne passe pas un objet envoyé par le navigateur directement à ces fonctions. La matrice suivante doit être traduite en tests d’API : chaque refus doit être vérifié en appelant l’endpoint, même si l’interface masque déjà l’action.</p>
+<table>
+<thead><tr><th>Acteur et ressource</th><th>Action</th><th>Résultat attendu</th><th>Raison</th></tr></thead>
+<tbody>
+<tr><td>Éditeur actif, même organisation, document ouvert</td><td>Modifier</td><td>Autoriser si la permission serveur existe</td><td>Rôle et attributs compatibles</td></tr>
+<tr><td>Utilisateur sans session</td><td>Lire</td><td>Refuser (401 selon le contrat API)</td><td>Aucun acteur authentifié</td></tr>
+<tr><td>Lecteur actif, même organisation</td><td>Modifier</td><td>Refuser (403 selon le contrat API)</td><td>Permission insuffisante</td></tr>
+<tr><td>Administrateur d’une autre organisation</td><td>Lire</td><td>Refuser</td><td>La frontière de tenant prime sur le rôle</td></tr>
+<tr><td>Propriétaire d’un document archivé</td><td>Modifier</td><td>Refuser</td><td>État métier non modifiable</td></tr>
+<tr><td>Acteur actif, attribut de tenant absent</td><td>Lire</td><td>Refuser</td><td>Décision impossible : refus par défaut</td></tr>
+<tr><td>Rôle révoqué pendant la session</td><td>Modifier</td><td>Refuser après actualisation des droits</td><td>Les droits ne doivent pas rester valides indéfiniment</td></tr>
+<tr><td>Client remplaçant l’identifiant dans l’URL</td><td>Lire un autre document</td><td>Refuser si la politique ne l’autorise pas</td><td>Contrôle au niveau de la ressource</td></tr>
+</tbody></table>
+<p>Pour les rôles privilégiés, décide explicitement si l’administrateur est limité à son organisation. Si une exception inter-tenant est réellement nécessaire, sépare-la dans une permission distincte, auditable et testée ; ne la déduis pas d’un simple nom de rôle.</p>
+</section>
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Authorization Cheat Sheet</a></li>
+<li><a href="https://owasp.org/www-community/Access_Control" target="_blank" rel="noopener noreferrer">OWASP — Access Control</a></li>
+<li><a href="https://csrc.nist.gov/projects/role-based-access-control" target="_blank" rel="noopener noreferrer">NIST — Role Based Access Control</a></li>
+<li><a href="https://csrc.nist.gov/pubs/sp/800/162/upd2/final" target="_blank" rel="noopener noreferrer">NIST SP 800-162 — Attribute Based Access Control</a></li>
+<li><a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener noreferrer">OWASP ASVS</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="modele-menace.html">← Précédent : Modèle de menace et analyse des risques</a><a rel="next" href="securite-dependances.html">Suivant : Dépendances et chaîne d’approvisionnement →</a></nav>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

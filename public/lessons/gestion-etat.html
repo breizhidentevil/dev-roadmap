@@ -1,0 +1,45 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Gestion de l’état dans React
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. React — Gérer l’état — https://react.dev/learn/managing-state
+2. React — Choisir la structure de l’état — https://react.dev/learn/choosing-the-state-structure
+3. React — Partager l’état — https://react.dev/learn/sharing-state-between-components
+4. React — Reducer et Context — https://react.dev/learn/scaling-up-with-reducer-and-context
+5. Redux — Guide de style — https://redux.js.org/style-guide/
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Choisir entre état local, Context et bibliothèques comme Zustand ou Redux." name="description"/>
+<title>Gestion d’état — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">2. Frontend</p>
+<h1>Gestion de l’état dans React</h1>
+<p class="lead">Placer l’état au bon niveau, éviter les données redondantes et distinguer état local, partagé et dérivé.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 8 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Distinguer état local, partagé et dérivé.</li><li>Éviter les données redondantes.</li><li>Remonter l’état au plus proche ancêtre commun.</li><li>Choisir avec discernement Context, reducer ou une bibliothèque externe.</li></ul>
+</section><section class="lesson-section"><h2>Fil directeur</h2><p>La gestion d’état consiste à choisir où vit chaque information et comment elle change. Une bonne architecture minimise les copies synchronisées, garde les transitions explicites et distingue les données distantes des préférences d’interface.</p></section><section class="lesson-section"><h2>1. Identifier la nature de chaque donnée</h2><p>Avant d’ajouter un Hook ou un store, classe chaque donnée : état local temporaire, état partagé entre composants, donnée calculable, donnée provenant du serveur ou état présent dans l’URL. Cette classification évite de stocker deux fois la même information.</p><p>Par exemple, le total d’un panier se calcule depuis les lignes et leurs quantités ; le conserver séparément risque de le désynchroniser. En revanche, l’ouverture d’un panneau est un état d’interface légitime.</p></section><section class="lesson-section"><h2>2. Choisir une structure qui protège les invariants</h2><p>Regroupe les valeurs qui changent ensemble et représente explicitement les états mutuellement exclusifs. Au lieu de plusieurs booléens pouvant produire une combinaison impossible, une union comme `idle | loading | success | error` rend les transitions plus lisibles.</p><pre><code>type LoadStatus = "idle" | "loading" | "success" | "error";
+const [status, setStatus] = useState&lt;LoadStatus&gt;("idle");
+// Dans l’action : setStatus("loading"), puis "success" ou "error".</code></pre><p>Pour les tableaux et objets, crée une nouvelle valeur lors d’une mise à jour. Une mutation directe peut empêcher React de détecter le changement ou rendre le raisonnement sur les rendus difficile.</p></section><section class="lesson-section"><h2>3. Partager sans surélever inutilement</h2><p>Si plusieurs composants ont besoin de la même donnée, remonte l’état vers leur parent commun le plus proche. Context peut transmettre une valeur à une sous-arborescence lorsque les props deviendraient trop répétitives, mais il ne remplace pas automatiquement un modèle d’état complexe.</p><p>Un reducer devient utile lorsque plusieurs événements modifient la même structure selon des règles liées. Il centralise les transitions et facilite leur test. N’ajoute pas cette abstraction à un simple booléen sans besoin réel.</p></section><section class="lesson-section"><h2>4. Distinguer état client et état serveur</h2><p>Les données serveur ont des contraintes propres : chargement, cache, fraîcheur, erreurs, invalidation et concurrence de requêtes. Les dupliquer dans l’état local crée deux sources de vérité. Utilise un mécanisme de récupération/cache adapté ou synchronise explicitement la mise à jour après une mutation.</p><p>Pour les filtres partageables, l’URL peut être la source de vérité. Pour un formulaire en cours de saisie, l’état local est souvent adapté. Choisis selon la durée de vie, le partage et le besoin de persistance de la donnée.</p></section><section class="lesson-section"><h2>Erreurs fréquentes et diagnostic</h2><ul><li>Stocker une valeur dérivable et devoir la synchroniser.</li><li>Muter directement un tableau ou un objet d’état.</li><li>Remonter tout l’état au sommet par précaution.</li><li>Utiliser Context comme solution universelle de stockage.</li><li>Traiter les données serveur comme un état local ordinaire sans politique de fraîcheur.</li></ul></section><section class="lesson-section"><h2>Exercice guidé</h2><p>Modélise un panier avec lignes, quantités et états de chargement. Détermine quelles valeurs sont stockées et lesquelles sont calculées. Implémente ajouter, retirer et changer quantité avec des mises à jour immuables ; écris les transitions d’erreur et de succès pour le chargement.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul><li>Chaque donnée possède une source de vérité identifiable.</li><li>Les valeurs dérivables ne sont pas dupliquées dans l’état.</li><li>Les transitions impossibles sont évitées ou explicitement modélisées.</li><li>Le partage d’état utilise le niveau le plus proche nécessaire.</li><li>La fraîcheur et les erreurs des données serveur sont traitées explicitement.</li></ul></section>
+
+
+
+
+
+
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://react.dev/learn/managing-state" rel="noopener noreferrer" target="_blank">React — Gérer l’état</a></li><li><a href="https://react.dev/learn/choosing-the-state-structure" rel="noopener noreferrer" target="_blank">React — Choisir la structure de l’état</a></li><li><a href="https://react.dev/learn/sharing-state-between-components" rel="noopener noreferrer" target="_blank">React — Partager l’état</a></li><li><a href="https://react.dev/learn/scaling-up-with-reducer-and-context" rel="noopener noreferrer" target="_blank">React — Reducer et Context</a></li><li><a href="https://redux.js.org/style-guide/" rel="noopener noreferrer" target="_blank">Redux — Guide de style</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="react-evenements-formulaires.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="typescript-react.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!-- SOURCES DOCUMENTAIRES
+- GitHub Docs — About pull requests: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests
+- GitHub Docs — Reviewing proposed changes: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews
+- Google Engineering Practices — Code review: https://google.github.io/eng-practices/review/
+- GitLab Docs — Code review guidelines: https://docs.gitlab.com/development/code_review/
+- GitHub Docs — Protected branches: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
+Références ciblées servant de points d’entrée documentaires ; leur présence ne signifie pas que chaque ressource a été intégralement lue.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Pull requests et revue de code — tutoriel de la roadmap Full Stack 2026.">
+<title>Pull requests et revue de code — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Roadmap Full Stack 2026</a></header>
+<main class="lesson">
+<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="/" target="_top">Accueil</a> / Tutoriel</nav>
+<article>
+<header class="lesson-header"><h1>Pull requests et revue de code</h1><p>Une pull request (PR) propose un changement, expose son intention et permet de vérifier son impact avant intégration. La revue de code n’est pas seulement une recherche de fautes : elle sert à contrôler la justesse, la sécurité, la lisibilité, la testabilité et la cohérence avec l’architecture. Une bonne PR limite la quantité de changements à comprendre et fournit assez de contexte pour que la revue porte sur les décisions importantes.</p></header>
+<section><h2>Objectifs pédagogiques</h2><ul><li>Préparer une PR lisible, ciblée et reliée au besoin.</li><li>Examiner le comportement, les tests, les risques et la maintenabilité.</li><li>Formuler des commentaires précis et respectueux du travail technique.</li><li>Organiser l’approbation, les corrections et la fusion de façon traçable.</li></ul></section>
+<section><h2>Prérequis</h2><p>Connaître les bases du HTML, du CSS et du JavaScript, savoir inspecter une page dans les outils de développement du navigateur et pouvoir modifier un exemple simple. Les notions propres à ce sujet sont introduites progressivement. Il n’est pas nécessaire de maîtriser tous les outils cités avant de commencer.</p></section>
+<section><h2>1. Préparer une pull request utile</h2><p>Une PR devrait répondre rapidement à quatre questions : quel problème est résolu, quelle solution est proposée, comment le changement a-t-il été testé et quels risques restent connus ? Utilisez un titre explicite, une description courte, des liens vers l’issue et les captures ou traces utiles lorsque le changement est visuel. Signalez les migrations, changements de configuration, incompatibilités ou étapes de déploiement nécessaires.</p><p>La taille influence directement le coût de revue. Une PR trop volumineuse augmente la probabilité qu’un reviewer manque un défaut et rend les commentaires difficiles à relier à une intention précise. Découpez les changements indépendants, mais ne fragmentiez pas artificiellement une fonctionnalité au point de rendre chaque morceau impossible à comprendre seul. Les changements générés ou mécaniques doivent être séparés de la logique métier lorsque cela facilite la lecture.</p></section><section><h2>2. Examiner d’abord le comportement</h2><p>Commencez par comprendre le besoin et les critères d’acceptation, puis suivez le parcours des données et des erreurs. Vérifiez les cas limites, les valeurs nulles, les permissions, les états asynchrones et les effets secondaires. Demandez-vous ce qui se passe si la requête échoue, si deux opérations arrivent simultanément ou si un utilisateur n’a pas le droit attendu. Le code qui fonctionne sur le scénario idéal peut rester incorrect en production.</p><p>Vérifiez que les tests couvrent le comportement modifié et qu’ils échoueraient si la régression visée était réintroduite. Une couverture de lignes élevée ne prouve pas la qualité des assertions. Pour un changement sensible, cherchez également les implications de sécurité, de confidentialité, de performance et de compatibilité. Les conventions de style devraient idéalement être automatisées par un formateur ou un linter afin que la revue humaine se concentre sur le raisonnement.</p></section><section><h2>3. Faire des commentaires actionnables</h2><p>Un commentaire utile localise le problème, explique son impact et, si nécessaire, suggère une voie de résolution. « Ce code est mauvais » n’aide pas à corriger. « Si `userId` vient de la requête, cette vérification ne garantit pas que la personne possède la facture ; peux-tu vérifier l’autorisation sur la ressource ? » identifie le risque et la propriété attendue.</p><p>Distinguez un blocage d’une préférence. Les défauts de correction, sécurité ou contrat doivent être traités avant fusion ; une préférence de nommage peut être une suggestion. Posez une question lorsque l’intention n’est pas claire au lieu d’affirmer une faute sans contexte. Critiquez le code et ses conséquences, pas la personne. Si une discussion devient longue, résumez la décision dans la PR ou dans un document durable afin de ne pas laisser le contexte important dispersé dans les commentaires.</p></section><section><h2>4. Utiliser les contrôles automatiques correctement</h2><p>Les tests, linters, analyseurs de sécurité et vérifications de build apportent un socle reproductible. Ils doivent s’exécuter automatiquement et fournir des résultats compréhensibles. Une PR ne devrait pas être approuvée en ignorant un contrôle rouge sans explication. Si un test est instable, distinguez le défaut du code de l’instabilité de l’environnement et traitez cette dernière explicitement.</p><p>Les contrôles automatiques ne comprennent pas toujours l’intention métier. Ils peuvent manquer un mauvais modèle d’autorisation, une migration dangereuse ou une interface incompréhensible. La revue humaine complète les outils, elle ne les remplace pas. Inversement, ne demandez pas à chaque reviewer de vérifier manuellement le formatage ou de recompter des cas couverts par des tests fiables. Définissez des protections de branche et des règles d’approbation adaptées au risque du dépôt.</p></section><section><h2>5. Fusionner et apprendre du processus</h2><p>Avant la fusion, vérifiez que les discussions bloquantes sont résolues, que les tests correspondent à la version finale et que la branche n’introduit pas de conflit ou de régression connue. Selon le projet, la stratégie peut être squash, merge commit ou rebase ; choisissez une convention et expliquez-la. La méthode de fusion doit préserver l’historique utile et ne pas masquer des changements qui exigent une traçabilité particulière.</p><p>La revue est aussi un outil de partage des connaissances. Lorsqu’un commentaire révèle une règle répétée, améliorez la documentation, le linting ou un exemple de référence plutôt que de répéter la même remarque à chaque PR. Suivez le délai de revue et la taille des changements pour identifier les goulots d’étranglement, mais n’optimisez pas ces chiffres au détriment de la qualité. Le but est une intégration sûre et fluide, pas la vitesse à tout prix.</p></section>
+<section><h2>Exemple pratique</h2><p>Le fragment suivant illustre une décision de conception à tester dans le contexte complet du produit.</p><pre><code>Description de PR
+- Problème : les factures d’un autre compte peuvent apparaître dans certains cas.
+- Changement : vérification de propriété sur chaque ressource demandée.
+- Tests : accès autorisé, accès refusé, identifiant inexistant.
+- Risques : la route d’export doit appliquer la même règle.
+- Validation manuelle : vérifier le parcours avec deux comptes de test.</code></pre><p>La description résume le risque, les preuves attendues et une zone connexe à vérifier. Dans la revue, suivez le contrôle d’autorisation jusqu’à la ressource, plutôt que de vous contenter de constater qu’un utilisateur est authentifié. Les tests doivent démontrer que l’accès est refusé lorsque la ressource appartient à un autre compte.</p></section>
+<section><h2>Pièges fréquents et compromis</h2><ul><li>Soumettre une PR énorme sans découpage ni contexte.</li><li>Confondre style personnel et défaut bloquant.</li><li>Approuver parce que les tests passent sans examiner le comportement.</li><li>Laisser des contrôles rouges sans explication.</li><li>Répéter les mêmes commentaires au lieu d’améliorer les règles partagées.</li></ul><p>Une recommandation générale est un point de départ, pas une preuve de qualité. Vérifiez le parcours complet, les états moins fréquents et les contraintes du produit avant de conclure qu’une solution est appropriée.</p></section>
+<section><h2>Exercice pratique</h2><p>Préparez une PR fictive ou réelle avec un titre, un contexte, un résumé de solution, les tests exécutés et les risques connus. Faites une revue en séparant les blocages des suggestions. Pour chaque blocage, expliquez l’impact et une vérification possible. Terminez par une checklist de fusion qui tient compte de la version finale du code.</p></section>
+<section><h2>Critères de réussite</h2><ul><li>L’intention et la validation sont compréhensibles sans explication orale.</li><li>La revue couvre comportement, erreurs, sécurité et tests pertinents.</li><li>Les commentaires sont précis et classés par gravité.</li><li>Les contrôles automatiques sont exécutés et leurs échecs traités.</li><li>La fusion conserve un historique cohérent et les décisions utiles.</li></ul><p>Considérez l’exercice terminé lorsque chaque critère peut être démontré avec un exemple reproductible. Expliquez vos choix, les tests réalisés et les limites restantes ; l’absence d’erreur visible ne suffit pas à prouver qu’une interface est accessible, compréhensible ou rapide.</p></section>
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — seconde passe</h2>
+<h3>Objectifs opérationnels</h3>
+<ul>
+  <li>Présenter une modification petite, traçable et facile à vérifier.</li>
+  <li>Revoir la correction, la sécurité, la lisibilité et les tests sans réduire la revue au style.</li>
+  <li>Formuler des commentaires actionnables en distinguant blocage et suggestion.</li>
+</ul>
+<h3>Explications et méthode</h3>
+<p>Une pull request raconte pourquoi le changement est nécessaire, ce qui a été modifié, comment le vérifier et quels risques subsistent. Un diff réduit facilite la compréhension ; une refactorisation massive mélangée à un changement fonctionnel rend la causalité plus difficile à évaluer.</p>
+<p>Le relecteur vérifie les invariants métier, les erreurs et limites, la validation des entrées, les autorisations, les données sensibles et la couverture de tests. Les contrôles automatiques sont une preuve utile mais ne remplacent pas le raisonnement sur le comportement.</p>
+<p>Un commentaire de revue doit indiquer le risque ou la question, fournir un exemple concret et préciser le résultat attendu. Les préférences stylistiques non bloquantes ne doivent pas être présentées comme des défauts fonctionnels.</p>
+
+<h3>Exemple commenté</h3>
+<pre><code>## Pourquoi
+Éviter qu’un formulaire soit envoyé deux fois pendant une requête lente.
+
+## Changements
+- Désactivation temporaire du bouton pendant l’envoi.
+- Affichage d’un statut accessible.
+- Test du double clic et du rejet réseau.
+
+## Vérification
+- `npm test -- --runInBand`
+- Test manuel : réseau lent, erreur serveur, nouvel essai.
+
+## Risques connus
+Le serveur doit rester idempotent : le bouton seul ne garantit pas l’unicité.</code></pre>
+<h3>Pièges à éviter</h3>
+<ul>
+  <li>Approuver parce que la CI est verte sans vérifier les invariants ni les permissions.</li>
+  <li>Empiler des changements sans rapport, des renommages et une nouvelle fonctionnalité dans le même diff.</li>
+  <li>Laisser des commentaires vagues ou agressifs sans préciser la conséquence et le chemin de correction.</li>
+</ul>
+<h3>Exercice d’application</h3>
+<p>Prépare une pull request sur un changement réel ou fictif. Écris la description avec contexte, changements, vérifications et risques. Fais une revue en séparant les défauts bloquants des suggestions et ajoute un test pour un cas limite découvert.</p>
+<h3>Critères de réussite</h3>
+<ul>
+  <li>Le but, le périmètre, la méthode de test et les risques sont explicités.</li>
+  <li>Le diff est limité et les tests ciblent le comportement, y compris au moins un cas d’échec.</li>
+  <li>Les retours de revue sont précis, respectueux, justifiés et peuvent être vérifiés.</li>
+</ul>
+</section>
+<section class="sources-documentaires"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les notions et de vérifier les recommandations. Consultez les pages de référence adaptées à la version et au contexte de votre projet.</p><ul><li><a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests" target="_blank" rel="noopener noreferrer">GitHub Docs — About pull requests</a></li><li><a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews" target="_blank" rel="noopener noreferrer">GitHub Docs — Reviewing proposed changes</a></li><li><a href="https://google.github.io/eng-practices/review/" target="_blank" rel="noopener noreferrer">Google Engineering Practices — Code review</a></li><li><a href="https://docs.gitlab.com/development/code_review/" target="_blank" rel="noopener noreferrer">GitLab Docs — Code review guidelines</a></li><li><a href="https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches" target="_blank" rel="noopener noreferrer">GitHub Docs — Protected branches</a></li></ul></section>
+</article>
+<nav class="lesson-navigation" aria-label="Navigation entre les tutoriels">
+<a rel="prev" href="issues-tickets-acceptation.html">← Tutoriel précédent</a>
+<a href="/" target="_top">Sommaire</a>
+<a rel="next" href="branches-conflits-git.html">Tutoriel suivant →</a>
+</nav>
+</main>
+</body>
+</html>

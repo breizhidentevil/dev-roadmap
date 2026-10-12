@@ -1,0 +1,90 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Architecture hexagonale
+Domaine documentaire : architecture
+Ces ressources ciblent les ports et adaptateurs, l’inversion des dépendances et les compromis de conception. Leur présence n’implique pas une lecture intégrale de chaque page.
+1. Alistair Cockburn — Hexagonal Architecture — https://alistair.cockburn.us/hexagonal-architecture/
+2. Martin Fowler — Dependency Injection — https://martinfowler.com/articles/injection.html
+3. Martin Fowler — Dependency Inversion Principle — https://martinfowler.com/bliki/DependencyInversionPrinciple.html
+4. Microsoft — Architecture styles — https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/
+5. Refactoring.Guru — Dependency Injection — https://refactoring.guru/design-patterns/dependency-injection
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Isoler le domaine métier des frameworks et des systèmes externes.">
+  <title>Architecture hexagonale — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">17. Architecture backend approfondie</p>
+    <h1>Architecture hexagonale</h1>
+    <p class="lead">Isoler le domaine métier des frameworks et des systèmes externes.</p>
+<div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 2 h 30</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><p>À la fin de cette leçon, tu dois pouvoir séparer les règles métier des détails techniques et montrer cette séparation par le sens des dépendances et par les tests.</p><ul><li>Définir un port à partir d’un besoin du cas d’usage, puis un adaptateur qui le réalise.</li><li>Faire dépendre le cœur d’un contrat plutôt que d’un framework, d’un ORM ou d’un fournisseur externe.</li><li>Assembler les implémentations au point de composition et tester le cas d’usage avec un faux adaptateur.</li><li>Reconnaître quand le coût des interfaces et des couches dépasse leur bénéfice.</li></ul><p><strong>Prérequis :</strong> fonctions, classes, interfaces TypeScript et tests unitaires.</p></section>
+<section class="lesson-section"><h2>1. Le problème du couplage</h2><p>Quand une règle métier dépend directement d’Express, d’un ORM ou du SDK d’un prestataire, une modification technique se propage jusque dans le domaine. Les tests doivent alors souvent démarrer une base ou simuler des objets complexes. L’architecture hexagonale (ports et adaptateurs) inverse cette dépendance : le cœur décrit ce dont il a besoin, et l’infrastructure fournit une implémentation.</p><p>Le « centre » n’est pas obligatoirement une classe ou un dossier particulier. Il comprend les règles métier et les cas d’usage qui orchestrent un scénario. L’objectif est de protéger les décisions métier qui doivent rester stables malgré le changement de framework, de transport ou de stockage.</p><p>Exemple : le cas d’usage « renommer une tâche » doit vérifier que la tâche existe et appliquer les règles du domaine. Il ne devrait pas connaître la requête SQL, le code HTTP ni la manière dont le contrôleur désérialise le JSON.</p></section>
+<section class="lesson-section"><h2>2. Ports et adaptateurs</h2><p>Un port est un contrat exprimé du point de vue du cœur applicatif. Un adaptateur traduit ce contrat vers une technologie concrète : PostgreSQL, HTTP, un fichier, une file de messages ou un dépôt en mémoire pour les tests.</p><pre><code>export class Task {
+  constructor(public readonly id: string, private title: string) {}
+
+  rename(nextTitle: string): void {
+    const normalized = nextTitle.trim();
+    if (normalized.length === 0) throw new Error("TITLE_REQUIRED");
+    this.title = normalized;
+  }
+  getTitle(): string { return this.title; }
+}
+
+export interface TaskRepository {
+  findById(id: string): Promise&lt;Task | null&gt;;
+  save(task: Task): Promise&lt;void&gt;;
+}
+
+export class RenameTask {
+  constructor(private readonly tasks: TaskRepository) {}
+
+  async execute(id: string, title: string): Promise&lt;void&gt; {
+    const task = await this.tasks.findById(id);
+    if (!task) throw new Error("TASK_NOT_FOUND");
+    task.rename(title);
+    await this.tasks.save(task);
+  }
+}</code></pre><p>Le type de retour explicite rend le contrat lisible : l’absence de tâche est représentée par <code>null</code>, et <code>save</code> signale sa fin sans inventer une valeur métier. Le domaine porte la validation du titre ; le cas d’usage orchestre le chargement et la sauvegarde. Dans une application réelle, préfère des erreurs métier typées si l’appelant doit les distinguer sans comparer des chaînes.</p><p>Le port n’est pas nécessairement un dépôt générique CRUD. Il doit exposer les opérations utiles au cas d’usage, avec le niveau d’abstraction approprié.</p></section>
+<section class="lesson-section"><h2>3. Direction des dépendances</h2><p>Le contrôleur HTTP peut appeler le cas d’usage ; le cas d’usage utilise le port ; l’adaptateur SQL implémente ce port. À la compilation, le code du cœur ne doit pas importer l’adaptateur SQL. À l’exécution, l’objet concret est injecté au cas d’usage.</p><pre><code>Contrôleur HTTP ──&gt; Cas d'usage ──&gt; Domaine
+                         │
+                         ▼
+                    Port dépôt
+                         ▲
+                         │ implémente
+                    Adaptateur SQL</code></pre><p>Le flux d’exécution et le graphe d’imports ne sont donc pas identiques : l’appel aboutit dans l’adaptateur, mais la dépendance de code reste orientée vers l’interface définie côté application. Une interface TypeScript disparaît à l’exécution ; elle ne crée pas de conteneur magique. Le point de composition doit construire l’adaptateur concret et le transmettre explicitement.</p><p>Une vérification pratique consiste à rechercher les imports de frameworks et de pilotes dans les dossiers <code>domain</code> et <code>application</code>. Si le domaine importe un modèle ORM, une classe Express ou une variable d’environnement, la frontière est probablement traversée.</p></section>
+<section class="lesson-section"><h2>4. Organiser les fichiers</h2><pre><code>src/
+  domain/Task.ts
+  application/RenameTask.ts
+  application/ports/TaskRepository.ts
+  adapters/http/tasksController.ts
+  adapters/persistence/PostgresTaskRepository.ts
+  composition/createApplication.ts</code></pre><p>Cette arborescence est illustrative, pas une norme. Les frontières sont d’abord des règles de dépendance et de responsabilité, pas des dossiers imposés. Un petit projet peut regrouper plusieurs éléments tant que les dépendances restent claires. À l’inverse, une arborescence très découpée ne garantit rien si les cas d’usage importent directement les classes d’infrastructure.</p><p>Le point de composition est l’endroit où les détails sont réunis : il crée le dépôt PostgreSQL, le transmet à <code>RenameTask</code>, puis donne le cas d’usage au contrôleur. Il est normal que ce point connaisse les deux côtés ; il doit rester étroit et sans règles métier.</p></section>
+<section class="lesson-section"><h2>5. Tester sans infrastructure</h2><p>Un test unitaire du cas d’usage peut utiliser un dépôt en mémoire qui implémente le même port. Il vérifie le comportement métier rapidement, sans serveur ni base réelle.</p><pre><code>class InMemoryTaskRepository implements TaskRepository {
+  private readonly items = new Map&lt;string, Task&gt;();
+  async findById(id: string): Promise&lt;Task | null&gt; {
+    return this.items.get(id) ?? null;
+  }
+  async save(task: Task): Promise&lt;void&gt; {
+    this.items.set(task.id, task);
+  }
+}</code></pre><p>Ce double est adapté à un test du cas d’usage, mais il ne prouve pas que l’adaptateur PostgreSQL construit la bonne requête ni que le mapping des colonnes fonctionne. Complète la suite avec des tests d’intégration pour l’adaptateur et un test du câblage réel. N’utilise pas uniquement des mocks : ils peuvent reproduire les hypothèses du test au lieu du comportement du système.</p><p>Les tests doivent couvrir au moins la tâche absente, le titre vide, la sauvegarde réussie et l’erreur de persistance. Décide aussi si une erreur technique doit remonter, être traduite ou être réessayée ; cette décision fait partie du contrat du cas d’usage.</p></section>
+<section class="lesson-section"><h2>6. Composition et cycle de vie</h2><p>Le point de composition crée les implémentations concrètes et les injecte. Pour un service stateless, une instance partagée peut être appropriée ; pour un objet contenant l’identité ou l’état d’une requête, un singleton global peut provoquer une fuite de données entre utilisateurs. La durée de vie doit correspondre à celle des ressources et des données.</p><pre><code>const repository = new PostgresTaskRepository(pool);
+const renameTask = new RenameTask(repository);
+const controller = new TasksController(renameTask);</code></pre><p>Ce pseudo-exemple montre l’assemblage, pas toutes les signatures d’un serveur. Un conteneur d’injection est utile lorsque le graphe devient grand et que les cycles de vie doivent être gérés, mais il n’est pas requis pour appliquer l’inversion des dépendances. L’injection par constructeur suffit souvent et rend les dépendances visibles.</p></section>
+<section class="lesson-section"><h2>7. Coûts, limites et pièges</h2><ul><li>Créer une interface par classe sans besoin réel de substitution ou de contrat stable.</li><li>Faire remonter des types ORM ou HTTP jusqu’au domaine.</li><li>Placer les règles dans les contrôleurs, puis appeler cela « architecture hexagonale » parce qu’il existe plusieurs dossiers.</li><li>Dupliquer les mêmes validations dans toutes les couches sans décider quelle couche possède la règle.</li><li>Tester uniquement avec des doubles et ne jamais vérifier l’adaptateur réel.</li><li>Confondre ports/adaptateurs et microservices : l’architecture hexagonale peut parfaitement rester dans un monolithe.</li></ul><p>Elle est utile quand le domaine contient des règles significatives, que les systèmes externes varient ou que les tests rapides ont de la valeur. Pour un CRUD simple et temporaire, une structure plus directe peut être plus économique. La mesure de réussite est la facilité à changer ou tester une dépendance sans modifier les règles métier, pas le nombre de couches créées.</p></section>
+<section class="lesson-section"><h2>8. Exercice pratique</h2><p>Construis le cas d’usage « terminer une tâche ». Le domaine refuse une transition invalide ; le cas d’usage charge et sauvegarde la tâche ; l’adaptateur HTTP traduit l’entrée et la réponse ; un dépôt en mémoire permet de tester sans serveur ni base.</p><ol><li>Écris le port du dépôt dans la couche application.</li><li>Implémente un adaptateur en mémoire puis un adaptateur de persistance réel.</li><li>Teste la tâche absente, la transition interdite et le succès sans infrastructure.</li><li>Ajoute un test d’intégration qui vérifie le mapping et le câblage de l’adaptateur réel.</li><li>Trace les imports et démontre que domaine/application n’importent ni le framework HTTP ni l’ORM.</li></ol><h3>Critères de réussite de l’exercice</h3><ul><li>Le domaine n’importe aucun framework ou adaptateur.</li><li>Le cas d’usage dépend d’un port et non d’une classe concrète de persistance.</li><li>Les tests unitaires s’exécutent sans infrastructure et vérifient les cas d’échec.</li><li>Un test d’intégration couvre l’adaptateur réel.</li><li>Le point de composition est le seul endroit qui assemble les détails concrets.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://alistair.cockburn.us/hexagonal-architecture/">Alistair Cockburn — Hexagonal Architecture</a></li><li><a href="https://martinfowler.com/articles/injection.html">Martin Fowler — Dependency Injection</a></li><li><a href="https://martinfowler.com/bliki/DependencyInversionPrinciple.html">Martin Fowler — Dependency Inversion Principle</a></li><li><a href="https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/">Microsoft — Architecture styles</a></li><li><a href="https://refactoring.guru/design-patterns/dependency-injection">Refactoring.Guru — Dependency Injection</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je sais définir un port et un adaptateur.</label><label><input type="checkbox"> Les dépendances de code pointent vers le cœur métier.</label><label><input type="checkbox"> Je peux tester un cas d’usage sans base de données.</label></section>
+    <nav class="lesson-nav"><a class="nav-link" href="frontieres-modules.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="profilage-application.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

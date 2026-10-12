@@ -1,0 +1,126 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Pagination, tri et filtrage
+Domaine documentaire : api
+Références consultées pour vérifier l’existence et l’adéquation générale des ressources. Elles servent de base de travail, pas de classement absolu des cinq meilleures ressources.
+1. OpenAPI — Spécification — https://spec.openapis.org/oas/latest.html
+2. MDN — Vue d’ensemble HTTP — https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview
+3. MDN — Méthodes HTTP — https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
+4. MDN — Codes de statut HTTP — https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+5. Express — Guide du routage — https://expressjs.com/en/guide/routing/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Concevoir des endpoints efficaces pour parcourir des collections.">
+  <title>Pagination, tri et filtrage — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">11. Conception et intégration des API</p>
+    <h1>Pagination, tri et filtrage</h1>
+    <p class="lead">Concevoir des endpoints efficaces pour parcourir des collections.</p>
+    <div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 2 h</span></div>
+    <section class="lesson-section">
+      <h2>Objectifs d’apprentissage</h2>
+      <ul><li>Concevoir des paramètres de pagination, de tri et de filtrage cohérents.</li><li>Comparer pagination par offset et pagination par curseur.</li><li>Valider et borner les paramètres pour protéger la base et l’API.</li><li>Documenter les métadonnées de navigation et tester les cas limites.</li></ul>
+    </section>
+    <section class="lesson-section">
+      <h2>1. Pourquoi paginer ?</h2>
+      <p>Une collection peut contenir des milliers ou des millions de ressources. Renvoyer toute la collection augmente la latence, la consommation mémoire et le trafic réseau, et peut faire peser une charge excessive sur la base de données. La pagination limite le nombre de résultats renvoyés dans une réponse et permet au client de parcourir la collection progressivement.</p>
+      <p>Le tri rend l’ordre des résultats explicite. Le filtrage réduit la collection à un sous-ensemble pertinent. Ces trois fonctionnalités doivent être conçues ensemble : un tri stable est essentiel pour éviter les doublons ou les omissions lorsque le client passe d’une page à l’autre.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>2. Définir un contrat lisible</h2>
+      <p>Exemple de requête :</p>
+      <pre><code>GET /api/tasks?status=open&sort=-createdAt&limit=20&offset=40</code></pre>
+      <ul><li><code>status=open</code> : filtre sur un champ autorisé.</li><li><code>sort=-createdAt</code> : tri décroissant, si cette convention est documentée.</li><li><code>limit=20</code> : taille de page demandée.</li><li><code>offset=40</code> : nombre d’éléments ignorés avant la page.</li></ul>
+      <p>La réponse peut exposer les données et les métadonnées :</p>
+      <pre><code>{
+  "data": [
+    { "id": "task_41", "title": "Tester les endpoints" }
+  ],
+  "page": {
+    "limit": 20,
+    "offset": 40,
+    "hasMore": true
+  }
+}</code></pre>
+      <p>Il faut préciser si le total est exact, approximatif ou absent. Calculer un total exact peut être coûteux sur une très grande collection ; ne l’ajoutez pas par défaut si le produit n’en a pas besoin.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>3. Offset ou curseur ?</h2>
+      <h3>Pagination par offset</h3>
+      <p>L’offset est facile à comprendre et permet de sauter directement à une position. Il devient souvent coûteux sur de grands offsets, car le moteur doit parcourir ou ignorer de nombreuses lignes. Si la collection change entre deux requêtes, des éléments peuvent se déplacer et être répétés ou omis.</p>
+      <h3>Pagination par curseur</h3>
+      <p>Le serveur fournit un curseur opaque représentant la position de reprise, souvent fondée sur une clé de tri stable. Le client le renvoie pour demander la page suivante. Cette approche est généralement plus adaptée aux flux volumineux et aux collections qui changent fréquemment, mais ne permet pas toujours de sauter arbitrairement à la page numéro 50.</p>
+      <pre><code>GET /api/tasks?limit=20
+→ { "data": [...], "nextCursor": "opaque-token" }
+
+GET /api/tasks?limit=20&cursor=opaque-token</code></pre>
+      <p>Traitez le curseur comme une valeur opaque : le client ne doit pas en fabriquer ni en modifier le contenu. Le serveur doit valider son format, son contexte et, si nécessaire, sa signature ou son expiration. Lier le curseur aux filtres, au tri et au périmètre d’accès évite de le réutiliser dans un autre contexte ; il ne remplace jamais l’autorisation côté serveur.</p>
+<p>Exemple PostgreSQL pour la page suivante, avec un tri décroissant sur deux colonnes non nulles et un curseur contenant les valeurs de la dernière ligne reçue :</p>
+<pre><code>SELECT id, created_at, title
+FROM tasks
+WHERE owner_id = $1
+  AND (created_at, id) &lt; ($2, $3)
+ORDER BY created_at DESC, id DESC
+LIMIT $4;</code></pre>
+<p>Les paramètres sont liés par le pilote SQL ; <code>owner_id</code> vient de l’identité authentifiée, pas d’une valeur libre fournie par le client. Cet exemple suppose que <code>created_at</code> et <code>id</code> sont non nuls. Si le tri autorise des valeurs nulles ou des directions différentes, la condition de reprise doit refléter exactement cet ordre. La première page utilise une requête distincte sans condition de curseur.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>4. Assurer un tri stable</h2>
+      <p>Un tri sur un champ non unique ne suffit pas toujours. Si plusieurs tâches ont la même date de création, ajoutez un second critère déterministe, par exemple l’identifiant :</p>
+      <pre><code>ORDER BY created_at DESC, id DESC</code></pre>
+      <p>Ce tri fournit un ordre total tant que la clé de départ est unique. Pour une pagination par curseur, le curseur doit contenir ou référencer les valeurs nécessaires à la reprise dans cet ordre. Le serveur doit aussi documenter comment les valeurs nulles et les égalités sont traitées.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>5. Valider les paramètres</h2>
+      <ul><li>Définissez une taille par défaut et un maximum strict pour <code>limit</code>.</li><li>Refusez les valeurs négatives, non numériques ou excessives plutôt que de les laisser produire des requêtes coûteuses.</li><li>Utilisez une liste blanche pour les champs de tri et de filtrage autorisés.</li><li>Paramétrez les valeurs SQL et ne concaténez jamais directement un texte fourni par le client dans une requête.</li><li>Définissez clairement les opérateurs de filtrage autorisés et leurs règles de combinaison.</li><li>Décidez si un paramètre inconnu est rejeté ou ignoré, puis documentez cette règle.</li></ul>
+      <p>Les valeurs de tri sont souvent des noms de colonnes, qui ne peuvent pas être traités comme de simples paramètres de valeur SQL. Associez donc les noms externes à une liste de colonnes autorisées.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>6. Cohérence entre pages</h2>
+      <p>Un jeu de résultats paginé n’est pas forcément un instantané immuable. Si de nouveaux éléments arrivent pendant que le client parcourt les pages, l’ensemble peut changer. Selon le besoin, vous pouvez utiliser une pagination par curseur, une borne temporelle, un instantané transactionnel ou simplement documenter que les résultats reflètent l’état courant.</p>
+      <p>Les paramètres de tri et de filtre doivent rester identiques entre les pages. Si une API utilise un lien de continuation, le client devrait suivre le lien fourni sans en reconstruire lui-même les paramètres lorsque le contrat indique qu’il est opaque.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>7. Tests essentiels</h2>
+      <ul><li>Collection vide, une page exacte et une dernière page incomplète.</li><li>Limite absente, égale à zéro, négative, non numérique et supérieure au maximum.</li><li>Valeur de tri inconnue et ordre déterministe en cas d’égalité.</li><li>Curseur invalide, expiré ou provenant d’un autre filtre.</li><li>Éléments ajoutés ou supprimés entre deux requêtes.</li><li>Vérification que le filtrage se fait côté serveur avant la pagination.</li><li>Mesure de la performance sur des volumes réalistes et des index appropriés.</li></ul>
+    </section>
+    <section class="lesson-section">
+      <h2>8. Exercice</h2>
+      <p>Concevez <code>GET /api/products</code> avec filtres de catégorie et de prix, tri par prix ou date, et pagination. Définissez les paramètres, leurs limites, la forme de la réponse et le comportement en cas de paramètre invalide. Comparez ensuite offset et curseur pour un catalogue de plusieurs millions de produits.</p>
+      <h3>Critères de réussite</h3><p>Le contrat est documenté, le tri est stable, les paramètres sont bornés et sécurisés, et le client peut détecter la fin de la collection sans supposer un nombre fixe de pages.</p>
+    </section>
+    <section class="lesson-workshop"><h2>Atelier approfondi — Concevoir un endpoint de collection prévisible</h2><h3>Objectifs opérationnels</h3><ul><li>Expliquer les garanties et les limites du mécanisme présenté.</li><li>Choisir une stratégie adaptée à un cas réaliste et justifier ses compromis.</li><li>Vérifier le comportement avec des tests reproductibles plutôt que par intuition.</li></ul><h3>Explications et exemple guidé</h3><p>Une API de collection doit définir un ordre stable, des limites et le comportement des paramètres invalides. Sans tri déterministe, des éléments peuvent être répétés ou omis entre deux pages lorsque plusieurs lignes partagent la même valeur de tri.</p><pre><code>GET /api/orders?status=paid&sort=createdAt&direction=desc&limit=20&cursor=eyJpZCI6...</code></pre><p>Validez les paramètres à l’entrée : limite entière bornée, champ de tri dans une liste autorisée, direction parmi <code>asc</code>/<code>desc</code> et filtres documentés. N’insérez jamais directement un nom de colonne fourni par le client dans une requête SQL.</p><pre><code>const allowedSort = new Set(['createdAt', 'totalCents']);
+const parsedLimit = rawLimit === undefined ? 20 : Number(rawLimit);
+if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+  throw new Error('Invalid limit');
+}
+const limit = parsedLimit;
+if (!allowedSort.has(sort)) throw new Error('Unsupported sort field');
+if (!['asc', 'desc'].includes(direction)) throw new Error('Invalid direction');</code></pre><p>La pagination par offset est simple pour les petites collections, mais les grands offsets peuvent coûter cher et les insertions concurrentes déplacent les pages. Une pagination par curseur s’appuie sur un ordre stable, généralement complété par une clé unique.</p><h3>Pièges et limites</h3><ul><li>Piège : accepter une limite illimitée et permettre une réponse trop volumineuse.</li><li>Piège : trier uniquement par une colonne non unique.</li><li>Piège : mélanger filtres, tri et pagination sans documenter si le total est exact ou estimé.</li><li>Piège : faire croire qu’un curseur opaque est une autorisation d’accès ; les permissions restent vérifiées à chaque requête.</li></ul><h3>Exercice</h3><p>Définissez le contrat d’un endpoint de produits avec filtre de catégorie, tri par prix ou date et pagination par curseur. Décrivez les réponses aux paramètres invalides et écrivez des tests pour les valeurs limites et les éléments partageant le même prix.</p><h3>Critères de réussite</h3><ul><li>Les paramètres, valeurs par défaut et limites sont documentés.</li><li>L’ordre de tri est déterministe et inclut un départage unique.</li><li>Les paramètres sont validés et les requêtes restent paramétrées.</li><li>Les tests couvrent page vide, dernière page, limite maximale et données concurrentes.</li></ul></section>
+
+<section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux choisir entre offset et curseur selon le contexte.</label>
+      <label><input type="checkbox"> Je définis un tri stable et des limites de page.</label>
+      <label><input type="checkbox"> Je valide les champs de filtre et de tri côté serveur.</label>
+      <label><input type="checkbox"> Je teste les cas limites et la cohérence entre pages.</label>
+    </section>
+
+<section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <ul><li><a href="https://spec.openapis.org/oas/latest.html">OpenAPI Specification</a></li><li><a href="https://github.com/microsoft/api-guidelines">Microsoft REST API Guidelines — collections et pagination</a></li><li><a href="https://learn.microsoft.com/en-us/azure/ai-services/reference/rest-api-resources">Microsoft REST API — Pagination</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview">MDN — HTTP</a></li><li><a href="https://expressjs.com/en/guide/routing/">Express — Routage</a></li></ul>
+    </section>
+
+<nav class="lesson-nav"><a class="nav-link" href="typescript-modules-tsconfig.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="contrats-api-validation.html">Compétence suivante →</a></nav>
+</main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

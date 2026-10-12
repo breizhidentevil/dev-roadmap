@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Environnements de développement, test et production
+Domaine documentaire : testing
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. The Twelve-Factor App — Config — https://12factor.net/config
+2. The Twelve-Factor App — Dev/Prod Parity — https://12factor.net/dev-prod-parity
+3. Docker — Build best practices — https://docs.docker.com/build/building/best-practices/
+4. OWASP — Secrets Management Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+5. GitHub Actions — Environments — https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment
+
+Note : les cinq références documentaires ci-dessous sont reprises dans la liste visible de la page.-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Séparer les environnements, maîtriser la configuration et promouvoir un même artefact avec des contrôles adaptés à chaque étape.">
+<title>Environnements de développement, test et production — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Architecture et ingénierie Full Stack</p>
+<h1>Environnements de développement, test et production</h1>
+<p class="lead">Séparer les environnements, maîtriser la configuration et promouvoir un même artefact avec des contrôles adaptés à chaque étape.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un besoin réel et justifier tes choix à partir de contraintes observables.</p>
+<ul><li>Définir le vocabulaire essentiel et le problème que la compétence résout.</li><li>Appliquer les principes dans un exemple pratique et identifier les limites.</li><li>Vérifier le résultat avec des critères explicites plutôt qu’une impression subjective.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Pourquoi séparer les environnements ?</h2>
+<p>Un environnement est une combinaison de code, configuration, données, dépendances et permissions dans laquelle l’application s’exécute. Le développement favorise le retour rapide, le test vérifie des comportements dans des conditions contrôlées, et la production sert les utilisateurs réels. Les objectifs sont différents, mais les environnements ne doivent pas diverger au point que les tests ne prédisent plus le comportement du déploiement final.</p>
+<p>Le développement local peut utiliser des données synthétiques, des services simulés et des outils de diagnostic. L’environnement de test doit être suffisamment proche de la production pour détecter les incompatibilités, sans exposer de données ou de secrets réels. La production exige des accès limités, une surveillance, des sauvegardes et des procédures de restauration. Il est souvent utile d’ajouter une préproduction pour valider le déploiement et les intégrations dans un environnement représentatif.</p>
+<p>La séparation n’est pas seulement une question d’URL ou de fichiers de configuration. Elle concerne aussi les comptes cloud, les bases de données, les clés API, les droits d’écriture, les files de messages et les domaines. Une application de test qui peut écrire dans la base de production représente un risque majeur, même si son interface porte clairement la mention « test ».</p></section>
+<section class="lesson-section"><h2>2. Externaliser la configuration</h2>
+<p>Le même code doit pouvoir être lancé avec des paramètres adaptés à chaque environnement. Les URL des services, les niveaux de journalisation et les options fonctionnelles peuvent être configurés hors du code. Les secrets — mots de passe, jetons et clés privées — doivent être fournis par un mécanisme dédié, pas stockés dans Git ou inclus dans une image publique.</p>
+<pre><code># Exemple local, valeurs non sensibles
+APP_ENV=development
+LOG_LEVEL=debug
+API_TIMEOUT_MS=2500
+
+# DATABASE_URL est injectée à l’exécution par le gestionnaire
+# de secrets ; ne pas placer sa vraie valeur dans .env.example.</code></pre>
+<p>Ce fragment décrit des variables, pas un format universel. Le nommage, la validation et les valeurs par défaut doivent être cohérents. Au démarrage, l’application devrait échouer clairement si une variable obligatoire est absente ou invalide, plutôt que de se connecter silencieusement à une mauvaise base. Évite les valeurs par défaut dangereuses en production. Avant une migration ou une opération destructive, vérifie explicitement l’identité de l’environnement et de la base cible, puis refuse l’opération si elle ne correspond pas à l’environnement attendu.</p>
+<p>Une configuration typée ou validée réduit les erreurs de déploiement. Sépare les paramètres non secrets des secrets, limite leur durée de vie lorsque c’est possible et contrôle qui peut les lire. Les secrets de développement ne doivent pas être réutilisés en production, et les journaux ne doivent pas les afficher.</p></section>
+<section class="lesson-section"><h2>3. Réduire l’écart entre test et production</h2>
+<p>La parité parfaite est souvent trop coûteuse, mais les différences importantes doivent être identifiées. Des versions différentes de la base, un système de fichiers local qui persiste alors que la production est éphémère, ou des appels externes simulés peuvent masquer des défauts. Utilise des versions proches, automatise la création de l’environnement et documente les écarts qui restent.</p>
+<p>Les tests doivent s’exécuter avec un état maîtrisé. Les jeux de données doivent être reproductibles, les tests indépendants autant que possible et le nettoyage explicite. N’utilise pas de données personnelles réelles sans base légitime, protection et autorisation appropriées. Les jeux synthétiques permettent de tester de nombreux cas sans diffuser des informations sensibles.</p>
+<p>La préproduction est utile pour vérifier le paquet, les migrations, les variables, les permissions et les dépendances. Elle ne garantit pas à elle seule le succès en production : le volume de trafic, les secrets, les données et certaines intégrations restent différents. Complète les tests par des contrôles après déploiement et une procédure de retour arrière.</p></section>
+<section class="lesson-section"><h2>4. Promouvoir le même artefact</h2>
+<p>Un artefact est le résultat construit et identifié d’une version : image de conteneur, paquet ou bundle. Une chaîne fiable le construit une fois, le teste, puis promeut ce même artefact entre les environnements. Recompiler séparément pour chaque environnement peut produire des binaires différents malgré le même commit et rendre l’audit plus difficile.</p>
+<p>Le déploiement doit identifier la version exacte, conserver les résultats de tests et séparer les autorisations. Les protections de branche, l’approbation pour la production et les identités de déploiement à privilèges minimaux réduisent le risque. La configuration varie entre environnements, mais l’artefact applicatif doit rester traçable.</p>
+<p>Les migrations de base demandent une attention particulière : un nouveau code peut être incompatible avec l’ancien schéma, et un retour arrière de l’application n’annule pas automatiquement une migration destructive. Préfère des migrations compatibles par étapes lorsque les déploiements peuvent coexister : ajouter une colonne, déployer le code compatible, migrer les données, puis supprimer l’ancien champ dans une version ultérieure après vérification.</p></section>
+<section class="lesson-section"><h2>5. Garde-fous et erreurs fréquentes</h2>
+<ul><li><strong>Confusion de base :</strong> affiche clairement l’environnement et vérifie l’URL de connexion avant toute opération destructive.</li><li><strong>Secrets dans Git :</strong> retire-les, révoque-les et renouvelle-les ; supprimer le commit ne suffit pas toujours.</li><li><strong>Test trop différent :</strong> documente les différences et ajoute des tests de préproduction pour les intégrations critiques.</li><li><strong>Artefacts reconstruits :</strong> identifie et promeus le même artefact pour améliorer la traçabilité.</li><li><strong>Déploiement sans validation :</strong> contrôle santé, erreurs, latence et fonctions essentielles après publication.</li></ul>
+<p>Les environnements éphémères par branche ou par demande de changement peuvent accélérer la validation, mais leur création et leur destruction doivent être automatisées. Ils doivent posséder des quotas, des règles de nettoyage et des accès limités afin d’éviter l’accumulation de ressources et de données oubliées.</p></section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Définis les environnements local, test, préproduction et production pour une API. Liste les bases, secrets, permissions, jeux de données et contrôles de santé de chacun. Propose un pipeline qui construit un artefact une seule fois, le teste, le déploie en préproduction, puis demande une approbation avant la production. Ajoute une vérification empêchant l’environnement de test d’écrire dans la base de production.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je peux expliquer le rôle et les risques de chaque environnement.</li><li>Je sépare code, configuration et secrets.</li><li>Je réduis les écarts critiques entre test et production.</li><li>Je promeus un artefact identifiable et conserve la traçabilité.</li><li>Je prévois des contrôles après déploiement et une stratégie de restauration.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Les ressources ci-dessous sont des références pour poursuivre l’apprentissage. Elles servent de points de départ ciblés ; consulte les sections pertinentes et vérifie les détails qui dépendent de la version des outils ou de ton environnement.</p><ol><li><a href="https://12factor.net/config" target="_blank" rel="noopener noreferrer">The Twelve-Factor App — Config</a></li>
+<li><a href="https://12factor.net/dev-prod-parity" target="_blank" rel="noopener noreferrer">The Twelve-Factor App — Dev/Prod Parity</a></li>
+<li><a href="https://docs.docker.com/build/building/best-practices/" target="_blank" rel="noopener noreferrer">Docker — Build best practices</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Secrets Management Cheat Sheet</a></li>
+<li><a href="https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment" target="_blank" rel="noopener noreferrer">GitHub Actions — Environments</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="metriques-alertes.html">← Métriques et alertes</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="rollback-deploiement.html">Rollback et stratégies de déploiement →</a></nav>
+
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — réduire les écarts entre environnements</h2>
+<h3>Objectifs pédagogiques</h3>
+<ul><li>Séparer configuration et code déployé.</li><li>Identifier les écarts qui invalident les tests.</li><li>Gérer secrets, données et permissions par environnement.</li></ul>
+<h3>Parité utile</h3><p>Chercher à rapprocher versions runtime, dépendances et services, sans prétendre que les environnements doivent être identiques en taille ou en données.</p>
+<h3>Configuration</h3><p>Injecter la configuration à l’exécution; valider les variables requises au démarrage et échouer clairement en cas de valeur invalide.</p>
+<h3>Secrets</h3><p>Utiliser un gestionnaire de secrets, des identités distinctes et le moindre privilège; ne pas copier les secrets de production en test.</p>
+<h3>Données</h3><p>Privilégier des jeux synthétiques ou anonymisés et définir le cycle de vie des données temporaires.</p>
+<h3>Promotion</h3><p>Promouvoir un même artefact construit et identifié; éviter de reconstruire un binaire différent pour chaque environnement.</p>
+<h3>Exercice pratique</h3><p>Créer une matrice dev/test/prod pour une application web. Lister les différences autorisées, les secrets, les services dépendants et les contrôles avant promotion.</p>
+<h3>Critères de réussite</h3><ul><li>Les écarts autorisés sont documentés.</li><li>Les secrets sont séparés et à privilèges limités.</li><li>Les données de test sont adaptées et protégées.</li><li>Le même artefact est promu entre environnements.</li></ul>
+</section>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

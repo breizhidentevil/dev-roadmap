@@ -1,0 +1,67 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Codes de statut HTTP
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. MDN — Codes de statut HTTP — https://developer.mozilla.org/fr/docs/Web/HTTP/Status
+2. RFC 9110 — HTTP Semantics — https://www.rfc-editor.org/rfc/rfc9110.html
+3. RFC 9457 — Problem Details for HTTP APIs — https://www.rfc-editor.org/rfc/rfc9457.html
+4. Microsoft — REST API Guidelines — https://github.com/microsoft/api-guidelines
+5. Google Cloud — API design guide — https://cloud.google.com/apis/design/errors
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Choisir les statuts HTTP, comprendre l’idempotence et définir une stratégie sûre de répétition des requêtes." name="description"/>
+<title>Codes HTTP et idempotence — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">3. Backend</p>
+<h1>Codes HTTP et idempotence</h1>
+<p class="lead">Choisir les statuts HTTP, exprimer un contrat d’erreur stable et comprendre quand une requête peut être répétée sans produire plusieurs effets métier.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 10 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Comprendre les grandes familles de statuts HTTP.</li><li>Choisir un statut adapté au résultat de l’opération.</li><li>Construire des réponses d’erreur cohérentes.</li><li>Expliquer l’idempotence et les limites des répétitions de requêtes.</li><li>Éviter d’utiliser les statuts comme des codes métier arbitraires.</li></ul>
+</section><section class="lesson-section"><h2>Fil conducteur</h2><p>Choisis d’abord la sémantique du résultat (succès, erreur client, erreur serveur), puis le statut précis. Le corps de réponse complète le statut mais ne doit pas le contredire.</p></section>
+<section class="lesson-section"><h2>1. Les cinq familles</h2>
+<p>Les statuts HTTP sont regroupés par premier chiffre : <code>1xx</code> information, <code>2xx</code> succès, <code>3xx</code> redirection, <code>4xx</code> problème associé à la requête cliente, et <code>5xx</code> échec côté serveur ou d’une passerelle. Le statut exprime le résultat du protocole ; le corps peut apporter des détails supplémentaires.</p><p>Choisis un statut selon la sémantique définie par HTTP et le contrat de ton API. Un statut correct facilite les clients génériques, la supervision, les caches et le diagnostic. N’utilise pas systématiquement <code>200</code> pour toutes les situations en plaçant seulement un champ <code>success: false</code> dans le JSON.</p>
+</section>
+<section class="lesson-section"><h2>2. Les statuts de succès</h2>
+<p><code>200 OK</code> indique que la requête a réussi et qu’une représentation peut être renvoyée. <code>201 Created</code> convient lorsqu’une ressource a été créée ; un en-tête <code>Location</code> peut indiquer sa cible. <code>202 Accepted</code> signifie qu’une demande a été acceptée pour traitement, sans affirmer que le travail est terminé. <code>204 No Content</code> indique un succès sans corps de réponse.</p><p>Le choix dépend de la méthode et du contrat. Une tâche asynchrone ne devrait pas renvoyer un message laissant croire que le traitement est déjà achevé si seul son lancement a été confirmé.</p>
+</section>
+<section class="lesson-section"><h2>3. Les erreurs côté client</h2>
+<p><code>400 Bad Request</code> couvre notamment une requête mal formée. <code>401 Unauthorized</code> indique que l’authentification est requise ou invalide ; une réponse <code>401</code> doit inclure l’en-tête <code>WWW-Authenticate</code> décrivant le défi d’authentification applicable. <code>403 Forbidden</code> indique que le serveur refuse la demande ; il ne doit pas être confondu avec l’absence d’authentification. <code>404 Not Found</code> indique que la ressource cible n’est pas trouvée ou n’est pas exposée. <code>409 Conflict</code> convient à certains conflits avec l’état courant ; <code>422 Unprocessable Content</code> est souvent utilisé pour une représentation comprise mais dont le contenu ne peut être traité.</p><p>Ne divulgue pas l’existence d’une ressource sensible si le modèle de sécurité impose de la masquer. Le choix entre 400 et 422, par exemple, doit être stable et documenté plutôt que laissé au hasard de chaque contrôleur.</p>
+</section>
+<section class="lesson-section"><h2>4. Les erreurs serveur et passerelle</h2>
+<p><code>500 Internal Server Error</code> désigne une erreur serveur inattendue. <code>502 Bad Gateway</code> signale une réponse invalide reçue par un serveur jouant le rôle de passerelle, <code>503 Service Unavailable</code> une indisponibilité temporaire, et <code>504 Gateway Timeout</code> un délai dépassé auprès d’une dépendance en amont.</p><p>Ne transforme pas chaque erreur de dépendance en 500 sans distinguer la situation, mais n’expose pas non plus les détails internes au client. Journalise le contexte technique protégé et renvoie une réponse sûre, avec un identifiant de corrélation si cela aide le support.</p>
+</section>
+<section class="lesson-section"><h2>5. Un format d’erreur stable</h2>
+<p>Une API doit documenter la structure de ses erreurs : type, titre, statut, détail sûr et éventuellement erreurs par champ ou identifiant de corrélation. RFC 9457 définit le format « Problem Details for HTTP APIs », utile pour éviter que chaque endpoint invente sa propre structure.</p><pre><code>{
+      "type": "https://example.test/problems/validation",
+      "title": "Données invalides",
+      "status": 422,
+      "detail": "Un ou plusieurs champs doivent être corrigés."
+    }</code></pre><p>Exemple illustratif : l’URL de type doit identifier une catégorie de problème documentée. Ne place pas dans le corps des traces de pile, secrets, requêtes SQL ou informations personnelles inutiles. Les clients doivent pouvoir se baser sur le statut et des champs stables, pas sur le texte du message.</p>
+</section>
+<section class="lesson-section"><h2>6. Idempotence et répétition des requêtes</h2>
+<p>Une méthode est idempotente lorsque plusieurs requêtes identiques ont le même effet voulu sur l’état du serveur qu’une seule requête ; les réponses HTTP peuvent néanmoins différer. <code>GET</code> et <code>HEAD</code> sont sûres et idempotentes ; <code>PUT</code> et <code>DELETE</code> sont idempotentes, mais pas sûres. <code>POST</code> n’est pas idempotente par défaut.</p>
+<p>Après un délai d’attente ou une coupure réseau, le client peut ignorer si le serveur a déjà appliqué l’opération. Ne répète donc pas aveuglément une création ou un paiement non idempotent. Une API peut définir une clé d’idempotence pour ces opérations : elle doit être liée au client et à l’opération, enregistrée de façon durable avec le résultat, et protégée contre deux requêtes concurrentes portant la même clé. Ce mécanisme relève du contrat applicatif ; HTTP ne l’active pas automatiquement.</p>
+<p>Teste la répétition après une réponse perdue, deux requêtes simultanées avec la même clé, la réutilisation de la clé avec un contenu différent et la durée de conservation du résultat. Le contrat doit préciser quels statuts et quel résultat sont renvoyés aux répétitions.</p>
+</section>
+
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Définis les réponses HTTP d’une API de tâches : création réussie, requête invalide, absence de session, permission refusée, identifiant inconnu, conflit de modification et indisponibilité temporaire. Ajoute un scénario où le client perd la réponse après une création et doit déterminer si une répétition est sûre. Écris un tableau de contrat et quelques tests vérifiant statuts, en-têtes, répétitions et structure du corps.</p><h3>Critères de réussite</h3><ul><li>Chaque scénario utilise un statut sémantiquement adapté.</li><li>401 inclut un défi <code>WWW-Authenticate</code> et 401/403 sont distingués.</li><li>Les réponses de succès respectent la méthode et le résultat réel.</li><li>La stratégie de répétition est explicite pour les opérations non idempotentes.</li><li>Les erreurs suivent un format documenté.</li><li>Aucun détail sensible n’est exposé au client.</li></ul>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Renvoyer 200 pour un échec métier ou technique.</li><li>Confondre 401 et 403.</li><li>Utiliser 202 pour une tâche déjà terminée ou sans traitement réellement accepté.</li><li>Renvoyer des traces de pile ou détails sensibles.</li><li>Changer de format d’erreur selon les endpoints sans justification.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Status" rel="noopener noreferrer" target="_blank">MDN — Codes de statut HTTP</a></li><li><a href="https://www.rfc-editor.org/rfc/rfc9110.html" rel="noopener noreferrer" target="_blank">RFC 9110 — HTTP Semantics</a></li><li><a href="https://www.rfc-editor.org/rfc/rfc9457.html" rel="noopener noreferrer" target="_blank">RFC 9457 — Problem Details for HTTP APIs</a></li><li><a href="https://github.com/microsoft/api-guidelines" rel="noopener noreferrer" target="_blank">Microsoft — REST API Guidelines</a></li><li><a href="https://cloud.google.com/apis/design/errors" rel="noopener noreferrer" target="_blank">Google Cloud — API design guide</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="api-rest.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="versionnement-api.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html><p><strong>Repère pratique. </strong>`201 Created` convient lorsqu’une ressource a été créée et peut être identifiée, souvent via `Location`. `202 Accepted` signifie que le traitement est accepté mais pas terminé. `204 No Content` indique un succès sans corps : n’y ajoute pas un JSON vide par convention.</p><p><strong>Repère pratique. </strong>`400` signale généralement une requête mal formée ou invalide, `401` une authentification requise ou invalide, `403` un refus d’accès et `404` une ressource absente ou volontairement masquée. Le choix exact doit rester cohérent et ne pas divulguer l’existence d’objets sensibles.</p><p><strong>Repère pratique. </strong>Expose un code applicatif stable, un message sûr et éventuellement les erreurs de champs, mais garde les détails internes dans les journaux. Les clients devraient pouvoir traiter le code et le statut sans analyser un texte destiné à l’humain.</p>

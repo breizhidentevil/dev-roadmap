@@ -1,0 +1,110 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Configuration de CORS
+Les références ci-dessous sont des points de départ documentaires pertinents ; elles n’impliquent pas une lecture exhaustive de chaque page.
+1. MDN — Cross-Origin Resource Sharing (CORS) — https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+2. Fetch Standard — CORS protocol — https://fetch.spec.whatwg.org/#http-cors-protocol
+3. OWASP — HTML5 Security Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html
+4. OWASP — Cross-Site Request Forgery Prevention Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
+5. PortSwigger — CORS — https://portswigger.net/web-security/cors
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Contrôler les origines autorisées à lire les réponses du serveur.">
+  <title>Configuration de CORS — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">5. Sécurité applicative</p>
+    <h1>Configuration de CORS</h1>
+    <p class="lead">Contrôler les origines autorisées à lire les réponses du serveur.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Sécurité applicative</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir expliquer ce qu’est une origine, diagnostiquer une erreur CORS dans le navigateur et configurer une liste d’origines autorisées sans ouvrir inutilement l’API.</p><ul><li>Distinguer origine et site : schéma, hôte et port composent l’origine.</li><li>Comprendre les requêtes simples, les pré-vérifications <code>OPTIONS</code> et les en-têtes CORS.</li><li>Éviter de confondre CORS avec l’authentification ou une protection contre tous les appels malveillants.</li></ul>
+</section><section class="lesson-section"><h2>1. Le problème que CORS résout</h2>
+<p>Les navigateurs appliquent la politique de même origine : un script chargé depuis <code>https://app.example</code> ne peut normalement pas lire librement la réponse d’un serveur situé sur une autre origine, par exemple <code>https://api.example</code>. CORS est un mécanisme par lequel le serveur indique au navigateur quelles origines peuvent lire la réponse.</p><p>Une origine est le triplet <strong>schéma + hôte + port</strong>. Ainsi, <code>http://localhost:3000</code> et <code>http://localhost:5173</code> sont deux origines différentes. Le chemin ne fait pas partie de l’origine.</p><p>Point essentiel : CORS est appliqué par les navigateurs. Il ne remplace ni une vérification de session, ni une autorisation côté serveur, ni une limitation de débit. Un script côté serveur ou un outil en ligne de commande n’est généralement pas bloqué par la politique CORS du navigateur.</p>
+</section><section class="lesson-section"><h2>2. Comment se déroule l’échange</h2>
+<p>Pour certaines requêtes, le navigateur envoie directement la requête et vérifie les en-têtes de la réponse. Pour d’autres, notamment certaines méthodes comme <code>PUT</code>, des en-têtes personnalisés ou certains types de contenu, il envoie d’abord une pré-vérification <code>OPTIONS</code>. Le serveur doit alors autoriser l’origine, la méthode et les en-têtes demandés.</p><pre><code>Access-Control-Allow-Origin: https://app.example
+Access-Control-Allow-Methods: GET, POST, PUT
+Access-Control-Allow-Headers: Content-Type, Authorization
+Vary: Origin</code></pre><p><code>Vary: Origin</code> doit accompagner toutes les variantes d’une réponse dont les en-têtes CORS dépendent de l’origine, y compris lorsqu’une origine est refusée ou absente ; sinon un cache intermédiaire peut réutiliser une variante construite pour une autre requête. Pour les réponses de pré-vérification <code>OPTIONS</code>, ajoute aussi <code>Access-Control-Request-Method</code> et <code>Access-Control-Request-Headers</code> à <code>Vary</code>, car le résultat dépend de ces valeurs.</p>
+</section><section class="lesson-section"><h2>3. Configurer une liste explicite</h2>
+<p>Dans un backend, pars d’une liste d’origines exactes et contrôlées par ton organisation. Exemple conceptuel en Node/Express :</p><pre><code>const allowedOrigins = new Set([
+  "https://app.example",
+  "https://admin.example"
+]);
+const allowedMethods = new Set(["GET", "POST", "PUT", "DELETE"]);
+const allowedHeaders = new Set(["content-type", "authorization"]);
+
+app.use((req, res, next) =&gt; {
+  const origin = req.get("Origin");
+  const originAllowed = Boolean(origin &amp;&amp; allowedOrigins.has(origin));
+
+  // Ajouter Vary sur toutes les variantes, y compris les refus, sans écraser
+  // d’autres dimensions de cache déjà définies par Express ou un middleware.
+  res.vary("Origin");
+  if (req.method === "OPTIONS") {
+    res.vary("Access-Control-Request-Method");
+    res.vary("Access-Control-Request-Headers");
+  }
+
+  if (originAllowed) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", [...allowedMethods].join(", "));
+    res.setHeader("Access-Control-Allow-Headers", [...allowedHeaders].join(", "));
+  }
+
+  const requestedMethod = req.get("Access-Control-Request-Method");
+  if (req.method === "OPTIONS" &amp;&amp; requestedMethod) {
+    const requestedHeaders = (req.get("Access-Control-Request-Headers") || "")
+      .split(",")
+      .map((header) =&gt; header.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (!originAllowed || !allowedMethods.has(requestedMethod.toUpperCase()) ||
+        !requestedHeaders.every((header) =&gt; allowedHeaders.has(header))) {
+      return res.sendStatus(403);
+    }
+    return res.sendStatus(204);
+  }
+
+  next();
+});</code></pre><p>Cet extrait illustre une politique restrictive : une pré-vérification ne reçoit 204 que si l’origine, la méthode demandée et tous les en-têtes demandés sont autorisés ; sinon, elle est refusée. Adapte les ensembles à ton contrat. Le middleware est pédagogique, pas prêt à copier tel quel en production : une bibliothèque CORS maintenue gère mieux les cas particuliers et la fusion des valeurs <code>Vary</code>. Si l’API utilise des cookies, configure aussi explicitement les identifiants et n’utilise jamais le joker pour l’origine.</p>
+</section><section class="lesson-section"><h2>4. Cookies et identifiants</h2>
+<p>Si une application doit envoyer des cookies à une API cross-origin, le navigateur et le serveur doivent être configurés pour les requêtes avec identifiants. Le serveur doit répondre avec une origine explicite et <code>Access-Control-Allow-Credentials: true</code> ; la combinaison avec <code>Access-Control-Allow-Origin: *</code> n’est pas autorisée pour les réponses avec identifiants.</p><p>Les cookies doivent aussi avoir des attributs appropriés, notamment <code>Secure</code> et généralement <code>HttpOnly</code> pour les cookies de session. CORS ne prévient pas à lui seul les attaques CSRF : il faut une défense adaptée au modèle d’authentification.</p>
+</section><section class="lesson-section"><h2>Procédure de diagnostic CORS</h2>
+<p>Diagnostique CORS depuis l’onglet Réseau du navigateur. Vérifie d’abord l’URL de l’API et l’en-tête <code>Origin</code>, puis distingue la requête réelle de la pré-vérification <code>OPTIONS</code>. Une pré-vérification refusée peut empêcher l’envoi de la requête réelle ; une réponse réelle dépourvue des bons en-têtes peut au contraire être envoyée mais rester illisible pour le script.</p><ol><li>Comparer l’origine exacte (schéma, hôte, port) avec la liste configurée.</li><li>Pour OPTIONS, vérifier la méthode et les en-têtes demandés, ainsi que le code de réponse.</li><li>Pour les cookies, vérifier à la fois le mode credentials du client, <code>Access-Control-Allow-Credentials: true</code> et une origine explicite ; le joker <code>*</code> ne convient pas à ce cas.</li><li>Confirmer que <code>Vary: Origin</code> est présent sur les variantes autorisées comme refusées ; pour <code>OPTIONS</code>, vérifier aussi les dimensions de pré-vérification et la conservation des autres valeurs <code>Vary</code>.</li></ol><p>Ne corrige pas le problème en reflétant aveuglément toute valeur <code>Origin</code>. Le serveur doit continuer à authentifier et autoriser chaque requête, même si CORS autorise le navigateur à lire la réponse.</p>
+<h2>5. Erreurs fréquentes et diagnostic</h2>
+<ul><li><strong>Autoriser toutes les origines par réflexe :</strong> cela expose plus largement les réponses lisibles par des sites tiers.</li><li><strong>Réfléchir toute valeur de <code>Origin</code> :</strong> renvoyer automatiquement l’origine fournie revient à autoriser potentiellement n’importe quel site.</li><li><strong>Oublier <code>OPTIONS</code> :</strong> la pré-vérification peut échouer avant l’appel métier.</li><li><strong>Traiter CORS comme une permission métier :</strong> l’API doit toujours authentifier l’utilisateur et vérifier son droit sur la ressource.</li><li><strong>Lire seulement le message JavaScript :</strong> examine dans l’onglet Réseau la requête, la pré-vérification et les en-têtes de réponse.</li></ul><p>Le navigateur masque souvent le corps d’une réponse à JavaScript si CORS échoue ; cela ne signifie pas nécessairement que le serveur n’a pas reçu la requête.</p>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Une interface tourne sur <code>http://localhost:5173</code> et appelle une API sur <code>http://localhost:3000</code>. Autorise uniquement cette origine pour les requêtes de développement, puis vérifie :</p><ol><li>un <code>GET</code> simple ;</li><li>un <code>POST</code> avec <code>Content-Type: application/json</code> et sa pré-vérification ;</li><li>un appel depuis une origine non autorisée ;</li><li>une requête qui tente d’accéder à une ressource sans permission métier.</li></ol><p>Observe les en-têtes dans les outils développeur du navigateur. N’utilise pas l’absence de message d’erreur comme unique preuve.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Configure CORS pour deux origines de production et une origine de développement activée uniquement en environnement local. Documente les méthodes, en-têtes et besoins éventuels en cookies autorisés.</p><p><strong>Réussite :</strong></p><ul><li>une origine inconnue ne reçoit pas un en-tête d’autorisation valide ;</li><li>les pré-vérifications nécessaires aboutissent avec les seules méthodes et en-têtes requis ;</li><li>aucun wildcard incompatible avec les identifiants n’est utilisé ;</li><li>les contrôles d’authentification et d’autorisation restent actifs indépendamment de CORS ;</li><li>les scénarios sont vérifiés dans un navigateur et consignés.</li></ul>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Utilise ces références pour approfondir les mécanismes, vérifier les détails d’implémentation et comparer les recommandations selon ton environnement.</p>
+      <ol><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" target="_blank" rel="noopener noreferrer">MDN — Cross-Origin Resource Sharing (CORS)</a></li>
+<li><a href="https://fetch.spec.whatwg.org/#http-cors-protocol" target="_blank" rel="noopener noreferrer">Fetch Standard — CORS protocol</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — HTML5 Security Cheat Sheet</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Cross-Site Request Forgery Prevention Cheat Sheet</a></li>
+<li><a href="https://portswigger.net/web-security/cors" target="_blank" rel="noopener noreferrer">PortSwigger — CORS</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer le mécanisme et son objectif de sécurité.</label>
+      <label><input type="checkbox"> Je peux appliquer une configuration adaptée à un cas concret.</label>
+      <label><input type="checkbox"> Je sais distinguer la protection apportée de ce qu’elle ne protège pas.</label>
+      <label><input type="checkbox"> Je peux tester le comportement attendu et documenter les limites.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="csrf.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="rate-limiting.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

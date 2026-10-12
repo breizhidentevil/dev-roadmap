@@ -1,0 +1,133 @@
+<!-- SOURCES DOCUMENTAIRES
+- TypeScript Handbook — Type Inference: https://www.typescriptlang.org/docs/handbook/type-inference.html
+- TypeScript Handbook — unknown: https://www.typescriptlang.org/docs/handbook/2/functions.html
+- TypeScript Handbook — Narrowing: https://www.typescriptlang.org/docs/handbook/2/narrowing.html
+- TypeScript Handbook — The never type: https://www.typescriptlang.org/docs/handbook/2/narrowing.html#the-never-type
+- TypeScript TSConfig Reference: https://www.typescriptlang.org/tsconfig/
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Laisser le compilateur déduire les types, manipuler les valeurs inconnues sans perdre la sûreté et utiliser never pour représenter l’impossible.">
+<title>TypeScript : inférence, unknown et never — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>TypeScript : inférence, unknown et never</h1>
+<p class="lead">Laisser le compilateur déduire les types, manipuler les valeurs inconnues sans perdre la sûreté et utiliser never pour représenter l’impossible.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>La qualité d’un programme TypeScript dépend autant des types que vous écrivez que de ceux que le compilateur peut inférer. Ce module explique quand laisser l’inférence agir, pourquoi <code>unknown</code> est préférable à <code>any</code> pour une donnée non vérifiée et comment <code>never</code> représente une impossibilité logique ou un chemin de code qui ne peut pas se terminer normalement. Il faut connaître les fonctions, les unions et le narrowing.</p>
+<h2>2. L’inférence : ne pas annoter pour annoter</h2>
+<p>TypeScript déduit souvent le type à partir de la valeur initiale, du contexte ou du retour d’une fonction. Cela évite les annotations redondantes et maintient le code lisible :</p>
+<pre><code>const retryCount = 3;       // type littéral 3 dans certains contextes
+let attempts = 0;           // number
+const names = ["Ada", "Lin"]; // string[]
+
+function double(value: number) {
+  return value * 2;         // retour inféré : number
+}</code></pre>
+<p>Une annotation est utile lorsque le contrat doit être explicite, lorsqu’elle empêche une inférence trop étroite ou lorsqu’elle documente une frontière publique. Pour une fonction exportée ou une API réutilisée, un type de retour explicite peut améliorer la lisibilité et stabiliser le contrat. À l’inverse, annoter chaque variable locale avec un type évident ajoute du bruit.</p>
+<h2>3. <code>any</code> et <code>unknown</code> ne signifient pas la même chose</h2>
+<p><code>any</code> désactive de nombreuses vérifications : vous pouvez accéder à des propriétés ou appeler la valeur sans preuve suffisante. <code>unknown</code> signifie que la valeur existe, mais que son type n’est pas encore établi. Vous devez effectuer un contrôle avant de l’utiliser comme un type plus précis.</p>
+<pre><code>function logLength(value: unknown) {
+  if (typeof value === "string" || Array.isArray(value)) {
+    console.log(value.length);
+  }
+}</code></pre>
+<p>Cette fonction ne suppose pas que toute donnée inconnue possède une propriété <code>length</code>. Elle vérifie les cas qu’elle sait traiter. Pour une donnée reçue d’un serveur, d’un fichier JSON ou d’un stockage local, utilisez souvent <code>unknown</code> à la frontière, puis validez et transformez la valeur en un type de domaine.</p>
+<h2>4. Valider une donnée inconnue</h2>
+<p>Un contrôle <code>typeof</code> ne suffit pas pour vérifier un objet complexe. Une fonction de garde peut inspecter les champs requis et annoncer un prédicat de type :</p>
+<pre><code>type User = { id: string; active: boolean };
+
+function isUser(value: unknown): value is User {
+  if (typeof value !== "object" || value === null) return false;
+  if (!("id" in value) || !("active" in value)) return false;
+  return typeof value.id === "string"
+    && typeof value.active === "boolean";
+}</code></pre>
+<p>Le prédicat <code>value is User</code> indique au compilateur que la fonction garantit le contrat si elle renvoie <code>true</code>. Il faut donc l’implémenter honnêtement : un prédicat incorrect peut tromper le système de types. Pour des structures profondes, des unions complexes ou des données provenant de sources peu fiables, une bibliothèque de validation peut être préférable à des contrôles manuels.</p>
+<h2>5. <code>never</code> : aucune valeur possible</h2>
+<p><code>never</code> représente un type auquel aucune valeur normale ne peut appartenir. Il apparaît notamment lorsqu’une fonction lance toujours une exception ou lorsqu’une branche d’une union a été éliminée par narrowing. Il peut aussi servir à détecter les variantes non traitées.</p>
+<pre><code>function fail(message: string): never {
+  throw new Error(message);
+}
+
+type Status = "queued" | "running" | "done";
+
+function label(status: Status): string {
+  switch (status) {
+    case "queued": return "En attente";
+    case "running": return "En cours";
+    case "done": return "Terminé";
+    default: {
+      const exhaustive: never = status;
+      return exhaustive;
+    }
+  }
+}</code></pre>
+<p>Si une variante, par exemple <code>"failed"</code>, est ajoutée à <code>Status</code> sans être traitée, l’affectation à <code>never</code> provoque une erreur de compilation. Cela transforme une omission silencieuse en problème détectable. Le même principe est utile pour les événements, actions, statuts et protocoles à ensemble fini.</p>
+<h2>6. Inférence et valeurs de retour</h2>
+<p>Une fonction qui n’a pas de retour explicite peut être inférée comme retournant <code>void</code> ou un type issu des branches. Si les branches renvoient des types différents, TypeScript peut inférer une union. Cela peut être exact, mais il est utile de se demander si cette union reflète vraiment le contrat voulu.</p>
+<pre><code>function parseCount(input: string) {
+  const value = Number(input);
+  if (!Number.isFinite(value)) return null;
+  return value;
+}
+// retour : number | null</code></pre>
+<p>Le type <code>number | null</code> oblige les appelants à traiter l’échec représenté par <code>null</code>. Une autre conception pourrait renvoyer un objet discriminé ou lancer une erreur ; choisissez selon la convention du projet. Ne changez pas le contrat simplement pour rendre le type plus court.</p>
+<h2>7. Options de compilation qui renforcent la sûreté</h2>
+<p>Des options comme <code>strict</code>, <code>noImplicitAny</code> et <code>strictNullChecks</code> rendent plusieurs erreurs plus visibles. <code>noUncheckedIndexedAccess</code> peut également rappeler qu’un accès par index peut ne pas trouver de valeur. Ces options peuvent révéler des problèmes dans du code existant ; activez-les avec une stratégie de correction progressive plutôt qu’en masquant toutes les erreurs avec des assertions.</p>
+<p>Une compilation sans erreur ne prouve pas que le programme respecte toutes les règles métier. Les types ne remplacent ni les tests, ni la validation runtime, ni l’observation du comportement en production. Ils réduisent toutefois la classe d’erreurs que le compilateur peut détecter avant l’exécution.</p>
+<h2>8. Erreurs fréquentes</h2>
+<ul>
+<li>Utiliser <code>any</code> pour faire disparaître une erreur sans comprendre son origine.</li>
+<li>Faire confiance à un prédicat de type dont l’implémentation ne vérifie pas réellement le contrat.</li>
+<li>Confondre <code>void</code> et <code>never</code> : une fonction <code>void</code> peut se terminer normalement sans valeur utile ; <code>never</code> n’a pas de retour normal.</li>
+<li>Multiplier les annotations locales évidentes au lieu de laisser l’inférence fonctionner.</li>
+<li>Supposer que les types compilés valident les données reçues au runtime.</li>
+</ul>
+<h2>Atelier guidé — sécuriser une frontière non typée</h2>
+<p>Une réponse HTTP, une valeur lue dans le stockage local ou une exception interceptée doit être considérée comme une donnée à vérifier. Le type déclaré par votre code ne garantit pas que le producteur respecte le contrat.</p>
+<pre><code>type ParsedUser = { id: number; name: string };
+
+function isParsedUser(value: unknown): value is ParsedUser {
+  if (typeof value !== "object" || value === null) return false;
+  if (!("id" in value) || !("name" in value)) return false;
+  return typeof value.id === "number" && typeof value.name === "string";
+}
+
+function parseUser(payload: unknown): ParsedUser {
+  if (!isParsedUser(payload)) throw new Error("Réponse utilisateur invalide");
+  return payload;
+}</code></pre>
+<p>Ce prédicat vérifie les deux propriétés requises et leurs types primitifs. Pour des objets plus profonds, il faudrait valider chaque niveau pertinent ; dans une application réelle, une bibliothèque de validation de schéma peut réduire le risque d’oublier un cas. Ne convertissez pas une valeur en <code>User</code> par simple assertion si elle n’a pas été contrôlée. L’atelier utilise le nom distinct <code>ParsedUser</code> pour pouvoir être copié dans le même fichier que l’exemple précédent sans redéclarer <code>User</code> ni <code>isUser</code>.</p>
+<p>Pour comprendre <code>never</code>, utilisez-le pour les branches qui ne devraient pas exister après un contrôle exhaustif. À l’inverse, <code>unknown</code> décrit une valeur présente mais pas encore comprise. Cette distinction est essentielle : une donnée externe commence souvent comme <code>unknown</code>, puis devient un type plus précis après validation ; <code>never</code> sert à prouver qu’aucune possibilité ne reste dans une branche.</p>
+
+<h2>9. Exercice</h2>
+<p>Écrivez une fonction qui accepte une valeur <code>unknown</code> et renvoie un nombre si la valeur est une chaîne représentant un nombre fini, sinon <code>null</code>. Ajoutez des tests pour une chaîne valide, une chaîne vide, une valeur non numérique et un nombre déjà fourni. Ensuite, définissez une union de quatre statuts et utilisez <code>never</code> pour détecter l’oubli d’une branche.</p>
+<h2>10. Critères de réussite</h2>
+<ul class="checklist">
+<li>Je sais quand laisser TypeScript inférer un type et quand expliciter un contrat.</li>
+<li>Je distingue clairement <code>any</code> et <code>unknown</code>.</li>
+<li>Je valide les données inconnues avant de les traiter comme un type métier.</li>
+<li>Je comprends l’usage de <code>never</code> et l’exhaustivité des unions.</li>
+<li>Je peux expliquer les limites des garanties statiques de TypeScript.</li>
+</ul>
+
+<section class="sources"><h2>Sources documentaires</h2><p>Consultez ces références pour approfondir les concepts et vérifier les détails liés aux versions.</p><ul><li><a href="https://www.typescriptlang.org/docs/handbook/type-inference.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Type Inference</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/2/functions.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — unknown</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/2/narrowing.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Narrowing</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/2/narrowing.html#the-never-type" target="_blank" rel="noopener noreferrer">TypeScript Handbook — The never type</a></li>
+<li><a href="https://www.typescriptlang.org/tsconfig/" target="_blank" rel="noopener noreferrer">TypeScript TSConfig Reference</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="typescript-utilitaires.html">← Précédent : TypeScript : types utilitaires — Pick, Omit, Partial et Record</a><a rel="next" href="typescript-modules-tsconfig.html">Suivant : Modules, déclarations et tsconfig →</a></nav>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

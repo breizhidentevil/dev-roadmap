@@ -1,0 +1,71 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Priorisation produit
+Domaine documentaire : gestion de produit
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. Atlassian — Prioritization techniques — https://www.atlassian.com/agile/product-management/prioritization
+2. ProductPlan — RICE prioritization — https://www.productplan.com/glossary/rice-scoring-model/
+3. Intercom — RICE framework — https://www.intercom.com/blog/rice-simple-prioritization-for-product-managers/
+4. GOV.UK Service Manual — Prioritisation — https://www.gov.uk/service-manual/agile-delivery/how-the-discovery-phase-works
+5. Scrum Guide — https://scrumguides.org/scrum-guide.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Arbitrer entre valeur, coût, risque et urgence en rendant les choix explicites.">
+<title>Priorisation produit — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Gestion de projet et produit</p>
+<h1>Priorisation produit</h1>
+<p class="lead">Arbitrer entre valeur, coût, risque et urgence en rendant les choix explicites.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un contexte réel et justifier tes décisions en fonction des contraintes et des risques.</p>
+<ul><li>Comprendre les notions essentielles et le problème qu’elles permettent de résoudre.</li><li>Appliquer une méthode concrète et vérifier son résultat.</li><li>Identifier les limites, les compromis et les erreurs fréquentes.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Prioriser, c’est choisir ce qu’on ne fait pas encore</h2>
+<p>Une équipe dispose toujours de ressources limitées : temps, budget, attention et capacité de livraison. La priorisation compare des options pour décider lesquelles méritent d’être traitées maintenant, lesquelles peuvent attendre et lesquelles doivent être abandonnées. Une liste où tout est « priorité haute » n’aide pas à prendre une décision.</p>
+<p>La priorité dépend du contexte et de l’objectif. Réduire les abandons d’inscription, respecter une obligation légale, corriger une faille ou diminuer les coûts d’exploitation ne se compare pas avec un seul indicateur universel. Il faut expliciter le résultat recherché, les contraintes non négociables et l’horizon de décision.</p>
+<p>Commence par formuler les options sous forme de résultats attendus plutôt que de fonctionnalités. « Ajouter un export Excel » est une solution ; « réduire de moitié le temps de préparation du rapport mensuel » est un résultat. Cette formulation permet de comparer plusieurs solutions et parfois de constater qu’une modification plus simple répond au même besoin.</p></section>
+<section class="lesson-section"><h2>2. Définir les critères de décision</h2>
+<p>Les critères courants incluent la valeur utilisateur, le nombre de personnes concernées, la fréquence du problème, le coût de mise en œuvre, le risque technique, les dépendances, la confiance dans les données et le coût du retard. Pour les travaux de fiabilité ou de sécurité, la réduction du risque peut être la valeur principale même si l’utilisateur ne voit pas directement une nouvelle fonctionnalité.</p>
+<p>Un modèle simple peut classer les options selon la valeur et l’effort : gains rapides, projets stratégiques, tâches peu coûteuses à faible valeur et initiatives coûteuses dont le bénéfice est incertain. Cette matrice sert à structurer une discussion, pas à remplacer le jugement. Une obligation réglementaire ne doit pas être repoussée simplement parce qu’elle paraît coûteuse.</p>
+<p>Le modèle RICE combine portée (Reach), impact (Impact), confiance (Confidence) et effort (Effort). Il aide à rendre les hypothèses comparables, mais ses chiffres sont des estimations, pas des vérités objectives. Si la confiance est faible, l’action la plus utile peut être une expérience ou une recherche qui réduit l’incertitude avant de choisir la fonctionnalité.</p>
+<p>Exemple simplifié : une amélioration A pourrait toucher 500 utilisateurs par trimestre, avoir un impact estimé à 2, une confiance de 80 % et coûter 5 unités d’effort. Son score RICE serait <code>(500 × 2 × 0,8) / 5 = 160</code>. Une option B pourrait avoir un score inférieur mais répondre à une obligation de conformité : le score ne doit pas l’emporter sur une contrainte impérative.</p></section>
+<section class="lesson-section"><h2>3. Qualité des données et incertitude</h2>
+<p>Une priorisation solide s’appuie sur des données proportionnées à la décision : retours utilisateurs, analytics, tests, tickets support, coûts opérationnels ou analyse de risques. Vérifie la période, le segment et la représentativité. Un grand nombre de clics ne prouve pas nécessairement une forte valeur, et les utilisateurs les plus bruyants ne représentent pas toujours l’ensemble de la population.</p>
+<p>Indique le niveau de confiance associé aux estimations. Si l’impact est supposé élevé mais repose sur une seule conversation, la priorité devrait peut-être être une enquête courte. Les expériences permettent de tester une hypothèse à moindre coût, mais leur conception doit éviter les biais évidents et respecter les contraintes de confidentialité.</p>
+<p>Évite la fausse précision : attribuer un score de 83 plutôt que 80 n’est pas significatif si les entrées sont très incertaines. Les scores sont surtout utiles pour rendre les désaccords visibles et comparer des options proches. La discussion sur les hypothèses compte souvent davantage que le classement final.</p></section>
+<section class="lesson-section"><h2>4. Urgence, risque et coût du retard</h2>
+<p>Certaines tâches deviennent plus coûteuses si elles sont repoussées : dépendance à une échéance externe, contrat à renouveler, risque de sécurité, panne récurrente ou dette technique qui ralentit chaque livraison. Le coût du retard complète la valeur attendue. Une tâche de maintenance peut sembler peu visible, mais devenir prioritaire si elle menace la continuité du service.</p>
+<p>Il faut distinguer urgence réelle et pression ponctuelle. Une demande « pour hier » peut être moins importante qu’un incident qui affecte de nombreux utilisateurs. Définis les critères d’escalade : impact, nombre de personnes touchées, durée, risque légal ou financier et présence d’une solution de contournement.</p>
+<p>Les dépendances modifient également l’ordre. Un travail de fond peut être nécessaire pour débloquer plusieurs fonctionnalités ; une petite tâche peut être prioritaire si elle supprime un risque ou permet une validation essentielle. Prioriser uniquement par valeur individuelle ignore parfois les effets de séquence.</p></section>
+<section class="lesson-section"><h2>5. Faire vivre la priorisation</h2>
+<p>Une priorisation n’est pas définitive. Réévalue-la quand de nouvelles données apparaissent, qu’un risque change ou qu’une dépendance disparaît. Définis une cadence de revue adaptée au rythme du produit et garde une trace légère des décisions importantes : objectif, options examinées, hypothèses, raison du choix et condition de réévaluation.</p>
+<p>Explique aussi ce qui n’est pas retenu et pourquoi. Cela limite les malentendus et permet de rouvrir une décision lorsque les conditions changent. Ne transforme pas la priorisation en exercice de calcul permanent : le coût de l’analyse doit rester inférieur à la valeur de la décision.</p>
+<ul><li>Ne confonds pas volume de demandes et valeur réelle.</li><li>Ne laisse pas un score numérique masquer une obligation ou un risque critique.</li><li>Ne compare pas des estimations produites avec des hypothèses incompatibles.</li><li>Ne garde pas un backlog sans limite : retire ou reformule les éléments obsolètes.</li></ul></section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Compare quatre initiatives fictives : réduire le temps de chargement, ajouter un thème sombre, corriger un défaut de permissions et automatiser un rapport interne. Définis un objectif produit, estime valeur, effort, confiance et risque, puis propose un ordre. Explique explicitement pourquoi le classement pourrait changer si une échéance réglementaire apparaît ou si les données sur la valeur du thème sombre sont très incertaines.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je compare des résultats attendus plutôt que des listes de fonctionnalités.</li><li>Je rends explicites les critères, hypothèses et niveaux de confiance.</li><li>Je comprends l’utilité et les limites d’un modèle comme RICE.</li><li>Je prends en compte urgence, risque, dépendances et coût du retard.</li><li>Je peux expliquer les arbitrages et réviser la priorité quand les faits changent.</li></ul></section>
+<section class="lesson-section"><h2>161 — Atelier de clôture : priorisation produit</h2>
+<p><strong>Objectif :</strong> Construis une décision défendable avec une matrice de valeur, effort, risque et confiance.</p>
+<h3>Modèle mental et méthode</h3><p>Commence par l’objectif mesurable et les contraintes non négociables. Un score sert à rendre les hypothèses visibles, pas à remplacer le jugement. Compare les initiatives avec la même échelle et documente les éléments inconnus.</p>
+<h3>Exemple guidé</h3><p>Exemple : un défaut de permissions peut passer devant une fonctionnalité à forte valeur car le risque de sécurité constitue une contrainte prioritaire.</p>
+<h3>Pièges à éviter</h3><p>Pièges : additionner des notes sans expliquer leur sens, traiter une estimation incertaine comme un fait, et laisser le classement devenir permanent.</p>
+<h3>Exercice de synthèse</h3><p>Exercice : classe cinq initiatives, justifie les trois premières, puis indique quelle nouvelle information modifierait ton ordre.</p>
+<h3>Critères de réussite</h3><p>Réussite : critères explicites, hypothèses tracées, risques critiques traités, décision révisable.</p></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les points de la leçon. Consulte les sections pertinentes et vérifie les détails qui dépendent des versions, des outils ou du contexte de ton projet.</p><ol><li><a href="https://www.atlassian.com/agile/product-management/prioritization" target="_blank" rel="noopener noreferrer">Atlassian — Prioritization techniques</a></li>
+<li><a href="https://www.productplan.com/glossary/rice-scoring-model/" target="_blank" rel="noopener noreferrer">ProductPlan — RICE prioritization</a></li>
+<li><a href="https://www.intercom.com/blog/rice-simple-prioritization-for-product-managers/" target="_blank" rel="noopener noreferrer">Intercom — RICE framework</a></li>
+<li><a href="https://www.gov.uk/service-manual/agile-delivery/how-the-discovery-phase-works" target="_blank" rel="noopener noreferrer">GOV.UK Service Manual — Prioritisation</a></li>
+<li><a href="https://scrumguides.org/scrum-guide.html" target="_blank" rel="noopener noreferrer">Scrum Guide</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="decoupage-taches-estimation.html">← Découpage en tâches et estimation</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="assistants-code.html">Assistants de code →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!-- SOURCES DOCUMENTAIRES
+- MADR — Markdown Architectural Decision Records: https://adr.github.io/madr/
+- C4 model — Introduction: https://c4model.com/introduction
+- arc42 — Documentation template: https://arc42.org/overview
+- Diátaxis — Documentation framework: https://diataxis.fr/
+- Google Engineering Practices — Documentation: https://google.github.io/eng-practices/
+Références ciblées servant de points d’entrée documentaires ; leur présence ne signifie pas que chaque ressource a été intégralement lue.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Documentation technique et décisions d’architecture — tutoriel de la roadmap Full Stack 2026.">
+<title>Documentation technique et décisions d’architecture — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Roadmap Full Stack 2026</a></header>
+<main class="lesson">
+<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="/" target="_top">Accueil</a> / Tutoriel</nav>
+<article>
+<header class="lesson-header"><h1>Documentation technique et décisions d’architecture</h1><p>La documentation technique doit aider une personne à comprendre, utiliser, exploiter ou faire évoluer un système sans devoir reconstruire tout le contexte depuis le code et les conversations. Elle n’est pas un dépôt de texte exhaustif : elle sélectionne les informations qui réduisent les erreurs et le coût de maintenance. Les décisions d’architecture méritent une trace distincte, car leur raison peut disparaître alors que leurs conséquences restent longtemps dans le système.</p></header>
+<section><h2>Objectifs pédagogiques</h2><ul><li>Distinguer documentation d’usage, d’architecture, d’exploitation et de décision.</li><li>Choisir un format adapté au lecteur et à la question à résoudre.</li><li>Rédiger un ADR concis avec contexte, décision et conséquences.</li><li>Garder les documents proches du code et les vérifier au fil des changements.</li></ul></section>
+<section><h2>Prérequis</h2><p>Connaître les bases du HTML, du CSS et du JavaScript, savoir inspecter une page dans les outils de développement du navigateur et pouvoir modifier un exemple simple. Les notions propres à ce sujet sont introduites progressivement. Il n’est pas nécessaire de maîtriser tous les outils cités avant de commencer.</p></section>
+<section><h2>1. Écrire pour une question précise</h2><p>Commencez par identifier le lecteur et la tâche : installer le projet, appeler une API, diagnostiquer une panne ou comprendre les limites d’un choix architectural. Un guide d’installation doit être reproductible depuis un environnement propre. Une référence d’API doit décrire les entrées, sorties, erreurs et contraintes. Un guide d’exploitation doit expliquer les signaux à surveiller et les actions sûres. Mélanger tous ces usages dans un long fichier rend l’information difficile à retrouver.</p><p>La documentation doit distinguer les faits vérifiés des hypothèses et des recommandations. Indiquez les versions, prérequis, variables de configuration et commandes exactes. Évitez les instructions qui ne fonctionnent que sur la machine de leur auteur. Lorsque la documentation décrit un processus, vérifiez-le en suivant les étapes dans un environnement propre ou automatisé ; sinon, une commande obsolète peut devenir une source de panne.</p></section><section><h2>2. Utiliser des diagrammes adaptés</h2><p>Un diagramme doit répondre à une question. Le modèle C4 propose plusieurs niveaux : contexte du système, conteneurs d’exécution ou de déploiement, composants et détails de code lorsque nécessaire. Ne produisez pas les quatre niveaux par obligation si deux suffisent. Un diagramme de séquence peut clarifier l’ordre des appels ; un diagramme de déploiement peut montrer les frontières réseau, secrets et dépendances opérationnelles.</p><p>Les diagrammes deviennent faux quand ils sont dessinés une fois puis oubliés. Gardez-les simples, utilisez des noms cohérents avec le code et reliez chaque flèche ou frontière à une réalité vérifiable. Un schéma qui contient tous les détails mais reste illisible n’aide pas. Privilégiez les frontières, responsabilités et flux importants ; les détails volatils peuvent rester dans la configuration ou les sources de vérité du système.</p></section><section><h2>3. Enregistrer les décisions d’architecture</h2><p>Un Architecture Decision Record (ADR) conserve le contexte d’une décision importante, la décision retenue et ses conséquences. Il peut aussi présenter les options considérées et la raison de leur rejet. L’objectif n’est pas de prouver qu’un choix était parfait, mais d’éviter qu’une future équipe répète la même analyse sans connaître les contraintes de l’époque.</p><p>Rédigez l’ADR quand la décision est suffisamment mûre pour être comprise, et indiquez son statut : proposé, accepté, remplacé ou retiré selon la convention du dépôt. Une décision doit être précise : « utiliser PostgreSQL pour les données transactionnelles » est plus exploitable que « améliorer la base de données ». Documentez les compromis : coût opérationnel, compétences nécessaires, limites de montée en charge, réversibilité et impacts sur les autres composants. Si la décision change, créez un nouvel ADR qui remplace l’ancien au lieu de réécrire l’historique.</p></section><section><h2>4. Organiser et maintenir la documentation</h2><p>La documentation peut être structurée selon le besoin : tutoriels d’apprentissage, guides de tâches, références et explications conceptuelles. Cette séparation aide le lecteur à savoir s’il doit suivre des étapes, rechercher une option ou comprendre un principe. Les README servent de porte d’entrée et devraient orienter vers les documents spécialisés au lieu de tout contenir.</p><p>Gardez les documents importants dans le dépôt lorsque leur évolution doit suivre le code. Utilisez des liens relatifs robustes, un vocabulaire cohérent et des exemples minimaux exécutables. Les exemples doivent être mis à jour avec les versions prises en charge. Les vérifications automatisées peuvent contrôler les liens, les blocs de code et les étapes d’installation ; les revues humaines restent nécessaires pour vérifier que le contenu répond à une vraie question.</p></section><section><h2>5. Éviter la documentation trompeuse</h2><p>Un document trop ambitieux devient vite périmé. Décrivez en détail les contrats, procédures à risque et décisions durables ; évitez de recopier une liste complète de classes ou de paramètres qui peut être générée depuis le code. Les commentaires doivent expliquer un choix non évident, une contrainte ou un piège, pas reformuler chaque ligne.</p><p>Précisez ce qui n’est pas couvert et la date ou la version pertinente lorsque cela compte. Une documentation d’exploitation doit distinguer les actions de lecture des actions destructrices et décrire les conditions d’escalade. Les secrets, données personnelles et détails sensibles ne doivent pas apparaître dans les exemples. Lorsqu’un changement modifie le comportement public, mettez à jour le guide, la référence et les ADR concernés dans la même série de changements afin d’éviter les contradictions.</p></section>
+<section><h2>Exemple pratique</h2><p>Le fragment suivant illustre une décision de conception à tester dans le contexte complet du produit.</p><pre><code># ADR-004 — Stockage des sessions
+
+## Statut
+Accepté
+
+## Contexte
+Plusieurs instances applicatives doivent partager l&#x27;état de session.
+
+## Décision
+Stocker les sessions dans un service partagé avec expiration explicite.
+
+## Conséquences
+- Les instances peuvent être remplacées sans perdre toutes les sessions.
+- Le service devient une dépendance opérationnelle à surveiller.
+- Les pannes et la révocation des sessions doivent être testées.</code></pre><p>Cet ADR expose le problème, le choix et ses conséquences. Il n’essaie pas de documenter chaque détail de configuration. Une version plus complète peut inclure les alternatives considérées, les critères de décision et les liens vers les procédures d’exploitation. Si une autre décision remplace celle-ci, gardez ce document comme historique et reliez le nouvel ADR.</p></section>
+<section><h2>Pièges fréquents et compromis</h2><ul><li>Écrire pour un lecteur abstrait sans tâche précise.</li><li>Dessiner des diagrammes trop détaillés ou rapidement périmés.</li><li>Consigner une décision sans expliquer ses compromis.</li><li>Modifier silencieusement un ADR accepté au lieu de conserver l’historique.</li><li>Laisser des commandes et exemples non testés dans le README.</li></ul><p>Une recommandation générale est un point de départ, pas une preuve de qualité. Vérifiez le parcours complet, les états moins fréquents et les contraintes du produit avant de conclure qu’une solution est appropriée.</p></section>
+<section><h2>Exercice pratique</h2><p>Choisissez une décision technique déjà prise dans un projet : base de données, authentification, cache ou structure de déploiement. Rédigez un ADR avec contexte, contraintes, options, décision, conséquences et statut. Ajoutez un diagramme adapté si celui-ci répond à une question précise. Faites vérifier que le document permet à une personne nouvelle de comprendre pourquoi le choix a été fait.</p></section>
+<section><h2>Critères de réussite</h2><ul><li>Chaque document correspond à une tâche ou question identifiable.</li><li>Les exemples sont reproductibles et versionnés.</li><li>Les diagrammes montrent des frontières ou flux utiles.</li><li>Les ADR expliquent le contexte et les compromis.</li><li>Les documents sont mis à jour avec le code et les décisions ultérieures.</li></ul><p>Considérez l’exercice terminé lorsque chaque critère peut être démontré avec un exemple reproductible. Expliquez vos choix, les tests réalisés et les limites restantes ; l’absence d’erreur visible ne suffit pas à prouver qu’une interface est accessible, compréhensible ou rapide.</p></section>
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — seconde passe</h2>
+<h3>Objectifs opérationnels</h3>
+<ul>
+  <li>Choisir le format documentaire en fonction de la question du lecteur.</li>
+  <li>Rédiger un ADR qui conserve contexte, alternatives, décision et conséquences.</li>
+  <li>Faire évoluer une documentation sans laisser croire qu’une décision dépassée est toujours active.</li>
+</ul>
+<h3>Explications et méthode</h3>
+<p>Une documentation utile répond à une question précise : démarrer le projet, utiliser une API, exploiter un service, comprendre ses composants ou décider d’une évolution. Elle doit être placée là où le lecteur la cherche et contenir les prérequis, les commandes vérifiables et les limites connues.</p>
+<p>Un ADR capture pourquoi une décision a été prise au moment où le contexte est connu. Il expose les contraintes, les options évaluées, les critères et les conséquences positives et négatives. Il ne doit pas prétendre que l’option retenue est universellement optimale.</p>
+<p>Quand le contexte change, marque l’ADR précédent comme remplacé et crée une nouvelle décision liée à l’ancienne. Modifier silencieusement l’historique efface la raison pour laquelle le système est conçu ainsi et rend les réexamens futurs difficiles.</p>
+
+<h3>Exemple commenté</h3>
+<pre><code># ADR-012 — Stocker les fichiers hors de la base relationnelle
+
+Statut : accepté
+Date : 2026-10-10
+
+## Contexte
+Les fichiers sont volumineux et doivent être servis séparément des transactions métier.
+
+## Options considérées
+1. Colonnes binaires dans la base.
+2. Stockage objet avec métadonnées en base.
+
+## Décision
+Stockage objet privé ; la base conserve la clé et les métadonnées.
+
+## Conséquences
++ Sauvegarde et distribution indépendantes.
+- Il faut gérer les accès, les suppressions et les opérations partielles.</code></pre>
+<h3>Pièges à éviter</h3>
+<ul>
+  <li>Écrire seulement « nous avons choisi X » sans enregistrer les contraintes et alternatives.</li>
+  <li>Mélanger procédure d’installation, référence API et justification d’architecture dans un seul long document.</li>
+  <li>Laisser des exemples de commandes ou versions périmés sans signaler la version concernée.</li>
+</ul>
+<h3>Exercice d’application</h3>
+<p>Rédige un ADR pour un choix entre monolithe modulaire et service séparé. Énonce le contexte, trois critères de décision, au moins deux alternatives, la décision et les coûts acceptés. Ajoute un déclencheur mesurable qui ferait réexaminer le choix.</p>
+<h3>Critères de réussite</h3>
+<ul>
+  <li>Le document permet à un lecteur futur de comprendre pourquoi la décision était raisonnable dans son contexte.</li>
+  <li>Les alternatives et compromis sont explicités sans transformer l’ADR en publicité pour une solution.</li>
+  <li>Le statut, la date, les liens vers les décisions liées et les conditions de réexamen sont clairs.</li>
+</ul>
+</section>
+<section class="sources-documentaires"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les notions et de vérifier les recommandations. Consultez les pages de référence adaptées à la version et au contexte de votre projet.</p><ul><li><a href="https://adr.github.io/madr/" target="_blank" rel="noopener noreferrer">MADR — Markdown Architectural Decision Records</a></li><li><a href="https://c4model.com/introduction" target="_blank" rel="noopener noreferrer">C4 model — Introduction</a></li><li><a href="https://arc42.org/overview" target="_blank" rel="noopener noreferrer">arc42 — Documentation template</a></li><li><a href="https://diataxis.fr/" target="_blank" rel="noopener noreferrer">Diátaxis — Documentation framework</a></li><li><a href="https://google.github.io/eng-practices/" target="_blank" rel="noopener noreferrer">Google Engineering Practices — Documentation</a></li></ul></section>
+</article>
+<nav class="lesson-navigation" aria-label="Navigation entre les tutoriels">
+<a rel="prev" href="semver-changelogs.html">← Tutoriel précédent</a>
+<a href="/" target="_top">Sommaire</a>
+<a rel="next" href="licences-publication-packages.html">Tutoriel suivant →</a>
+</nav>
+</main>
+</body>
+</html>

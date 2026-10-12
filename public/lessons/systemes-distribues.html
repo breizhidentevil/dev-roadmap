@@ -1,0 +1,85 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Systèmes distribués
+Domaine documentaire : spécialisations avancées
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. Martin Kleppmann — Designing Data-Intensive Applications — https://dataintensive.net/
+2. Google SRE — Addressing Cascading Failures — https://sre.google/sre-book/addressing-cascading-failures/
+3. AWS Builders’ Library — Timeouts, retries, and backoff with jitter — https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/
+4. Microsoft Azure Architecture Center — Data consistency — https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing
+5. Jepsen — Distributed systems correctness testing — https://jepsen.io/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Comprendre latence réseau, pannes partielles, cohérence et compromis des systèmes répartis.">
+<title>Systèmes distribués — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">spécialisations avancées</p>
+<h1>Systèmes distribués</h1>
+<p class="lead">Comprendre latence réseau, pannes partielles, cohérence et compromis des systèmes répartis.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un contexte réel et justifier tes décisions en fonction des contraintes et des risques.</p><ul><li>Comprendre les notions essentielles et le problème qu’elles permettent de résoudre.</li><li>Appliquer une méthode concrète et vérifier son résultat.</li><li>Identifier les limites, les compromis et les erreurs fréquentes.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Qu’est-ce qu’un système distribué ?</h2>
+<p>Un système distribué répartit le calcul ou le stockage sur plusieurs processus ou machines qui communiquent par réseau. Cette architecture permet de répartir la charge, de rapprocher les services des utilisateurs ou d’isoler des responsabilités, mais elle introduit des problèmes absents ou moins visibles dans un programme local : latence variable, perte de messages, pannes partielles, duplication, désordre et désaccord temporaire sur l’état.</p>
+<p>Une requête réseau n’est pas un appel de fonction ordinaire. Elle peut échouer après que le serveur a exécuté l’action mais avant que la réponse soit reçue. Le client ne sait alors pas forcément si l’opération a réussi. Réessayer peut être nécessaire, mais peut aussi dupliquer un paiement ou créer deux commandes. Le système doit définir ce que signifie l’échec et comment rendre les répétitions sûres.</p>
+<p>Le principe de base est de concevoir en supposant que des composants peuvent être indisponibles indépendamment les uns des autres. Un service peut être vivant mais lent, une zone peut être isolée, ou un message peut arriver en retard. Les contrôles de santé, délais d’attente et mécanismes de reprise doivent tenir compte de ces états intermédiaires.</p></section>
+<section class="lesson-section"><h2>2. Timeouts, retries et backoff</h2>
+<p>Un timeout borne le temps pendant lequel un appel attend une réponse. Sans limite, les requêtes lentes peuvent immobiliser les connexions et les ressources jusqu’à l’épuisement. Fixe les délais à partir des objectifs de latence et du comportement du service appelé. Un timeout trop court provoque des échecs inutiles ; trop long, il prolonge l’impact d’une panne.</p>
+<p>Un retry peut améliorer la résilience face à une erreur temporaire, mais il augmente aussi la charge du service défaillant. Utilise un nombre de tentatives limité, un backoff exponentiel et une gigue (jitter) pour éviter que de nombreux clients ne réessaient simultanément. Ne réessaie pas aveuglément toutes les erreurs : une requête invalide ne deviendra pas valide en attendant, et une opération non idempotente peut être dangereuse à répéter.</p>
+<pre><code>// Pseudocode : stratégie bornée
+for attempt in 1..maxAttempts:
+    result = callWithTimeout()
+    if result.success:
+        return result
+    if not result.isTransient:
+        fail(result)
+    sleep(backoffWithJitter(attempt))
+fail("service indisponible")</code></pre>
+<p>Le code est volontairement schématique : il faut définir les catégories d’erreur, la durée totale maximale, l’annulation, la propagation du contexte et le traitement des résultats ambigus. La somme des délais et pauses doit rester compatible avec le timeout de la requête appelante.</p>
+<p>Exemple de budget : si l’appelant dispose de 2 secondes au total, trois tentatives limitées chacune à 400 ms consomment au maximum 1,2 seconde d’attente réseau. Des pauses plafonnées à 100 puis 200 ms portent le total théorique à 1,5 seconde, avant le coût local et la marge de réponse. Ce calcul n’est valable que si les timeouts sont réellement appliqués et si l’annulation interrompt les attentes ; il faut ajuster les valeurs aux mesures de latence et à l’objectif de service.</p>
+<table><thead><tr><th>Résultat</th><th>Décision habituelle</th><th>Précaution</th></tr></thead><tbody>
+<tr><td>Erreur de validation 4xx</td><td>Ne pas réessayer automatiquement.</td><td>Corriger l’entrée ou retourner l’erreur au demandeur.</td></tr>
+<tr><td>429 ou limitation temporaire</td><td>Respecter <code>Retry-After</code> lorsqu’il est fourni.</td><td>Ne pas dépasser le budget total de l’appelant.</td></tr>
+<tr><td>Timeout ou 503 transitoire</td><td>Retry limité possible.</td><td>Pour une écriture, réutiliser la même clé d’idempotence ou vérifier l’état avant de répéter.</td></tr>
+<tr><td>Erreur permanente ou budget épuisé</td><td>Arrêter les tentatives et remonter un échec explicite.</td><td>Journaliser avec corrélation sans exposer les données sensibles.</td></tr>
+</tbody></table>
+<p>Un circuit breaker peut temporairement interrompre les appels vers un service qui échoue de manière répétée, afin de lui laisser le temps de récupérer. Il ne remplace pas les timeouts ni les retries. Un mécanisme de bulkhead peut limiter la part des ressources consommées par une dépendance afin qu’une panne n’épuise pas tout le processus.</p></section>
+<section class="lesson-section"><h2>3. Cohérence et réplication</h2>
+<p>La réplication maintient plusieurs copies de données pour améliorer disponibilité, lecture ou tolérance aux pannes. Ces copies peuvent être temporairement différentes. Avec une cohérence forte, un lecteur voit un résultat qui respecte un ordre global défini selon le modèle utilisé ; avec une cohérence éventuelle, les répliques convergent si les mises à jour cessent et si la propagation fonctionne. Ces termes recouvrent plusieurs modèles précis, qu’il faut lire dans la documentation du système.</p>
+<p>La cohérence éventuelle n’est pas automatiquement mauvaise. Elle peut convenir à un compteur de vues ou à un index de recherche, où un léger retard est acceptable. Elle peut être problématique pour un solde, un inventaire limité ou une permission révoquée, selon les règles métier. La question à poser est : quelle incohérence peut être tolérée, pendant combien de temps et avec quelles conséquences ?</p>
+<p>Les transactions distribuées sont plus difficiles que les transactions locales parce que plusieurs services ou bases peuvent échouer à des moments différents. Une saga découpe un processus métier en étapes locales, avec des actions compensatoires lorsque certaines étapes doivent être annulées logiquement. Une compensation n’efface pas nécessairement l’effet historique : rembourser un paiement n’est pas identique à faire comme s’il n’avait jamais eu lieu.</p></section>
+<section class="lesson-section"><h2>4. Idempotence, messages et ordre</h2>
+<p>Une opération est idempotente si sa répétition produit le même effet final que son exécution unique. Pour une API de création de commande, une clé d’idempotence peut relier les répétitions d’une même demande au même résultat. Il faut stocker cette clé avec un état suffisant, définir sa durée de conservation et empêcher deux exécutions concurrentes de produire des effets en double.</p>
+<p>Les files de messages livrent parfois au moins une fois : le même message peut être traité plusieurs fois. Le consommateur doit être idempotent ou enregistrer les identifiants déjà traités. Il faut aussi prévoir les messages invalides, les tentatives limitées, une file de quarantaine et des outils de replay contrôlé. Rejouer un événement historique contre un système externe peut provoquer de nouveaux effets si le contrat n’a pas été conçu pour cela.</p>
+<p>L’ordre n’est pas toujours garanti à l’échelle globale. Si deux mises à jour arrivent dans un ordre différent de leur création, l’état peut régresser. Utilise une version, une séquence par entité ou une règle de conflit explicite selon le domaine. Ne suppose pas que l’horodatage d’une machine fournit un ordre parfait entre plusieurs machines.</p></section>
+<section class="lesson-section"><h2>5. Observer les pannes partielles</h2>
+<p>Les métriques doivent révéler latence, taux d’erreur, saturation, files d’attente et retards de propagation. Les traces distribuées relient les appels d’une même opération à travers plusieurs services. Les logs doivent porter un identifiant de corrélation sans exposer de données sensibles. Une alerte utile signale un impact ou une dégradation actionnable plutôt qu’un simple événement technique isolé.</p>
+<p>Teste les comportements en cas de panne : couper une dépendance, augmenter sa latence, dupliquer un message ou arrêter un consommateur. Les tests de chaos sont utiles seulement si l’environnement, le périmètre et les garde-fous sont maîtrisés. Ils ne remplacent pas les tests de correction ni une stratégie de restauration.</p>
+<p>Évite de distribuer une application uniquement pour suivre une mode architecturale. Chaque frontière de service ajoute des appels réseau, des contrats, de l’observabilité, du déploiement et des modes de panne. Un monolithe modulaire peut être plus fiable et plus facile à faire évoluer tant que les contraintes ne justifient pas la distribution.</p></section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Imagine une commande qui réserve un article, encaisse un paiement et déclenche une livraison via trois services. Décris les scénarios où le paiement réussit mais la réponse est perdue, où le message est livré deux fois et où le service de livraison reste indisponible. Propose timeouts, retries, clé d’idempotence, compensation, métriques et procédure de reprise. Indique quelles incohérences métier sont tolérables et lesquelles ne le sont pas.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je sais expliquer une panne partielle et pourquoi un timeout est nécessaire.</li><li>Je distingue retry, backoff, circuit breaker et bulkhead.</li><li>Je choisis un modèle de cohérence selon le besoin métier.</li><li>Je conçois les répétitions et messages dupliqués avec l’idempotence.</li><li>Je peux justifier quand ne pas adopter une architecture distribuée.</li></ul></section>
+<section class="lesson-section"><h2>167 — Atelier de clôture : systèmes distribués</h2>
+<p><strong>Objectif :</strong> Raisonne sur les défaillances partielles, la cohérence, les délais et les reprises dans un système réparti.</p>
+<h3>Modèle mental et méthode</h3><p>Un appel distant peut échouer après que le serveur a effectué l’action : le client ne sait alors pas si l’opération a été appliquée. Les timeouts bornent l’attente, les retries doivent être limités et souvent idempotents, et les circuits de protection évitent d’amplifier une panne.</p>
+<h3>Exemple guidé</h3><p>Exemple : une commande de paiement utilise une clé d’idempotence persistée. Une reprise avec la même clé renvoie le résultat connu plutôt que de débiter deux fois.</p>
+<h3>Pièges à éviter</h3><p>Pièges : supposer une horloge parfaitement synchronisée, confondre livraison au moins une fois et exactement une fois, relancer sans jitter ni limite.</p>
+<h3>Exercice de synthèse</h3><p>Exercice : analyse un parcours commande-paiement-stock et indique les états possibles après chaque panne, puis définis reprise et réconciliation.</p>
+<h3>Critères de réussite</h3><p>Réussite : modes de panne listés, invariants explicites, timeouts et retries bornés, opérations idempotentes.</p></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les points de la leçon. Vérifie les détails qui dépendent des versions, des outils ou du contexte du projet.</p><ol><li><a href="https://dataintensive.net/" target="_blank" rel="noopener noreferrer">Martin Kleppmann — Designing Data-Intensive Applications</a></li>
+<li><a href="https://sre.google/sre-book/addressing-cascading-failures/" target="_blank" rel="noopener noreferrer">Google SRE — Addressing Cascading Failures</a></li>
+<li><a href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/" target="_blank" rel="noopener noreferrer">AWS Builders’ Library — Timeouts, retries, and backoff with jitter</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing" target="_blank" rel="noopener noreferrer">Microsoft Azure Architecture Center — Data consistency</a></li>
+<li><a href="https://jepsen.io/" target="_blank" rel="noopener noreferrer">Jepsen — Distributed systems correctness testing</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="recherche-moteurs.html">← Moteurs de recherche</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link" href="architecture-evenementielle.html">Architecture événementielle →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

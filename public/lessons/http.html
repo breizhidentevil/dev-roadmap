@@ -1,0 +1,84 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : HTTP et échanges Web
+Domaine documentaire : apprentissage ciblé
+Les références ci-dessous sont des ressources de référence à étudier pour approfondir et vérifier les notions. Le tutoriel est une synthèse originale et ne prétend pas reproduire intégralement chaque source.
+1. MDN — Vue d’ensemble HTTP — https://developer.mozilla.org/fr/docs/Web/HTTP/Overview
+2. MDN — Méthodes de requête HTTP — https://developer.mozilla.org/fr/docs/Web/HTTP/Methods
+3. MDN — Codes de statut HTTP — https://developer.mozilla.org/fr/docs/Web/HTTP/Status
+4. MDN — En-têtes HTTP — https://developer.mozilla.org/fr/docs/Web/HTTP/Headers
+5. RFC 9110 — HTTP Semantics — https://www.rfc-editor.org/rfc/rfc9110
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Comprendre requêtes, réponses, en-têtes, codes de statut, cache, cookies, sessions et CORS.">
+  <title>HTTP et échanges Web — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">1. Fondamentaux de la programmation et du Web</p>
+    <h1>HTTP et échanges Web</h1>
+    <p class="lead">Lire une requête et une réponse HTTP, choisir les méthodes et statuts, puis raisonner sur le cache et la sécurité.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 5 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Décomposer une requête et une réponse HTTP.</li><li>Choisir une méthode selon l’intention et les propriétés attendues.</li><li>Interpréter les familles de codes de statut.</li><li>Comprendre en-têtes, corps, cache et cookies.</li><li>Diagnostiquer un échange avec les outils réseau du navigateur.</li></ul></section>
+    <section class="lesson-section"><h2>1. Le modèle requête-réponse</h2><p>HTTP est un protocole applicatif d’échange de messages. Le client envoie une méthode, une cible, des en-têtes et éventuellement un corps. Le serveur renvoie un statut, des en-têtes et éventuellement un corps. HTTPS protège le transport au moyen de TLS, mais ne rend pas automatiquement sûre la logique métier ni les données fournies par le client.</p>
+    <pre><code>GET /api/produits/42 HTTP/1.1
+    Host: exemple.test
+    Accept: application/json
+    
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+    Cache-Control: no-store
+    
+    {"id":"42","nom":"Clavier","prix":49.9}</code></pre>
+    <p>Les en-têtes transportent des métadonnées : format accepté, format envoyé, autorisation, cache, origine ou informations de session. Le corps contient les données de représentation, lorsque la méthode et la réponse en prévoient un.</p></section>
+    <section class="lesson-section"><h2>2. Méthodes et sémantique</h2>
+    <table><thead><tr><th>Méthode</th><th>Intention typique</th><th>Propriété importante</th></tr></thead><tbody><tr><td>GET</td><td>Lire une ressource</td><td>Safe et idempotente</td></tr><tr><td>POST</td><td>Créer une action ou soumettre un traitement</td><td>Pas nécessairement idempotente</td></tr><tr><td>PUT</td><td>Remplacer la représentation d’une ressource</td><td>Idempotente</td></tr><tr><td>PATCH</td><td>Modifier partiellement une ressource</td><td>L’idempotence dépend de la sémantique définie</td></tr><tr><td>DELETE</td><td>Supprimer une ressource</td><td>Idempotente selon la sémantique HTTP</td></tr></tbody></table>
+    <p>Idempotent signifie que répéter la même requête produit le même effet prévu sur l’état du serveur. Cela ne garantit pas que la réponse textuelle sera identique. Cette propriété est importante lors des reprises après une coupure réseau. Ne transforme pas une action non idempotente en action répétable sans concevoir un mécanisme adapté, par exemple une clé d’idempotence côté serveur.</p></section>
+    <section class="lesson-section"><h2>3. Codes de statut</h2>
+    <ul><li><strong>2xx :</strong> succès — par exemple 200 OK, 201 Created, 204 No Content.</li><li><strong>3xx :</strong> redirection ou réutilisation d’une représentation — par exemple 304 Not Modified.</li><li><strong>4xx :</strong> problème lié à la requête ou aux droits — par exemple 400, 401, 403, 404, 409, 422, 429.</li><li><strong>5xx :</strong> échec du serveur ou d’un intermédiaire — par exemple 500, 502, 503, 504.</li></ul>
+    <p>401 indique que des informations d’authentification sont absentes ou invalides ; 403 signifie que le serveur refuse l’accès. Un 404 peut aussi être utilisé pour ne pas révéler l’existence d’une ressource sensible, selon la politique de sécurité. Le code choisi doit être cohérent et documenté.</p></section>
+    <section class="lesson-section"><h2>4. En-têtes, cache et cookies</h2>
+    <p><code>Content-Type</code> décrit le format du corps envoyé ; <code>Accept</code> exprime les formats que le client peut recevoir. Les directives <code>Cache-Control</code>, <code>ETag</code> et <code>Last-Modified</code> peuvent permettre de réutiliser une représentation ou de vérifier si elle a changé. Les données personnalisées ou sensibles doivent avoir une politique de cache réfléchie : ne pas laisser un cache partagé conserver une réponse privée.</p>
+    <p>Les cookies peuvent transporter un identifiant de session. Pour une session sensible, configure notamment <code>Secure</code>, <code>HttpOnly</code> et une valeur appropriée de <code>SameSite</code>. Ces attributs réduisent certains risques, mais ne remplacent ni les contrôles d’autorisation serveur ni une défense contre les attaques intersites adaptée à l’architecture.</p>
+    <h3>Exemple : revalidation d’une ressource publique</h3>
+    <pre><code>GET /api/catalogue HTTP/1.1
+Host: exemple.test
+If-None-Match: "catalogue-v42"
+
+HTTP/1.1 304 Not Modified
+ETag: "catalogue-v42"
+Cache-Control: public, max-age=60</code></pre>
+    <p>La réponse initiale <code>200</code> peut fournir un <code>ETag</code> et une durée de fraîcheur adaptée. Lorsque la représentation en cache doit être revalidée, le client envoie <code>If-None-Match</code> ; si elle n’a pas changé, le serveur peut répondre <code>304</code> sans renvoyer le corps. Le cache doit respecter les directives de la réponse et la politique de l’API.</p>
+    <h3>Réponse personnalisée : choisir la bonne directive</h3>
+    <pre><code>Cache-Control: private, no-cache
+
+# Pour une réponse qui ne doit pas être stockée :
+Cache-Control: no-store</code></pre>
+    <p><code>private, no-cache</code> autorise un cache privé à conserver la réponse, mais impose sa revalidation avant réutilisation ; <code>no-store</code> demande aux caches de ne pas la stocker. Choisis la directive selon la sensibilité des données et le contrat de sécurité, et ne compte jamais sur le cache pour faire respecter les autorisations.</p></section>
+    <section class="lesson-section"><h2>5. CORS et diagnostic</h2>
+    <p>CORS est un mécanisme appliqué par les navigateurs pour contrôler si un script d’une origine peut lire une réponse d’une autre origine. Ce n’est pas un mécanisme d’authentification et ce n’est pas un pare-feu pour les appels serveur-à-serveur. Certains échanges déclenchent une requête de pré-vérification <code>OPTIONS</code>.</p>
+    <p>Pour diagnostiquer un problème, ouvre l’onglet Réseau, inspecte URL, méthode, statut, en-têtes, corps, redirections et durée. Distingue une erreur réseau, un blocage CORS, un statut HTTP d’échec et une erreur de parsing JSON : ce sont des problèmes différents.</p></section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Considérer qu’un 404 rejette automatiquement <code>fetch</code>.</li><li>Confondre 401 et 403.</li><li>Utiliser GET pour modifier l’état d’une ressource.</li><li>Envoyer des secrets dans l’URL, qui peut être enregistrée dans les historiques et journaux.</li><li>Autoriser toutes les origines CORS sans comprendre les implications, notamment avec les credentials.</li><li>Mettre en cache une réponse privée sans politique explicite.</li></ul></section>
+    <section class="lesson-section"><h2>Analyse approfondie : contrats HTTP et reprises sûres</h2>
+<p>Une API est plus fiable lorsque son contrat précise non seulement le cas nominal, mais aussi les effets d’une répétition, les erreurs attendues et la forme des réponses. Le client ne doit pas déduire la réussite du seul fait que la connexion a abouti.</p>
+<h3>Exemple : création avec réponse explicite</h3><pre><code>POST /api/taches HTTP/1.1
+Content-Type: application/json
+Accept: application/json
+
+{"titre":"Préparer la revue"}</code></pre>
+<p>Si la création est réalisée, <code>201 Created</code> et un en-tête <code>Location</code> vers la ressource créée constituent un contrat clair. Si la validation échoue, une réponse <code>400</code> ou <code>422</code> peut détailler les champs rejetés, selon la convention documentée par l’API. Le client doit traiter ces réponses sans supposer que tous les corps sont du JSON valide.</p>
+<h3>Reprise après une coupure</h3><p>Si le client perd la connexion après avoir envoyé un <code>POST</code>, il peut ignorer si le serveur a traité la demande. Relancer aveuglément peut créer un doublon. Une clé d’idempotence ne fonctionne que si le serveur l’enregistre et applique une règle atomique de déduplication ; ajouter un en-tête côté client seul ne suffit pas.</p>
+<h3>Diagnostic reproductible</h3><ol><li>Relever méthode, URL, statut et redirections dans l’onglet Réseau.</li><li>Vérifier les en-têtes de requête et de réponse, en masquant cookies et jetons avant tout partage.</li><li>Comparer le corps reçu au schéma attendu et distinguer erreur HTTP et erreur de décodage.</li><li>Rejouer le scénario avec une requête minimale, puis documenter le résultat observé.</li></ol></section>
+    <section class="lesson-section"><h2>Exercice</h2><p>Définis les échanges HTTP d’une API de tâches : lister, créer, modifier et supprimer une tâche. Pour chaque opération, indique méthode, URL, corps éventuel, statut de succès et statuts d’erreur. Puis simule une réponse 401, 404 et 500 et explique comment le client doit les traiter.</p><h3>Critères de réussite</h3><ul><li>Les méthodes correspondent à l’intention et respectent leur sémantique.</li><li>Les statuts distinguent validation, autorisation, absence et panne serveur.</li><li>Les formats sont indiqués par les en-têtes appropriés.</li><li>Les règles de cache et de session ne divulguent pas de données sensibles.</li><li>Le diagnostic sépare réseau, HTTP, CORS et parsing.</li></ul></section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Overview" target="_blank" rel="noopener noreferrer">MDN — Vue d’ensemble HTTP</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Methods" target="_blank" rel="noopener noreferrer">MDN — Méthodes de requête HTTP</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Status" target="_blank" rel="noopener noreferrer">MDN — Codes de statut HTTP</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Headers" target="_blank" rel="noopener noreferrer">MDN — En-têtes HTTP</a></li><li><a href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noopener noreferrer">RFC 9110 — HTTP Semantics</a></li></ul></section>
+    <nav class="lesson-nav"><a class="nav-link" href="javascript-avance.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="git.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

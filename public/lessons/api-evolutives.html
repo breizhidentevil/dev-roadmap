@@ -1,0 +1,135 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : API évolutives et rétrocompatibles
+Domaine documentaire : api
+Références consultées pour vérifier l’existence et l’adéquation générale des ressources. Elles servent de base de travail, pas de classement absolu des cinq meilleures ressources.
+1. OpenAPI — Spécification — https://spec.openapis.org/oas/latest.html
+2. MDN — Vue d’ensemble HTTP — https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview
+3. MDN — Méthodes HTTP — https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
+4. MDN — Codes de statut HTTP — https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+5. Express — Guide du routage — https://expressjs.com/en/guide/routing/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Faire évoluer les contrats sans perturber les consommateurs existants.">
+  <title>API évolutives et rétrocompatibles — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">8. Architecture et conception logicielle</p>
+    <h1>API évolutives et rétrocompatibles</h1>
+    <p class="lead">Faire évoluer les contrats sans perturber les consommateurs existants.</p>
+    <div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 2 h</span></div>
+    <section class="lesson-section">
+      <h2>Objectifs d’apprentissage</h2>
+      <ul><li>Définir compatibilité ascendante et descendante dans le contexte d’une API.</li><li>Identifier les modifications compatibles et celles qui cassent un client.</li><li>Faire évoluer un contrat sans obliger tous les consommateurs à migrer immédiatement.</li><li>Planifier versionnage, dépréciation, tests de contrat et retrait d’une version.</li></ul>
+    </section>
+    <section class="lesson-section">
+      <h2>1. Le contrat d’une API</h2>
+      <p>Une API n’est pas seulement une collection de routes : c’est un contrat consommé par des applications qui peuvent être déployées à un rythme différent du serveur. Le contrat comprend les chemins, méthodes HTTP, paramètres, schémas de requête et de réponse, codes de statut, règles d’authentification, limites et comportements observables.</p>
+      <p>Une modification est risquée si un client existant cesse de fonctionner ou interprète différemment une réponse. La difficulté est particulièrement forte pour les API publiques, les applications mobiles et les intégrations tierces dont on ne maîtrise pas le calendrier de mise à jour.</p>
+      <p><strong>Repère de vocabulaire :</strong> pour éviter l’ambiguïté de « rétrocompatible », raisonne sur les deux côtés du contrat. Un nouveau serveur est compatible avec les anciens clients si ceux-ci continuent à fonctionner. Un nouveau client reste compatible avec l’ancien serveur s’il n’utilise que les capacités déjà disponibles. Une même modification peut donc être sûre dans un sens et risquée dans l’autre.</p>
+      <table><thead><tr><th>Évolution</th><th>Ancien client / nouveau serveur</th><th>Nouveau client / ancien serveur</th></tr></thead><tbody>
+      <tr><td>Ajouter un champ facultatif à une réponse</td><td>Généralement compatible si le client tolère les champs inconnus.</td><td>Compatible seulement si le nouveau client sait gérer l’absence du champ sur l’ancien serveur.</td></tr>
+      <tr><td>Ajouter un champ facultatif à une requête</td><td>Le serveur doit continuer à accepter les requêtes qui ne le transmettent pas.</td><td>Le nouveau client ne peut l’envoyer qu’après vérification de la capacité du serveur.</td></tr>
+      <tr><td>Supprimer ou renommer un champ</td><td>Rupture probable si l’ancien client l’utilise.</td><td>Rupture probable si le nouveau client attend le nouveau nom sur un ancien serveur.</td></tr>
+      </tbody></table>
+      <p>Cette analyse doit couvrir les réponses de succès <em>et</em> d’erreur, les codes HTTP, la nullabilité, les valeurs d’énumération et les règles d’authentification. La compatibilité ne se déduit pas uniquement de la validité du JSON.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>2. Compatibilité : ce qui casse un client</h2>
+      <table><thead><tr><th>Changement</th><th>Risque</th><th>Approche prudente</th></tr></thead><tbody>
+      <tr><td>Supprimer un champ de réponse</td><td>Élevé</td><td>Déprécier d’abord, mesurer l’usage, puis retirer après délai annoncé.</td></tr>
+      <tr><td>Renommer un champ</td><td>Élevé</td><td>Ajouter le nouveau champ, maintenir l’ancien temporairement et documenter la migration.</td></tr>
+      <tr><td>Rendre obligatoire un champ auparavant facultatif</td><td>Élevé</td><td>Introduire une nouvelle règle de façon progressive et explicite.</td></tr>
+      <tr><td>Ajouter un champ facultatif à une réponse</td><td>Souvent faible</td><td>Les clients doivent tolérer les propriétés inconnues.</td></tr>
+      <tr><td>Ajouter une nouvelle route</td><td>Faible pour les clients existants</td><td>Documenter et sécuriser la nouvelle capacité.</td></tr>
+      <tr><td>Ajouter une valeur à un enum</td><td>Potentiellement élevé</td><td>Les clients doivent prévoir une valeur inconnue, ou le contrat doit traiter l’évolution explicitement.</td></tr>
+      <tr><td>Changer le sens d’un champ sans le renommer</td><td>Très élevé</td><td>Ne pas modifier silencieusement la sémantique ; introduire une nouvelle représentation.</td></tr>
+      </tbody></table>
+      <p>« Ajouter un champ » n’est pas toujours sans risque : un client strict qui rejette les propriétés inconnues peut casser. De même, une valeur d’énumération nouvelle peut faire échouer un client qui suppose que la liste est exhaustive. Il faut considérer le comportement réel des consommateurs et le contrat publié.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>3. Concevoir des réponses extensibles</h2>
+      <p>Les clients devraient lire les champs dont ils ont besoin et ignorer les propriétés qu’ils ne connaissent pas, sauf si le contrat impose une validation stricte. Les objets de réponse peuvent évoluer par ajouts facultatifs, à condition que ces ajouts ne changent pas le sens des champs existants.</p>
+      <pre><code>// Réponse initiale
+{
+  "id": "task_123",
+  "title": "Réviser TypeScript"
+}
+
+// Évolution généralement compatible
+{
+  "id": "task_123",
+  "title": "Réviser TypeScript",
+  "priority": "high"
+}</code></pre>
+      <p>Un consommateur qui utilise seulement <code>id</code> et <code>title</code> continue à fonctionner. Le nouveau champ doit être documenté, sa nullabilité doit être claire et les clients doivent savoir comment traiter les valeurs inconnues.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>4. Versionner avec discernement</h2>
+      <p>Il existe plusieurs stratégies : version dans le chemin (<code>/v1/tasks</code>), dans un en-tête, ou dans un mécanisme de négociation de contenu. Aucune n’est universellement supérieure. Le chemin est visible et simple à diagnostiquer ; un en-tête évite de multiplier les chemins, mais peut être moins évident à explorer manuellement.</p>
+      <p>Ne créez pas une nouvelle version pour chaque petit ajout compatible. Réservez le changement majeur à une évolution réellement incompatible. Documentez la politique de support, les dates de fin de vie et les différences entre versions.</p>
+      <pre><code>GET /v1/tasks
+GET /v2/tasks</code></pre>
+      <p>Dans une migration, faites coexister les versions lorsque c’est nécessaire, mesurez l’utilisation de l’ancienne version et fournissez une procédure de migration. Les versions doivent être testées séparément et leur sécurité doit rester équivalente.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>5. Déprécier et retirer une capacité</h2>
+      <ol>
+        <li>Identifiez les consommateurs et les usages réels à partir de métriques et de journaux respectueux de la vie privée.</li>
+        <li>Annoncez la dépréciation, le motif, la solution de remplacement et les dates importantes.</li>
+        <li>Ajoutez la nouvelle capacité avant de retirer l’ancienne, lorsque c’est possible.</li>
+        <li>Fournissez un guide de migration et des exemples de requêtes avant/après.</li>
+        <li>Surveillez les erreurs et le trafic sur l’ancienne route pendant la transition.</li>
+        <li>Retirez seulement lorsque la politique annoncée et les contraintes opérationnelles le permettent.</li>
+      </ol>
+      <p>La dépréciation est une période de transition, pas un simple changement de documentation. Une API peut exposer des métadonnées ou des en-têtes de dépréciation, mais la communication humaine et le suivi des consommateurs restent essentiels.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>6. OpenAPI et tests de contrat</h2>
+      <p>Maintenez une spécification OpenAPI qui décrit les routes, paramètres, schémas, réponses et mécanismes de sécurité. Elle permet de générer de la documentation et certains clients, et de repérer des incohérences entre l’implémentation et le contrat.</p>
+      <p>Ajoutez des tests de contrat : vérifiez les schémas de réponse, les codes HTTP et les comportements attendus. Pour une API consommée par plusieurs services, les tests basés sur les usages réels des consommateurs peuvent détecter une rupture que les tests unitaires du serveur ne voient pas.</p>
+      <ul><li>Vérifiez la compatibilité de la spécification à chaque pull request.</li><li>Testez les clients contre les nouvelles réponses, y compris avec des champs supplémentaires et des valeurs inconnues.</li><li>Documentez les changements incompatibles et les migrations.</li></ul>
+    </section>
+    <section class="lesson-section">
+      <h2>7. Erreurs fréquentes</h2>
+      <ul><li>Considérer tout ajout comme automatiquement compatible.</li><li>Changer le sens d’un champ sans modifier le contrat.</li><li>Supprimer une propriété parce qu’elle paraît inutilisée sans mesurer les usages externes.</li><li>Multiplier les versions majeures au lieu de faire évoluer prudemment les contrats.</li><li>Oublier les clients mobiles, les intégrations partenaires et les tâches planifiées.</li><li>Ne pas définir de calendrier de dépréciation ni de stratégie de migration.</li></ul>
+    </section>
+    <section class="lesson-section">
+      <h2>8. Exercice</h2>
+      <p>Une API renvoie actuellement <code>{ "id": 7, "name": "Ada" }</code>. Le produit demande de remplacer <code>name</code> par <code>displayName</code>, d’ajouter un champ facultatif <code>avatarUrl</code> et d’interdire désormais les noms vides. Proposez un plan qui distingue les changements compatibles et incompatibles, définit une transition et liste les tests nécessaires.</p>
+      <h3>Critères de réussite</h3><p>Votre proposition maintient un temps de migration réaliste, décrit la nouvelle spécification, permet de mesurer les usages de l’ancien champ et n’introduit pas silencieusement de changement de comportement.</p>
+    </section>
+    <section class="lesson-section"><h2>Atelier de validation : prouver la rétrocompatibilité</h2>
+<p>Une modification est compatible si les clients existants continuent à fonctionner selon le contrat observable. Une réponse qui reste valide en JSON peut malgré tout casser un client si un champ change de type, si l’ordre métier change ou si une erreur devient un succès.</p>
+<h3>Exemple : ajouter une propriété</h3><pre><code>// Réponse existante
+{ "id": "cmd_123", "status": "confirmed" }
+// Réponse enrichie : généralement additive
+{ "id": "cmd_123", "status": "confirmed", "trackingUrl": null }</code></pre>
+<p>Avant d’ajouter un champ, vérifiez si les clients tolèrent les propriétés inconnues et si <code>null</code> a une sémantique définie. Renommer <code>status</code>, changer sa casse, modifier le sens d’une valeur ou rendre obligatoire un champ de requête est potentiellement incompatible. Les clients générés peuvent avoir des contraintes différentes des clients permissifs.</p>
+<h3>Plan de livraison</h3><ol><li>Définissez le contrat courant et les comportements effectivement consommés.</li><li>Ajoutez des tests de contrat pour clients représentatifs et cas d’erreur.</li><li>Livrez d’abord une évolution additive ; mesurez l’usage de l’ancien champ sans journaliser de données sensibles.</li><li>Publiez une date de dépréciation, une procédure de migration et une période de coexistence.</li><li>Retirez l’ancien comportement uniquement après les preuves d’adoption et le respect de la politique annoncée.</li></ol>
+<h3>Pièges et exercice</h3><ul><li>Une nouvelle valeur d’énumération peut casser un client qui traite les valeurs comme exhaustives.</li><li>Changer le code HTTP ou la forme des erreurs peut être une rupture même si le schéma de succès ne change pas.</li><li>Une version d’URL n’exonère pas de documenter le contrat ni de corriger les ambiguïtés.</li></ul>
+<p><strong>Exercice :</strong> proposez l’ajout d’un statut <code>partially_refunded</code>. Listez les clients, les risques d’énumération, les changements OpenAPI, les tests contractuels, la télémétrie et le plan de retour arrière.</p>
+<p><strong>Critères de réussite :</strong> compatibilité analysée côté requête, réponse et erreurs ; migration documentée ; test de contrat reproductible ; suppression conditionnée à des preuves d’usage.</p></section>
+<section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <ul><li><a href="https://spec.openapis.org/oas/latest.html">OpenAPI Specification</a></li><li><a href="https://github.com/microsoft/api-guidelines">Microsoft REST API Guidelines</a></li><li><a href="https://google.aip.dev/">Google API Improvement Proposals</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview">MDN — HTTP</a></li><li><a href="https://expressjs.com/en/guide/routing/">Express — Routage</a></li></ul>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je sais reconnaître une rupture de compatibilité.</label>
+      <label><input type="checkbox"> Je peux proposer une évolution additive sûre.</label>
+      <label><input type="checkbox"> Je peux planifier une dépréciation et une migration.</label>
+      <label><input type="checkbox"> Je sais utiliser OpenAPI et des tests de contrat.</label>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="design-patterns.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="cache-compromis.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

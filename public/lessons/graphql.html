@@ -1,0 +1,112 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : GraphQL
+Domaine documentaire : spécialisations avancées
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. GraphQL — Learn — https://graphql.org/learn/
+2. GraphQL — Specification — https://spec.graphql.org/
+3. Apollo — Schema design — https://www.apollographql.com/docs/graphos/schema-design/
+4. Apollo — Security overview — https://www.apollographql.com/docs/apollo-server/security/overview/
+5. OWASP — GraphQL Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Comprendre schémas, queries, mutations, résolution des données et limites d’une API GraphQL.">
+<title>GraphQL — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">spécialisations avancées</p>
+<h1>GraphQL</h1>
+<p class="lead">Comprendre schémas, queries, mutations, résolution des données et limites d’une API GraphQL.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un contexte réel et justifier tes décisions en fonction des contraintes et des risques.</p><ul><li>Comprendre les notions essentielles et le problème qu’elles permettent de résoudre.</li><li>Appliquer une méthode concrète et vérifier son résultat.</li><li>Identifier les limites, les compromis et les erreurs fréquentes.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Le modèle mental de GraphQL</h2>
+<p>GraphQL est un langage de requête et une spécification pour demander des données à une API. Le client décrit les champs qu’il souhaite recevoir ; le serveur expose un schéma qui définit les types, les champs et les opérations possibles. GraphQL ne remplace pas automatiquement une base de données et n’est pas un moteur qui rend toute requête gratuite : le serveur doit toujours authentifier, autoriser, résoudre et limiter les demandes.</p>
+<p>Les opérations principales sont les <strong>queries</strong> pour lire, les <strong>mutations</strong> pour demander une modification et, dans certains systèmes, les <strong>subscriptions</strong> pour recevoir des événements. Le type racine et les champs disponibles sont décrits par le schéma. Le client choisit les champs à sélectionner, mais il ne peut pas inventer un champ absent du contrat.</p>
+<p>GraphQL peut réduire le sur- ou sous-chargement de données et facilite les besoins variés de plusieurs interfaces. En contrepartie, le serveur doit gérer la complexité des requêtes, la mise en cache, les permissions au niveau des champs et les performances de résolution. Une API REST bien conçue peut être plus simple pour certains domaines ; le choix dépend des besoins réels.</p></section>
+<section class="lesson-section"><h2>2. Schéma, types et opérations</h2>
+<pre><code>type Product {
+  id: ID!
+  name: String!
+  priceCents: Int!
+}
+
+type ProductEdge {
+  cursor: String!
+  node: Product!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+type ProductConnection {
+  edges: [ProductEdge!]!
+  pageInfo: PageInfo!
+}
+
+type Query {
+  product(id: ID!): Product
+  products(first: Int = 20, after: String): ProductConnection!
+}
+
+type Mutation {
+  renameProduct(id: ID!, name: String!): Product
+}</code></pre>
+<p>Le suffixe <code>!</code> signifie que le champ ou argument ne peut pas être nul dans le contrat. <code>[ProductEdge!]!</code> signifie que la liste elle-même et ses éléments ne sont pas nuls. Ces distinctions sont importantes pour le client : un champ nullable peut représenter une absence normale ou une erreur de résolution selon le contexte et le format de réponse.</p>
+<p>Une pagination par curseur peut s’utiliser ainsi :</p>
+<pre><code>query ProductPage($first: Int!, $after: String) {
+  products(first: $first, after: $after) {
+    edges { cursor node { id name priceCents } }
+    pageInfo { hasNextPage endCursor }
+  }
+}</code></pre>
+<p>Le client transmet <code>endCursor</code> comme valeur de <code>after</code> à la page suivante et s’arrête lorsque <code>hasNextPage</code> vaut <code>false</code>. Le curseur est un jeton opaque, pas un droit d’accès : le serveur doit refaire les contrôles d’autorisation à chaque page. Pour éviter les doublons ou les omissions pendant que les données changent, le tri doit être stable et comporter un critère de départage unique, par exemple <code>createdAt</code> puis <code>id</code>. Borne aussi <code>first</code> côté serveur.</p>
+<p>Une query pourrait être :</p>
+<pre><code>query ProductDetails($id: ID!) {
+  product(id: $id) {
+    id
+    name
+    priceCents
+  }
+}</code></pre>
+<p>Les variables séparent les valeurs du document de requête. Elles rendent la requête réutilisable et évitent de construire manuellement des fragments de texte à partir des entrées. Le client ne devrait pas assembler une requête par concaténation de chaînes non fiables.</p>
+<p>Une mutation exprime une intention de changement. Il faut définir les règles de validation, les erreurs métier, l’autorisation et les effets de bord. Le fait qu’un champ existe dans le schéma ne signifie pas que tous les utilisateurs peuvent l’appeler. L’authentification identifie l’appelant ; l’autorisation décide ce qu’il a le droit de faire sur une ressource précise.</p></section>
+<section class="lesson-section"><h2>3. Résolveurs et accès aux données</h2>
+<p>Un résolveur fournit la valeur d’un champ. Il peut lire une base, appeler un service ou calculer un résultat. Un schéma clair ne garantit pas un bon plan d’exécution : si une query récupère 100 commandes et effectue ensuite une requête séparée pour chaque client, le serveur peut produire le problème N+1, soit une requête initiale puis une requête par élément.</p>
+<p>Pour réduire ce coût, utilise des jointures adaptées, des chargements groupés ou un mécanisme de batching comme DataLoader. Mesure les requêtes réelles avant d’optimiser, et garde les règles métier dans des services réutilisables plutôt que de dupliquer la logique dans plusieurs résolveurs. Une mutation devrait aussi traiter les transactions nécessaires et définir ce qui se passe en cas d’échec partiel.</p>
+<p>Les erreurs doivent être compréhensibles pour le client sans divulguer les détails internes. Évite de retourner une trace de pile, une requête SQL ou des secrets dans les messages d’erreur de production. Distingue les erreurs de validation, les refus d’accès, les ressources absentes et les pannes techniques lorsque cela est utile au contrat.</p></section>
+<section class="lesson-section"><h2>4. Performance, cache et sécurité</h2>
+<p>Les clients peuvent imbriquer des champs et créer des requêtes très coûteuses. Fixe des limites de profondeur ou de complexité, des quotas et des délais d’exécution adaptés. Les limites doivent correspondre aux usages réels : une requête légitime peut avoir plusieurs niveaux d’imbrication. Surveille les requêtes lentes et les résolveurs qui accèdent à trop de données.</p>
+<p>Le cache est plus subtil que dans de nombreuses API REST, car deux requêtes différentes peuvent viser les mêmes entités avec des sélections différentes. Un cache au niveau du client, un cache de réponse et un cache d’entité ne résolvent pas les mêmes problèmes. Les mutations doivent invalider ou mettre à jour les données concernées, et les réponses personnalisées ne doivent pas être partagées entre utilisateurs sans contrôle.</p>
+<p>Applique l’autorisation à chaque chemin sensible, pas uniquement au point d’entrée. Un utilisateur peut demander un champ ou un identifiant qui ne lui appartient pas. Limite également l’introspection selon le contexte de sécurité et les besoins opérationnels ; elle n’est pas à elle seule une faille, mais elle peut exposer la structure de l’API. Valide les entrées, borne la pagination et protège les mutations contre les abus.</p></section>
+<section class="lesson-section"><h2>5. Quand choisir GraphQL ?</h2>
+<p>GraphQL est intéressant lorsque plusieurs clients ont des besoins de données différents, lorsque les relations entre entités sont nombreuses ou lorsque le contrat doit évoluer sans créer de nombreux endpoints spécialisés. Il peut être moins adapté si l’application expose surtout des ressources simples, si le cache HTTP standard est central, ou si l’équipe ne peut pas assurer les contrôles de complexité et de permissions nécessaires.</p>
+<p>Évite de créer un champ qui renvoie une structure arbitraire sans contrat, de dupliquer les mêmes données dans plusieurs endroits du schéma ou de confondre le schéma public avec la structure interne de la base. Un schéma est une API conçue pour des clients : il doit évoluer de manière compatible, documenter les dépréciations et conserver une sémantique stable.</p></section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Conçois un schéma GraphQL pour des livres et leurs auteurs. Ajoute une query paginée, une query par identifiant et une mutation de renommage. Décris les permissions nécessaires, un risque N+1, une limite de complexité et le comportement lorsqu’un livre n’existe pas. Explique dans quels cas une API REST serait plus simple.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je distingue query, mutation, subscription, schéma et résolveur.</li><li>Je comprends la nullabilité et l’usage des variables.</li><li>Je sais reconnaître le problème N+1 et envisager le batching.</li><li>Je prévois permissions, limites de requête, pagination et cache.</li><li>Je peux justifier le choix de GraphQL face à une API REST.</li></ul></section>
+<section class="lesson-section"><h2>165 — Atelier de clôture : concevoir et sécuriser une API GraphQL</h2>
+<p><strong>Objectif :</strong> Conçois un schéma GraphQL stable et maîtrise les coûts des requêtes.</p>
+<h3>Modèle mental et méthode</h3><p>Le schéma expose des types, champs et opérations. Les resolvers chargent les données ; sans stratégie de regroupement, les relations peuvent créer le problème N+1. Ajoute limites de profondeur/coût, pagination, autorisation au niveau des ressources et gestion des erreurs sans fuite interne.</p>
+<h3>Exemple guidé</h3><p>Exemple : une requête listant 100 auteurs et leurs livres ne doit pas déclencher 101 requêtes SQL. Un DataLoader peut regrouper les identifiants dans une requête par lot.</p>
+<h3>Pièges à éviter</h3><p>Pièges : croire que masquer un champ dans l’interface constitue une autorisation, exposer des erreurs SQL, autoriser des requêtes imbriquées coûteuses.</p>
+<h3>Exercice de synthèse</h3><p>Exercice : définis une API de catalogue avec pagination cursor-based, règles d’accès et stratégie contre N+1.</p>
+<h3>Critères de réussite</h3><p>Réussite : schéma cohérent, contrôle d’accès serveur, coûts bornés, pagination et tests documentés.</p></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les points de la leçon. Vérifie les détails qui dépendent des versions, des outils ou du contexte du projet.</p><ol><li><a href="https://graphql.org/learn/" target="_blank" rel="noopener noreferrer">GraphQL — Learn</a></li>
+<li><a href="https://spec.graphql.org/" target="_blank" rel="noopener noreferrer">GraphQL — Specification</a></li>
+<li><a href="https://www.apollographql.com/docs/graphos/schema-design/" target="_blank" rel="noopener noreferrer">Apollo — Schema design</a></li>
+<li><a href="https://www.apollographql.com/docs/apollo-server/security/overview/" target="_blank" rel="noopener noreferrer">Apollo — Security overview</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — GraphQL Cheat Sheet</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="limites-securite-ia.html">← Limites et sécurité des outils IA</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link" href="recherche-moteurs.html">Moteurs de recherche →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Réseaux TCP/IP
+Références retenues comme points de départ documentaires ; vérifier leur actualité et leur adéquation au projet.
+1. Cloudflare — What is TCP/IP? — https://www.cloudflare.com/learning/network-layer/what-is-tcp-ip/
+2. Cloudflare — What is TCP? — https://www.cloudflare.com/learning/ddos/glossary/tcp-ip/
+3. MDN — HTTP overview — https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview
+4. Linux man-pages — ip — https://man7.org/linux/man-pages/man8/ip.8.html
+5. RFC 9293 — Transmission Control Protocol — https://www.rfc-editor.org/rfc/rfc9293
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Suivre le trajet d’une requête réseau et comprendre IP, ports, TCP, UDP et les outils de diagnostic.">
+  <title>Réseaux TCP/IP — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">0. Informatique générale et fonctionnement des systèmes</p>
+    <h1>Réseaux : TCP/IP, ports et pare-feu</h1>
+    <p class="lead">Comprendre les échanges réseau et les principaux mécanismes de transport.</p>
+    <div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 2 h</span></div>
+<section class="lesson-section"><h2>Objectifs pédagogiques</h2><ul><li>Distinguer adressage IP, ports et protocoles de transport.</li><li>Décrire l’établissement d’une connexion TCP et la résolution de noms.</li><li>Diagnostiquer les problèmes réseau avec des outils adaptés.</li></ul></section>
+<section class="lesson-section"><h2>1. Les couches réseau</h2><p>Une application s’appuie sur plusieurs couches. IP permet d’acheminer des paquets entre réseaux ; TCP fournit un flux d’octets fiable et ordonné ; UDP transporte des datagrammes sans garantir la livraison ou l’ordre. Au-dessus, des protocoles comme HTTP définissent les échanges applicatifs.</p><p>Les couches sont un modèle utile pour localiser une panne. Une erreur HTTP 500 est différente d’un échec DNS, d’un refus de connexion TCP ou d’une absence de route IP.</p></section>
+<section class="lesson-section"><h2>2. Adresses IP et ports</h2><p>Une adresse IP identifie une interface réseau dans un contexte d’acheminement. Un port identifie un point d’extrémité de transport sur une machine. Une connexion TCP est habituellement identifiée par le protocole et les deux couples adresse/port source et destination. Le port 443 est conventionnellement associé à HTTPS, mais le numéro seul ne prouve pas que le service parle réellement ce protocole.</p><p>Les adresses privées IPv4 ne sont pas directement routées sur l’Internet public. Les routeurs domestiques utilisent souvent le NAT pour permettre à plusieurs appareils de partager une adresse publique.</p></section>
+<section class="lesson-section"><h2>3. Ce que TCP garantit</h2><p>TCP établit une connexion, numérote les octets, retransmet les segments perdus et remet les données dans l’ordre au destinataire. Le « three-way handshake » synchronise les deux extrémités avant le transfert. TCP ne garantit pas que l’application distante traitera la demande, ni que l’opération métier sera exécutée une seule fois : ces garanties appartiennent à d’autres couches.</p><p>Une coupure après l’envoi d’une requête peut laisser le client incertain du résultat. Pour les opérations sensibles, prévoyez une stratégie d’idempotence et de reprise au niveau applicatif.</p></section>
+<section class="lesson-section"><h2>4. DNS et diagnostic</h2><p>DNS associe des noms de domaine à des informations, notamment des adresses IP. Une résolution peut échouer même si le serveur est en ligne. Les caches DNS, le TTL et les différents résolveurs expliquent pourquoi un changement ne se propage pas instantanément partout.</p><pre><code>getent hosts example.com
+nslookup example.com
+curl -v https://example.com
+ss -lnt
+ip route</code></pre><p>Ces outils ne répondent pas tous à la même question : la résolution vérifie le nom, <code>curl -v</code> détaille la requête HTTP/TLS, <code>ss</code> liste les sockets et <code>ip route</code> affiche les routes connues. La disponibilité de certaines commandes dépend de la distribution.</p></section>
+<section class="lesson-section"><h2>5. Pare-feu, proxy et TLS</h2><p>Un pare-feu peut filtrer les connexions selon les adresses, ports ou états. Un proxy relaie les requêtes et peut appliquer des règles, mettre en cache ou terminer TLS. HTTPS utilise TLS pour protéger la confidentialité et l’intégrité du transport et authentifier le serveur selon la validation du certificat.</p><p>Un certificat valide ne prouve pas que l’application est exempte de vulnérabilités. Il faut aussi contrôler les autorisations, les entrées, les dépendances et la configuration du service.</p></section>
+<section class="lesson-section"><h2>6. Exercice</h2><p>Diagnostiquez une API inaccessible à partir de quatre hypothèses : nom non résolu, port fermé, négociation TLS échouée ou réponse HTTP d’erreur. Pour chacune, choisissez une commande et indiquez ce que son résultat permet de conclure — et ce qu’il ne permet pas de conclure.<h3>Critères de réussite</h3><ul><li>Vous distinguez DNS, transport et protocole applicatif.</li><li>Vous comprenez les garanties et limites de TCP.</li><li>Vous choisissez des outils qui isolent les couches du problème.</li><li>Vous ne confondez pas HTTPS avec la sécurité complète de l’application.</li></ul></section>
+
+<section class="lesson-section"><h2>7. Arbre de diagnostic réseau</h2>
+<p>Un diagnostic efficace teste une couche à la fois. Si le nom ne se résout pas, examine DNS avant de chercher un problème HTTP. Si l’adresse est connue mais que la connexion échoue, vérifie la route, le pare-feu, le port d’écoute et l’accessibilité depuis le bon réseau. Si la connexion aboutit mais que le serveur renvoie une erreur HTTP, le transport fonctionne au moins suffisamment pour échanger une réponse : inspecte alors le protocole applicatif, les logs et le comportement du service.</p>
+<pre><code># Résolution de nom
+getent hosts example.com
+
+# Connectivité IP (les ICMP peuvent être filtrés)
+ping -c 4 example.com
+
+# Tester la négociation HTTPS et la réponse HTTP
+curl -I --connect-timeout 5 https://example.com</code></pre>
+<p>Ces commandes ont des limites. Un ping qui échoue ne prouve pas que le site est indisponible, car ICMP peut être bloqué. Une résolution réussie ne garantit pas que le port est joignable. Une requête <code>curl -I</code> envoie une requête HEAD ; certains serveurs la traitent différemment d’un GET. Utilise plusieurs indices et note précisément depuis quelle machine et quel réseau le test est lancé.</p>
+<p>TCP garantit un flux d’octets fiable et ordonné tant que la connexion reste utilisable ; il ne préserve pas les frontières des messages applicatifs. Une lecture peut recevoir une partie d’un message ou plusieurs messages selon le protocole utilisé. L’application doit donc définir le cadrage des messages. TCP ne garantit pas non plus que le serveur a terminé une opération métier quand le client perd la connexion.</p>
+<p>Enfin, le chiffrement TLS protège le canal mais ne corrige pas les autorisations, les validations d’entrée ou les défauts métier. Une API accessible en HTTPS peut toujours exposer des données si ses contrôles d’accès sont incorrects.</p></section>
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://www.cloudflare.com/learning/network-layer/what-is-tcp-ip/" target="_blank" rel="noopener noreferrer">Cloudflare — What is TCP/IP?</a></li><li><a href="https://www.cloudflare.com/learning/ddos/glossary/tcp-ip/" target="_blank" rel="noopener noreferrer">Cloudflare — What is TCP?</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview" target="_blank" rel="noopener noreferrer">MDN — HTTP overview</a></li><li><a href="https://man7.org/linux/man-pages/man8/ip.8.html" target="_blank" rel="noopener noreferrer">Linux man-pages — ip</a></li><li><a href="https://www.rfc-editor.org/rfc/rfc9293" target="_blank" rel="noopener noreferrer">RFC 9293 — Transmission Control Protocol</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je peux situer une panne au niveau DNS, transport ou HTTP.</label><label><input type="checkbox"> Je connais les garanties et limites de TCP.</label><label><input type="checkbox"> Je sais utiliser plusieurs commandes de diagnostic réseau.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="systeme-exploitation-fichiers.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="dns-tls-proxy.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,115 @@
+ <!-- SOURCES DOCUMENTAIRES
+- PostgreSQL — Full Text Search: https://www.postgresql.org/docs/current/textsearch.html
+- PostgreSQL — LIMIT and OFFSET: https://www.postgresql.org/docs/current/queries-limit.html
+- PostgreSQL — Index Types: https://www.postgresql.org/docs/current/indexes-types.html
+- Elasticsearch — Pagination: https://www.elastic.co/guide/en/elasticsearch/reference/current/paginate-search-results.html
+- OWASP — Input Validation Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Construire des recherches textuelles et des pages de résultats cohérentes, en tenant compte des index, du tri stable et des coûts de pagination.">
+<title>Recherche textuelle et pagination efficace — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Recherche textuelle et pagination efficace</h1>
+<p class="lead">Construire des recherches textuelles et des pages de résultats cohérentes, en tenant compte des index, du tri stable et des coûts de pagination.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Une recherche utile doit retourner des résultats pertinents, respecter les règles d’accès et rester rapide quand le jeu de données grandit. La pagination ajoute un autre défi : les résultats peuvent changer pendant que l’utilisateur parcourt plusieurs pages, et un tri instable peut provoquer des doublons ou des omissions. À la fin, vous saurez choisir une recherche adaptée au besoin, définir un ordre déterministe et comparer pagination par décalage et pagination par curseur.</p>
+<h2>2. Clarifier le besoin de recherche</h2>
+<p>« Rechercher un texte » peut désigner plusieurs problèmes différents : retrouver une expression exacte, chercher un préfixe, trouver des mots dans un document, tolérer les fautes de frappe ou classer les résultats par pertinence. Une recherche de sous-chaîne, une recherche plein texte et une recherche floue ne nécessitent pas les mêmes index ni les mêmes compromis. Commencez par définir la langue, la tokenisation, la casse, les accents, les pluriels et le classement attendu.</p>
+<p>Un <code>LIKE '%mot%'</code> simple peut convenir à une petite table ou à un besoin limité, mais il peut nécessiter un scan important selon le moteur et l’index disponible. Un index B-tree classique aide souvent les recherches par égalité ou préfixe, mais pas nécessairement une sous-chaîne avec joker initial. Les extensions ou types d’index spécialisés peuvent améliorer ce cas, au prix de stockage et de maintenance.</p>
+<h2>3. Recherche plein texte</h2>
+<p>La recherche plein texte découpe le contenu en termes normalisés et peut appliquer des règles linguistiques, ignorer certains mots ou rapprocher des formes. Dans PostgreSQL, les types et fonctions de recherche plein texte permettent de construire un document de recherche et de le comparer à une requête. Le choix de la configuration linguistique influence directement les résultats ; il faut la tester avec les mots et la langue réellement utilisés.</p>
+<pre><code>SELECT id, title
+FROM articles
+WHERE to_tsvector('french', title || ' ' || body)
+      @@ plainto_tsquery('french', :query)
+ORDER BY id DESC
+LIMIT 20;</code></pre>
+<p>Cet exemple illustre l’idée, mais recalculer le vecteur pour chaque ligne peut être coûteux. Pour une charge importante, un vecteur stocké ou généré et un index approprié peuvent être nécessaires. Le classement par identifiant n’est pas un classement de pertinence ; la requête doit utiliser une fonction de rang si c’est l’objectif. Adaptez les expressions et index à la version du moteur et aux données.</p>
+<h2>4. Sécurité et validation de la recherche</h2>
+<p>Traitez le texte saisi comme une donnée non fiable. Utilisez des paramètres de requête plutôt que de concaténer la chaîne de recherche dans le SQL. Cela protège contre l’injection SQL, mais ne règle pas à lui seul tous les problèmes de syntaxe du langage de recherche. Certaines syntaxes autorisent des opérateurs ou des expressions coûteuses ; décidez si l’utilisateur peut les employer et validez les limites de longueur, les filtres et le nombre de termes.</p>
+<p>La recherche doit aussi appliquer les règles d’autorisation. Il ne suffit pas de masquer dans l’interface les résultats que l’utilisateur ne doit pas voir. Les filtres de visibilité doivent être appliqués côté serveur et intégrés à la requête ou au moteur de recherche. Les facettes, les compteurs et les extraits de texte peuvent eux aussi révéler l’existence d’une donnée interdite.</p>
+<h2>5. Pagination par LIMIT et OFFSET</h2>
+<p>La pagination par décalage est simple à comprendre : le client demande un nombre de lignes et un décalage. Elle convient à de nombreux écrans avec peu de pages et permet d’aller directement à une page numérotée. Mais les grands décalages peuvent coûter cher, car le moteur peut devoir parcourir puis ignorer de nombreuses lignes avant de produire la page demandée.</p>
+<pre><code>SELECT id, created_at, title
+FROM articles
+WHERE status = 'published'
+ORDER BY created_at DESC, id DESC
+LIMIT 20 OFFSET 40;</code></pre>
+<p>Le tri doit être déterministe. Trier uniquement par une date qui peut être identique pour plusieurs lignes ne définit pas un ordre total. Ajouter un identifiant unique comme second critère stabilise l’ordre pour un état donné. Cela ne garantit pas une vue figée si des lignes sont ajoutées ou modifiées entre deux requêtes : des déplacements dans l’ensemble peuvent encore produire des répétitions ou des omissions.</p>
+<h2>6. Pagination par curseur (keyset)</h2>
+<p>La pagination par curseur utilise les valeurs du dernier élément de la page précédente pour demander les suivants. Avec un ordre descendant sur la date et l’identifiant, le curseur contient les deux valeurs de la dernière ligne. La requête suivante filtre sur les lignes qui viennent après ce couple dans l’ordre choisi. Cette approche évite généralement le coût des grands offsets et résiste mieux aux insertions situées avant le curseur.</p>
+<pre><code>SELECT id, created_at, title
+FROM articles
+WHERE status = 'published'
+  AND (created_at, id) &lt; (:lastCreatedAt, :lastId)
+ORDER BY created_at DESC, id DESC
+LIMIT 20;</code></pre>
+<p>La syntaxe de comparaison de tuples et les règles sur les valeurs nulles varient selon les moteurs. Si une colonne de tri peut être nulle, définissez explicitement son comportement ou choisissez une clé de tri non nulle. Le curseur doit être opaque pour le client, validé côté serveur et lié aux filtres ou au tri de la recherche pour éviter de réutiliser un curseur dans un contexte incompatible.</p>
+<p>La pagination par curseur rend souvent plus difficile l’accès direct à la page 47, car le client doit suivre les curseurs successifs. Elle n’offre pas non plus une photographie immuable des données par défaut. Si le besoin exige une vue stable, il faut considérer un instantané, un identifiant de recherche ou un mécanisme spécifique au moteur, en évaluant le coût de conserver cet état.</p>
+<h2>7. Index et ordre des résultats</h2>
+<p>Les filtres, l’ordre et le curseur doivent guider la conception de l’index. Un index composé sur les colonnes du filtre et du tri peut éviter des opérations coûteuses, mais l’ordre des colonnes dépend des conditions et de la sélectivité. Il faut vérifier le plan d’exécution et mesurer sur des données réalistes. Pour un moteur de recherche externe, vérifiez également les limites de pagination profonde et les mécanismes de snapshot recommandés.</p>
+<p>Le classement par pertinence peut être instable si de nombreux documents ont un score identique ou si le contenu est modifié entre les requêtes. Ajoutez un critère secondaire stable lorsque c’est possible, et documentez ce qui se passe si l’index est actualisé pendant la navigation. La cohérence parfaite entre pages peut nécessiter un coût de stockage ou de calcul qui n’est pas justifié pour tous les produits.</p>
+<h2>8. Limiter les ressources</h2>
+<p>Imposez une taille maximale de page, une longueur maximale de recherche et des filtres autorisés. Une demande de plusieurs milliers de résultats peut mobiliser le serveur et le réseau, même si la requête est correctement paramétrée. Pour les exports volumineux, préférez un traitement asynchrone ou un flux contrôlé plutôt qu’une page géante.</p>
+<p>Mesurez la latence, le nombre de résultats, les scans, les erreurs et la fréquence des requêtes. Testez les recherches fréquentes, les termes rares, les chaînes très longues, les accents, les caractères spéciaux et les utilisateurs qui modifient rapidement leurs filtres. Le résultat doit rester correct et autorisé, pas seulement rapide sur le cas idéal.</p>
+<h2>9. Erreurs fréquentes</h2>
+<ul>
+<li>Choisir un moteur plein texte alors qu’une recherche exacte suffirait, ou l’inverse.</li>
+<li>Construire du SQL par concaténation à partir du texte saisi.</li>
+<li>Oublier le contrôle d’accès dans la requête de recherche.</li>
+<li>Utiliser un tri non déterministe ou un curseur qui ne reflète pas le tri complet.</li>
+<li>Employer de grands offsets sans mesurer leur coût.</li>
+<li>Promettre une liste immuable alors que les données peuvent changer entre les pages.</li>
+</ul>
+<h2>10. Exercice et critères de réussite</h2>
+<p>Construisez un endpoint de recherche d’articles qui accepte une chaîne, des filtres et une taille de page. Commencez par une pagination OFFSET avec un ordre total. Puis implémentez une pagination par curseur et comparez les plans pour une page initiale et une page profonde. Ajoutez des tests où des articles sont insérés entre deux demandes et vérifiez les propriétés de chaque approche.</p>
+<ul class="checklist">
+<li>Je distingue recherche exacte, sous-chaîne et plein texte.</li>
+<li>Je paramètre les requêtes et applique les autorisations côté serveur.</li>
+<li>Je garantis un ordre de tri déterministe.</li>
+<li>Je peux expliquer les avantages et limites d’OFFSET et du curseur.</li>
+<li>Je valide les coûts et la cohérence sur des données représentatives.</li>
+</ul>
+    <section class="lesson-workshop">
+<h2>Atelier approfondi — Construire une recherche rapide et stable</h2>
+<h3>Objectifs opérationnels</h3>
+<ul><li>Distinguer recherche exacte, recherche de sous-chaîne et recherche plein texte.</li><li>Garantir un ordre stable entre pages et limiter le coût des grandes profondeurs.</li><li>Choisir les index à partir des requêtes réelles et de mesures.</li></ul>
+<h3>Explications et exemple guidé</h3>
+<p>La recherche plein texte découpe les documents en termes, normalise certaines formes et permet le classement par pertinence ; elle n’est pas équivalente à une recherche de sous-chaîne avec <code>LIKE '%mot%'</code>. Le choix dépend des attentes : tolérance aux formes linguistiques, accents, préfixes, expressions exactes, langue, pertinence et fréquence de mise à jour. Définis le comportement avant de choisir l’index.</p>
+<p>La pagination avec <code>OFFSET</code> est simple pour de petits résultats, mais le moteur doit souvent parcourir et ignorer les lignes précédentes. Un curseur fondé sur les dernières valeurs triées évite ce coût croissant. Le tri doit être total et déterministe : si plusieurs résultats ont la même date, ajoute un identifiant unique comme second critère.</p>
+<pre><code>SELECT id, title, published_at
+FROM articles
+WHERE (published_at, id) &lt; (:last_date, :last_id)
+ORDER BY published_at DESC, id DESC
+LIMIT :page_size;</code></pre>
+<p>Cette forme illustre une pagination descendante sur deux colonnes ; les opérateurs et index doivent correspondre à l’ordre choisi et au moteur utilisé. Valide une taille de page bornée, utilise des paramètres SQL plutôt que de concaténer les entrées et traite le curseur comme un jeton opaque côté client. Si le curseur encode des informations sensibles ou des filtres, protège son intégrité et ne lui fais pas confiance sans validation.</p>
+<h3>Pièges et limites</h3>
+<ul><li>Paginer sur une colonne non unique : des lignes peuvent être répétées ou sautées à la frontière de page.</li><li>Changer les filtres ou le tri entre deux requêtes en réutilisant un curseur ancien.</li><li>Ajouter un index sans mesurer l’impact sur les écritures, la taille et la sélectivité.</li><li>Permettre des tailles de page ou des expressions de recherche sans limite, ce qui facilite l’épuisement des ressources.</li></ul>
+<h3>Exercice</h3>
+<p>Conçois un endpoint de recherche d’articles avec texte, filtre de statut, tri et curseur. Compare OFFSET et keyset sur un jeu de données volumineux, mesure le temps aux premières et dernières pages et teste les insertions qui surviennent pendant la navigation.</p>
+<h3>Critères de réussite</h3>
+<ul><li>Le type de recherche et les règles de classement sont documentés.</li><li>Le tri inclut un critère unique et la pagination ne répète pas les lignes aux frontières.</li><li>Les entrées sont validées, paramétrées et limitées.</li><li>Le choix d’index est justifié par le plan et des mesures reproductibles.</li></ul>
+</section>
+    
+
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://www.postgresql.org/docs/current/textsearch.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Full Text Search</a></li>
+<li><a href="https://www.postgresql.org/docs/current/queries-limit.html" target="_blank" rel="noopener noreferrer">PostgreSQL — LIMIT and OFFSET</a></li>
+<li><a href="https://www.postgresql.org/docs/current/indexes-types.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Index Types</a></li>
+<li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/paginate-search-results.html" target="_blank" rel="noopener noreferrer">Elasticsearch — Pagination</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Input Validation Cheat Sheet</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="migrations-sans-interruption.html">← Précédent : Migrations sans interruption</a><a rel="next" href="modele-menace.html">Suivant : Modèle de menace et analyse des risques →</a></nav>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

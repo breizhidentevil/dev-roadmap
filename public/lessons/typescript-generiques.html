@@ -1,0 +1,147 @@
+<!-- SOURCES DOCUMENTAIRES
+- TypeScript Handbook — Generics: https://www.typescriptlang.org/docs/handbook/2/generics.html
+- TypeScript Handbook — Functions: https://www.typescriptlang.org/docs/handbook/2/functions.html
+- TypeScript Handbook — Type Inference: https://www.typescriptlang.org/docs/handbook/type-inference.html
+- TypeScript Handbook — Utility Types: https://www.typescriptlang.org/docs/handbook/utility-types.html
+- TypeScript Playground: https://www.typescriptlang.org/play/
+Ces liens sont des points de départ documentaires ciblés ; ils ne constituent pas une affirmation de lecture intégrale de chaque ressource.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Comprendre comment les génériques préservent la relation entre les types d’entrée et de sortie sans recourir à any.">
+  <title>TypeScript : types génériques — Parcours Full Stack</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a href="/" target="_top">Parcours Full Stack</a>
+    <nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav>
+  </header>
+  <main class="lesson">
+    <p class="eyebrow">Tutoriel technique</p>
+    <h1>TypeScript : types génériques</h1>
+    <p class="lead">Comprendre comment les génériques préservent la relation entre les types d’entrée et de sortie sans recourir à any.</p>
+    
+<h2>1. Objectifs et prérequis</h2>
+<p>Les génériques permettent d’écrire des fonctions, types et classes qui fonctionnent avec plusieurs types tout en conservant l’information de type. À la fin, vous saurez lire un paramètre de type, en créer un, contraindre un générique avec <code>extends</code>, comprendre l’inférence et reconnaître les cas où un générique rend l’API plus compliquée qu’elle ne devrait l’être. Il faut connaître les types primitifs, les tableaux, les objets, les fonctions et les unions TypeScript.</p>
+<h2>2. Le problème que résout un générique</h2>
+<p>Imaginons une fonction qui renvoie la valeur reçue. Si son paramètre est de type <code>unknown</code>, le retour est sûr mais l’appelant perd l’information précise. Si elle utilise <code>any</code>, cette information est contournée et les erreurs peuvent passer silencieusement. Un générique nomme le type capturé à l’entrée et le réutilise dans le résultat.</p>
+<pre><code>function identity&lt;T&gt;(value: T): T {
+  return value;
+}
+
+const name = identity("Ada"); // string
+const count = identity(42);   // number</code></pre>
+<p><code>T</code> est un paramètre de type, pas une variable JavaScript. Le compilateur infère ici <code>string</code> et <code>number</code> à partir des arguments. Le nom est conventionnel : <code>T</code>, <code>Item</code> ou <code>Value</code> fonctionnent ; un nom descriptif devient préférable quand il existe plusieurs paramètres.</p>
+<h2>3. Préserver la relation entre entrée et sortie</h2>
+<p>Un générique est particulièrement utile quand le type de sortie dépend du type fourni. Considérez une fonction qui renvoie le premier élément d’un tableau :</p>
+<pre><code>function first&lt;T&gt;(items: T[]): T | undefined {
+  return items[0];
+}
+
+const maybeNumber = first([10, 20]); // number | undefined
+const maybeName = first(["Ada", "Lin"]); // string | undefined</code></pre>
+<p>Le retour inclut <code>undefined</code>, car un tableau vide n’a pas de premier élément. Le générique n’élimine pas les cas limites : il permet de les représenter correctement. Si la fonction devait toujours renvoyer un élément, il faudrait soit valider l’entrée et lancer une erreur, soit modifier le contrat.</p>
+<h2>4. Plusieurs paramètres de type</h2>
+<p>Les génériques peuvent représenter une relation entre plusieurs valeurs. Un exemple courant associe une clé à une valeur :</p>
+<pre><code>function pair&lt;A, B&gt;(left: A, right: B): [A, B] {
+  return [left, right];
+}
+
+const result = pair("user", 12);
+// type : [string, number]</code></pre>
+<p>Chaque paramètre de type doit apporter une information utile. Ajouter des paramètres uniquement pour donner une impression de flexibilité rend l’API plus difficile à comprendre. Si le type ne dépend pas d’une relation entre les entrées et sorties, une signature simple suffit souvent.</p>
+<h2>5. Contraindre avec <code>extends</code></h2>
+<p>Un générique ne garantit pas que la valeur possède une propriété arbitraire. Pour lire une propriété, il faut exprimer la contrainte minimale requise :</p>
+<pre><code>function getLength&lt;T extends { length: number }&gt;(value: T): number {
+  return value.length;
+}
+
+getLength("bonjour");       // accepté
+getLength([1, 2, 3]);       // accepté
+// getLength(123);           // erreur de type</code></pre>
+<p><code>extends</code> signifie ici que <code>T</code> doit satisfaire cette forme. La fonction conserve le type précis de <code>T</code> tout en pouvant utiliser <code>length</code>. Ne remplacez pas la contrainte par <code>any</code> : cela supprimerait précisément la vérification recherchée.</p>
+<h2>6. Clés liées à un objet : <code>keyof</code></h2>
+<p>Pour obtenir la valeur d’une propriété, le type de la clé doit correspondre à une clé réelle de l’objet. Le couple <code>keyof T</code> et <code>T[K]</code> exprime cette dépendance :</p>
+<pre><code>function getProperty&lt;T, K extends keyof T&gt;(obj: T, key: K): T[K] {
+  return obj[key];
+}
+
+const user = { id: 7, name: "Mina" };
+const id = getProperty(user, "id");       // number
+const name = getProperty(user, "name");   // string
+// getProperty(user, "email");            // erreur</code></pre>
+<p><code>K</code> est limité aux clés de <code>T</code>, et le résultat <code>T[K]</code> correspond au type de la propriété choisie. C’est plus précis qu’une fonction qui accepte n’importe quelle chaîne et renvoie une union générale de toutes les valeurs.</p>
+<h2>7. Génériques et tableaux d’objets</h2>
+<p>On peut écrire une fonction qui transforme une collection tout en préservant le type de ses éléments. Toutefois, il est souvent préférable d’utiliser les méthodes standard déjà bien typées :</p>
+<pre><code>function toArray&lt;T&gt;(value: T): T[] {
+  return [value];
+}
+
+const one = toArray({ id: 1 }); // { id: number }[]</code></pre>
+<p>Les types génériques servent aussi à définir des enveloppes réutilisables, par exemple <code>ApiResponse&lt;T&gt;</code> pour associer des données à des métadonnées. Attention : le type statique ne valide pas une réponse HTTP à l’exécution. Les données externes doivent être vérifiées à la frontière du système.</p>
+<pre><code>type ApiResponse&lt;T&gt; = {
+  data: T;
+  requestId: string;
+};
+
+type User = { id: string; name: string };
+type UserResponse = ApiResponse&lt;User&gt;;</code></pre>
+<h2>8. Inférence, annotations et erreurs fréquentes</h2>
+<p>Laissez TypeScript inférer les types lorsque la relation est évidente. Une annotation explicite peut être utile pour documenter une API publique, lever une ambiguïté ou garantir un contrat. Forcer un paramètre de type à chaque appel est rarement nécessaire : <code>identity&lt;string&gt;("Ada")</code> est valide, mais <code>identity("Ada")</code> suffit généralement.</p>
+<ul>
+<li>Ne choisissez pas un générique quand un type concret décrit réellement le contrat.</li>
+<li>N’utilisez pas <code>any</code> pour contourner un problème d’inférence sans le comprendre.</li>
+<li>Ne confondez pas contrainte statique et validation à l’exécution.</li>
+<li>Évitez les paramètres de type qui ne relient aucune entrée à une sortie.</li>
+<li>Vérifiez les types inférés dans l’éditeur ou le TypeScript Playground.</li>
+</ul>
+<h2>Atelier guidé — concevoir une fonction réutilisable sans perdre les types</h2>
+<p>On veut indexer des objets par identifiant. Une première version peut sembler pratique, mais elle cache une perte d’information :</p>
+<pre><code>function firstItem(items: object[]): object | undefined {
+  return items[0];
+}
+
+const user = firstItem([{ id: 7, name: "Ada" }]);
+// user est object | undefined : user.name n'est pas autorisé.</code></pre>
+<p>La bonne question n’est pas « comment faire accepter n’importe quoi ? », mais « quelle relation entre l’entrée et la sortie faut-il conserver ? ». Le type générique répond à cette question :</p>
+<pre><code>function firstItem&lt;T&gt;(items: readonly T[]): T | undefined {
+  return items[0];
+}
+
+const user = firstItem([{ id: 7, name: "Ada" }]);
+if (user) console.log(user.name); // string</code></pre>
+<p><code>readonly T[]</code> annonce que la fonction n’a pas besoin de modifier le tableau. <code>T | undefined</code> rend explicite le cas du tableau vide. Pour vérifier le contrat, testez au minimum un tableau de chaînes, un tableau d’objets et un tableau vide. Si vous devez ajouter une assertion <code>as T</code> pour faire compiler le corps, demandez-vous si la relation de type est réellement garantie par l’implémentation.</p>
+<p><strong>Piège de conception :</strong> un générique n’est pas automatiquement meilleur qu’un type concret. Pour une fonction qui ne traite que des identifiants numériques, <code>(id: number) =&gt; string</code> est plus clair qu’une signature générique artificielle.</p>
+
+<h2>9. Exercice</h2>
+<p>Écrivez une fonction <code>pluck</code> qui reçoit un objet et une clé valide de cet objet, puis renvoie la valeur correspondante avec le type exact. Testez-la sur un objet contenant une chaîne, un nombre et un booléen. Vérifiez qu’une clé inexistante est refusée par le compilateur. Ensuite, écrivez <code>wrap</code>, qui renvoie une valeur sous la forme <code>{ value: ... }</code> tout en préservant son type.</p>
+<h2>10. Critères de réussite</h2>
+<ul class="checklist">
+<li>Je peux expliquer le rôle de <code>T</code> et l’inférence des types.</li>
+<li>Je préserve une relation précise entre entrée et sortie.</li>
+<li>Je sais écrire une contrainte avec <code>extends</code>.</li>
+<li>Je sais utiliser <code>keyof</code> et <code>T[K]</code> pour typer un accès par clé.</li>
+<li>Je distingue la sûreté de compilation de la validation des données réelles.</li>
+</ul>
+
+    <section class="sources">
+      <h2>Sources documentaires</h2>
+      <p>Utilisez ces références pour approfondir les concepts et vérifier les détails liés aux versions.</p>
+      <ul><li><a href="https://www.typescriptlang.org/docs/handbook/2/generics.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Generics</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/2/functions.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Functions</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/type-inference.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Type Inference</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/utility-types.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Utility Types</a></li>
+<li><a href="https://www.typescriptlang.org/play/" target="_blank" rel="noopener noreferrer">TypeScript Playground</a></li></ul>
+    </section>
+    <nav class="lesson-navigation" aria-label="Navigation entre les leçons">
+      <a rel="prev" href="specialisation.html">← Précédent : Approfondissement et spécialisation</a>
+      <a rel="next" href="typescript-unions-intersections.html">Suivant : Unions, intersections et narrowing →</a>
+    </nav>
+  </main>
+  <footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

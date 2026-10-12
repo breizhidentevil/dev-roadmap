@@ -1,0 +1,51 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : NoSQL et MongoDB
+Références proposées comme points d’entrée documentaires ; cela ne signifie pas que chaque source a été intégralement étudiée.
+1. MongoDB — Data Modeling — https://www.mongodb.com/docs/manual/data-modeling/
+2. MongoDB — Embed vs. Reference — https://www.mongodb.com/docs/manual/data-modeling/concepts/embedding-vs-references/
+3. MongoDB — Indexes — https://www.mongodb.com/docs/manual/indexes/
+4. MongoDB — Transactions — https://www.mongodb.com/docs/manual/core/transactions/
+5. Martin Fowler — NoSQL Distilled — https://martinfowler.com/books/nosql.html
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Choisir un modèle documentaire à partir des accès aux données, des contraintes et des besoins de cohérence." name="description"/>
+<title>NoSQL et MongoDB — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">4. Bases de données et modélisation</p>
+<h1>NoSQL et MongoDB</h1>
+<p class="lead">Choisir un modèle documentaire à partir des accès aux données, des contraintes et des besoins de cohérence.</p>
+<div class="lesson-meta"><span>Seconde passe pédagogique</span><span>Backend et données</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Distinguer modèle relationnel et modèle documentaire sans les opposer caricaturalement.</li><li>Choisir entre documents imbriqués et références selon les accès et les règles métier.</li><li>Comprendre les limites de cohérence, d’indexation et de transactions d’une base documentaire.</li></ul></section>
+<section class="lesson-section"><h2>1. Quand envisager une base documentaire ?</h2><p>MongoDB stocke des documents BSON regroupés dans des collections. Un document peut représenter un agrégat métier, par exemple un article avec ses métadonnées et une liste de petites options. Ce modèle peut simplifier les lectures qui récupèrent ces informations ensemble. Il ne dispense pas de définir les invariants, les identifiants, les index et les règles de validation.</p><p>Une base relationnelle est souvent naturelle lorsque les relations sont nombreuses, les contraintes référentielles importantes et les requêtes analytiques complexes. Une base documentaire peut convenir lorsque les données se regroupent autour d’agrégats bien définis ou que la structure varie réellement. Le choix doit partir des besoins, de l’équipe et des opérations attendues, pas d’une tendance.</p></section>
+<section class="lesson-section"><h2>2. Imbriquer ou référencer ?</h2><p>Imbrique lorsque les sous-données sont généralement lues avec le parent, ont un cycle de vie proche et restent bornées. Référence lorsqu’elles sont partagées, mises à jour indépendamment ou susceptibles de croître sans limite. Décide à partir des opérations dominantes, pas uniquement de la forme JSON qui semble la plus naturelle.</p><pre><code>{
+  "_id": "article-42",
+  "titre": "Guide",
+  "options": [
+    { "nom": "format", "valeur": "papier" },
+    { "nom": "langue", "valeur": "fr" }
+  ]
+}</code></pre><p>Un tableau d’avis illimité peut rendre le document trop volumineux et coûteux à modifier. Une collection séparée d’avis permet pagination, indexation et croissance indépendante. En contrepartie, une lecture qui assemble article et avis peut nécessiter plusieurs requêtes ou une agrégation. Documente les cas d’accès et les limites de taille.</p></section>
+<section class="lesson-section"><h2>3. Index, validation et cohérence</h2><p>Les index doivent correspondre aux filtres et tris réels. Un index composé suit l’ordre de ses champs et ne remplace pas automatiquement un index différent. Examine le plan avec <code>explain()</code>, y compris le nombre de documents examinés et renvoyés. Chaque index augmente le stockage et le coût des insertions/mises à jour.</p><p>Une mise à jour sur un document est atomique au niveau du document. Pour un invariant qui traverse plusieurs documents, envisage d’abord de redessiner l’agrégat ; les transactions multi-documents sont possibles, mais ont un coût. Les références ne sont pas des clés étrangères SQL : il faut gérer les documents orphelins, les suppressions et la cohérence via le modèle et le code.</p><p>Définis un validateur de collection pour les champs obligatoires et types importants. Les validateurs n’éliminent pas le besoin de valider les entrées côté API, et leur politique doit être testée avec les opérations d’écriture utilisées par l’application.</p></section>
+<section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Choisir NoSQL en pensant que cela signifie absence de schéma ou absence de contraintes.</li><li>Imbriquer des tableaux qui grandissent sans limite.</li><li>Dupliquer une donnée partagée sans stratégie de mise à jour.</li><li>Omettre les index parce que le modèle paraît flexible.</li><li>Utiliser une transaction multi-documents pour compenser systématiquement un modèle mal adapté.</li></ul></section>
+<section class="lesson-section"><h2>Exercice</h2><p>Modélise un catalogue de produits avec des variantes et des avis. Détermine quelles données doivent être imbriquées et lesquelles doivent être référencées. Décris trois requêtes majeures de l’application et les index utiles. Indique ce qui doit rester cohérent lors d’une modification de produit.</p><h3>Critères de réussite</h3><ul><li>Le choix embed/reference est justifié par les lectures, les écritures et la croissance attendue.</li><li>Les tableaux potentiellement illimités sont évités ou bornés.</li><li>Les index correspondent à des requêtes identifiées.</li><li>Les doublons éventuels ont une règle explicite de mise à jour.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://www.mongodb.com/docs/manual/data-modeling/" rel="noopener noreferrer" target="_blank">MongoDB — Data Modeling</a></li>
+<li><a href="https://www.mongodb.com/docs/manual/data-modeling/concepts/embedding-vs-references/" rel="noopener noreferrer" target="_blank">MongoDB — Embed vs. Reference</a></li>
+<li><a href="https://www.mongodb.com/docs/manual/indexes/" rel="noopener noreferrer" target="_blank">MongoDB — Indexes</a></li>
+<li><a href="https://www.mongodb.com/docs/manual/core/transactions/" rel="noopener noreferrer" target="_blank">MongoDB — Transactions</a></li>
+<li><a href="https://martinfowler.com/books/nosql.html" rel="noopener noreferrer" target="_blank">Martin Fowler — NoSQL Distilled</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"/> Je sais expliquer les différences entre document et relation.</label><label><input type="checkbox"/> Je sais choisir entre imbrication et référence.</label><label><input type="checkbox"/> Je sais justifier les index et les garanties de cohérence nécessaires.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="pooling-n-plus-un.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="injections-sql.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

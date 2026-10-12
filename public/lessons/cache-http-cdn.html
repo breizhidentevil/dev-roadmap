@@ -1,0 +1,117 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Cache HTTP et CDN
+Domaine documentaire : performance
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. MDN — HTTP Caching — https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching
+2. MDN — En-tête Cache-Control — https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
+3. MDN — ETag — https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
+4. web.dev — HTTP Cache — https://web.dev/articles/http-cache
+5. Cloudflare — CDN — https://www.cloudflare.com/learning/cdn/what-is-a-cdn/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Réduire les temps de réponse et la charge serveur grâce à des politiques de cache correctes, explicites et vérifiables.">
+  <title>Cache HTTP et CDN — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">Architecture et ingénierie Full Stack</p>
+    <h1>Cache HTTP et CDN</h1>
+    <p class="lead">Réduire les temps de réponse et la charge serveur grâce à des politiques de cache correctes, explicites et vérifiables.</p>
+    <div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+    <section class="lesson-section">
+<h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir définir une politique de cache à partir des exigences de fraîcheur et de confidentialité, expliquer la revalidation HTTP et diagnostiquer un cache inefficace ou dangereux.</p>
+<ul><li>Distinguer cache navigateur, cache partagé, cache applicatif et CDN.</li><li>Choisir entre <code>max-age</code>, <code>private</code>, <code>no-store</code>, <code>no-cache</code> et les validateurs.</li><li>Définir une clé de cache qui respecte les variations de représentation et l’identité des utilisateurs.</li><li>Tester la fraîcheur, l’invalidation, les réponses personnalisées et le comportement après une mise à jour.</li></ul>
+<p><strong>Prérequis :</strong> comprendre requête/réponse HTTP, en-têtes et ressources statiques.</p>
+</section>
+    
+<section class="lesson-section">
+<h2>1. Pourquoi mettre en cache ?</h2>
+<p>Un cache conserve temporairement une représentation ou un résultat afin d’éviter de refaire un travail coûteux. Le navigateur peut réutiliser un fichier statique, un proxy peut conserver une réponse HTTP, un CDN peut servir un contenu depuis un point de présence proche de l’utilisateur, et le backend peut mettre en cache un calcul ou une lecture. Chaque couche réduit potentiellement la latence et la charge, mais chaque couche introduit une question : quand la donnée cesse-t-elle d’être valide ?</p>
+<p>Le cache est un compromis entre rapidité, fraîcheur, coût et complexité. Il convient très bien aux fichiers versionnés, aux images et aux ressources publiques peu changeantes. Il est plus délicat pour des informations personnalisées, des soldes, des permissions ou des résultats qui doivent refléter immédiatement une écriture. Une politique de cache doit découler des exigences fonctionnelles, pas uniquement d’un objectif de vitesse.</p>
+<p>Le CDN est un réseau distribué qui rapproche certains contenus des utilisateurs et absorbe une partie du trafic. Il ne remplace pas l’architecture du backend et ne rend pas automatiquement toutes les réponses cacheables. La configuration dépend du fournisseur, des règles de cache, de l’origine et des en-têtes HTTP.</p>
+</section>
+<section class="lesson-section">
+<h2>2. Les directives HTTP essentielles</h2>
+<p><code>Cache-Control</code> exprime comment une réponse peut être conservée et réutilisée. Les directives ne sont pas interchangeables :</p>
+<table><thead><tr><th>Directive</th><th>Effet principal</th><th>Usage courant</th></tr></thead><tbody>
+<tr><td><code>max-age=3600</code></td><td>Fraîcheur pendant une heure, sous réserve des règles HTTP.</td><td>Contenu public dont une heure de fraîcheur est acceptable.</td></tr>
+<tr><td><code>s-maxage=300</code></td><td>Définit la fraîcheur des caches partagés et remplace <code>max-age</code>/<code>Expires</code> pour eux.</td><td>Contenu public pour lequel le CDN peut conserver une variante plus longtemps que le navigateur.</td></tr>
+<tr><td><code>public</code></td><td>Autorise explicitement la mise en cache partagée lorsque les autres règles le permettent.</td><td>Réponses publiques, sans données spécifiques à une session.</td></tr>
+<tr><td><code>private</code></td><td>Interdit la conservation par les caches partagés, tout en permettant un cache privé.</td><td>Réponse personnalisée destinée au navigateur de l’utilisateur.</td></tr>
+<tr><td><code>no-cache</code></td><td>Autorise le stockage, mais impose une revalidation avant réutilisation.</td><td>Contenu qui peut être conservé mais doit être revalidé.</td></tr>
+<tr><td><code>no-store</code></td><td>Demande de ne pas stocker la réponse dans les caches.</td><td>Contenu sensible pour lequel le stockage n’est pas souhaité.</td></tr>
+</tbody></table>
+<pre><code># Fichier statique dont le nom contient un hash de contenu
+Cache-Control: public, max-age=31536000, immutable
+
+# Réponse personnalisée, stockable uniquement en cache privé et revalidée
+Cache-Control: private, no-cache
+
+# Contenu public : navigateur 60 s, cache partagé/CDN 300 s
+Cache-Control: public, max-age=60, s-maxage=300
+
+# Réponse qui ne doit pas être stockée
+Cache-Control: no-store</code></pre>
+<p>Un long <code>max-age</code> convient aux assets versionnés dont l’URL change quand le contenu change. La page HTML qui référence ces assets doit être revalidée plus fréquemment pour que le navigateur découvre les nouveaux noms. N’applique pas <code>public</code> à une réponse personnalisée sans avoir analysé précisément les règles de cache et toutes les dimensions de variation.</p>
+<p>Pour un contenu réellement public, <code>s-maxage</code> peut définir une durée différente pour un cache partagé : avec <code>max-age=60, s-maxage=300</code>, le navigateur utilise une fraîcheur de 60 secondes et le cache partagé de 300 secondes. Cette différence n’est pertinente que si cinq minutes de fraîcheur côté CDN respectent le besoin métier. Les règles spécifiques du fournisseur peuvent aussi remplacer les directives de l’origine ; vérifie les en-têtes réellement servis.</p>
+</section>
+<section class="lesson-section">
+<h2>3. Revalidation avec ETag et Last-Modified</h2>
+<p>Un serveur peut associer à une représentation un validateur comme <code>ETag</code> ou <code>Last-Modified</code>. Quand la copie n’est plus fraîche, le client envoie <code>If-None-Match</code> ou <code>If-Modified-Since</code>. Si la représentation n’a pas changé, le serveur peut répondre <code>304 Not Modified</code> sans renvoyer le corps ; le navigateur réutilise alors sa copie locale.</p>
+<p>La revalidation économise souvent du transfert, mais elle nécessite encore un aller-retour et un traitement serveur. Un ETag est un validateur de représentation, pas un mécanisme d’autorisation. Si la représentation varie selon la langue ou le type de contenu, les en-têtes de variation doivent correspondre à ces différences. <code>Vary: Accept-Encoding</code> est fréquent pour la compression ; un <code>Vary</code> mal choisi peut multiplier les variantes et réduire le taux de hit.</p>
+<p>Un validateur ne corrige pas une clé de cache incorrecte. Pour une réponse personnalisée, la politique doit empêcher qu’une copie associée à une session soit réutilisée pour une autre identité. La sécurité dépend de la combinaison des en-têtes, du comportement du cache intermédiaire et de la configuration de l’origine.</p>
+</section>
+<section class="lesson-section">
+<h2>4. Clés de cache, personnalisation et invalidation</h2>
+<p>La clé de cache détermine quelles requêtes peuvent partager une représentation. Elle inclut généralement la méthode et l’URL, et peut varier selon certains en-têtes configurés. Si la réponse dépend de la langue ou de la compression, déclare les variations pertinentes, par exemple <code>Vary: Accept-Language, Accept-Encoding</code>, uniquement si ces en-têtes changent réellement le corps ou les en-têtes de la représentation.</p>
+<pre><code># Représentation publique réellement variable selon la langue
+Cache-Control: public, max-age=60
+Vary: Accept-Language, Accept-Encoding
+
+# Réponse personnalisée : ne pas la partager ni la stocker
+Cache-Control: private, no-store</code></pre>
+<p><code>Vary</code> sélectionne des variantes selon les en-têtes de requête ; ce n’est pas un mécanisme d’autorisation. Ne compte pas sur <code>Vary: Cookie</code> pour protéger des données personnelles : pour une réponse personnalisée, choisis une politique privée adaptée et vérifie aussi la configuration du CDN et de l’origine.</p>
+<p>Avant d’autoriser un cache partagé, pose ces questions :</p>
+<ul><li>La réponse contient-elle un profil, un panier, des permissions ou toute donnée propre à une session ?</li><li>Le corps dépend-il d’un en-tête tel que <code>Accept-Language</code> ou <code>Accept-Encoding</code> ?</li><li>La requête peut-elle changer l’état ou dépend-elle de droits récemment modifiés ?</li><li>Quelle durée de données périmées le métier tolère-t-il, et comment l’invalidation sera-t-elle effectuée ?</li></ul>
+<p>Une durée de vie courte réduit la fenêtre de péremption mais augmente les accès à l’origine. Une purge ciblée accélère la mise à jour mais peut échouer ou ne pas atteindre toutes les couches. Le versionnement d’URL est souvent robuste pour les assets immuables. Pour les données dynamiques, documente le délai maximal de fraîcheur, le mécanisme de revalidation et le comportement si la purge ne fonctionne pas.</p>
+<p>Un <em>cache stampede</em> survient lorsque de nombreuses requêtes recalculent simultanément une entrée expirée. Selon la tolérance métier, on peut regrouper les calculs, renouveler avant expiration ou servir temporairement une valeur périmée pendant qu’une nouvelle est calculée. Cette dernière option ne convient pas aux données dont la fraîcheur est une exigence stricte.</p>
+</section>
+<section class="lesson-section">
+<h2>5. Diagnostiquer et éviter les erreurs</h2>
+<p>Dans l’onglet Réseau, compare une première requête et une seconde : statut, en-têtes de réponse, taille transférée, temps et indication de cache du navigateur. Un CDN fournit souvent des en-têtes propres au fournisseur pour distinguer un hit d’un miss ; leur nom et leur signification varient, donc consulte la documentation de la plateforme.</p>
+<p>Procède par cas de test : ressource versionnée, page HTML, réponse personnalisée, utilisateur déconnecté, permission modifiée et contenu après invalidation. Vérifie à la fois le chemin chaud et le chemin après expiration. Si une réponse privée apparaît dans un cache partagé, traite cela comme un incident de confidentialité et non comme un simple défaut de performance.</p>
+<ul><li>Ne confonds pas <code>no-cache</code> avec <code>no-store</code>.</li><li>Ne mets pas une réponse personnalisée en cache public sans une clé et une politique démontrées sûres.</li><li>Ne définis pas un long TTL pour une URL stable dont le contenu change sans versionnement.</li><li>Ne compte pas uniquement sur une purge manuelle sans plan de repli.</li><li>Ne mesure pas seulement depuis un navigateur chaud : le cache peut masquer le comportement de l’origine.</li></ul>
+<p>Le succès doit se voir dans des mesures — réduction de latence et de transfert, baisse de charge à l’origine — tout en respectant la tolérance de fraîcheur et l’isolation entre utilisateurs.</p>
+</section>
+<section class="lesson-section">
+<h2>6. Exercice pratique</h2>
+<p>Définis une politique pour trois ressources : un bundle JavaScript avec hash, une page HTML qui référence ce bundle et une réponse de profil utilisateur. Pour chacune, indique le type de cache autorisé, le TTL ou la règle de revalidation, la stratégie d’invalidation et le risque principal.</p>
+<ol><li>Inspecte les en-têtes de réponse et prédis le comportement d’un deuxième chargement.</li><li>Publie une nouvelle version du bundle et vérifie comment le navigateur découvre son nouvel URL.</li><li>Modifie une donnée de profil et vérifie qu’une autre session ne peut jamais recevoir la première réponse.</li><li>Simule une purge manquée et explique quel mécanisme limite l’impact.</li><li>Rédige une courte matrice de tests pour cache froid, cache chaud, expiration, revalidation et réponse personnalisée.</li></ol>
+</section>
+<section class="lesson-section">
+<h2>Critères de réussite</h2>
+<ul><li>La politique choisie distingue stockage, fraîcheur et autorisation de cache partagé.</li><li>Les assets versionnés peuvent être mis en cache longtemps sans empêcher la découverte d’une nouvelle version.</li><li>Les réponses personnalisées ne sont pas servies à une autre identité.</li><li>Les validateurs et directives <code>Vary</code> correspondent aux variations réelles de la représentation.</li><li>Les tests couvrent expiration, revalidation, invalidation et comportement du CDN.</li><li>Le bénéfice de performance est mesuré sans dépasser la tolérance de fraîcheur du métier.</li></ul>
+</section>
+
+    <section class="lesson-section">
+      <h2>Sources documentaires</h2>
+      <p>Les ressources ci-dessous sont des références pour poursuivre l’apprentissage. Elles servent de points de départ ciblés ; consulte les sections pertinentes et vérifie les détails qui dépendent de la version des outils ou de ton environnement.</p>
+      <ol><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching" target="_blank" rel="noopener noreferrer">MDN — HTTP Caching</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control" target="_blank" rel="noopener noreferrer">MDN — En-tête Cache-Control</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag" target="_blank" rel="noopener noreferrer">MDN — ETag</a></li>
+<li><a href="https://web.dev/articles/http-cache" target="_blank" rel="noopener noreferrer">web.dev — HTTP Cache</a></li>
+<li><a href="https://www.cloudflare.com/learning/cdn/what-is-a-cdn/" target="_blank" rel="noopener noreferrer">Cloudflare — CDN</a></li></ol>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="profilage-application.html">← Profilage d’application</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="tests-charge.html">Tests de charge →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

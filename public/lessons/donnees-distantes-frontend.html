@@ -1,0 +1,90 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Gestion des données distantes
+Domaine documentaire : frontend
+Ces références sont des points de départ ciblés pour approfondir le sujet ; cette liste ne prétend pas que chaque page liée a été lue intégralement.
+1. React — Synchroniser avec des effets — https://react.dev/learn/synchronizing-with-effects
+2. TanStack Query — Documentation — https://tanstack.com/query/latest/docs/framework/react/overview
+3. SWR — Documentation — https://swr.vercel.app/
+4. MDN — Fetch API — https://developer.mozilla.org/fr/docs/Web/API/Fetch_API/Using_Fetch
+5. MDN — AbortController — https://developer.mozilla.org/fr/docs/Web/API/AbortController
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Charger, mettre en cache, actualiser et synchroniser les données d’une API dans une interface.">
+<title>Gestion des données distantes — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">16. Architecture frontend approfondie</p>
+<h1>Gestion des données distantes</h1>
+<p class="lead">Charger, mettre en cache, actualiser et synchroniser les données d’une API dans une interface.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Lecture et mise en pratique</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2><p>Tu sauras distinguer état serveur et état d’interface, modéliser le chargement et les erreurs, éviter les réponses obsolètes, concevoir un cache et choisir quand utiliser une bibliothèque de requêtes. Tu comprendras les compromis entre fraîcheur, latence, cohérence et simplicité.</p>
+<p>Prérequis : promesses, `fetch`, composants et gestion d’état. Les exemples utilisent le vocabulaire React, mais la plupart des principes s’appliquent à d’autres frameworks.</p></section><section class="lesson-section"><h2>1. L’état serveur n’est pas un simple state local</h2><p>Les données distantes sont détenues par un serveur. Elles peuvent changer sans que le composant soit monté, et plusieurs vues peuvent dépendre de la même ressource. Les copier dans plusieurs états locaux crée des risques de divergence : une vue affiche la nouvelle valeur alors qu’une autre conserve une ancienne copie.</p>
+<p>Distingue l’état serveur — par exemple la liste de commandes renvoyée par l’API — de l’état d’interface, comme l’ouverture d’un panneau ou la valeur temporaire d’un champ avant validation. Certains formulaires ont besoin d’une copie locale de travail, mais il faut alors définir quand elle est initialisée, quand elle est sauvegardée et comment gérer une mise à jour distante concurrente.</p>
+<p>Un état de requête comprend au minimum la phase de chargement, les données disponibles et l’erreur éventuelle. Pour une actualisation, il peut être préférable de conserver les données existantes pendant que la nouvelle requête tourne. Le choix dépend de la tâche : une liste de recommandations peut afficher les anciennes données brièvement, tandis qu’un solde financier doit signaler clairement sa fraîcheur.</p></section><section class="lesson-section"><h2>2. Requêtes, annulation et concurrence</h2><p>Avec `fetch`, vérifie `response.ok` : une réponse 404 ou 500 ne rejette pas automatiquement la promesse. Valide aussi les données reçues lorsque leur forme est importante. Les types TypeScript ne valident pas à eux seuls le JSON à l’exécution. Traite séparément une erreur réseau, une réponse HTTP invalide et une réponse mal formée, même si l’interface expose un message plus simple.</p>
+<p>Une requête peut devenir obsolète. Exemple : l’utilisateur saisit « cha », puis « chaise » ; la réponse de « cha » peut arriver après celle de « chaise » et écraser les résultats récents. Utilise une annulation avec `AbortController`, un identifiant de requête ou une bibliothèque qui gère ce problème. L’annulation côté navigateur n’annule pas nécessairement un traitement déjà effectué côté serveur.</p>
+<p>Les effets doivent suivre les paramètres dont dépend la requête et nettoyer les opérations qui ne sont plus nécessaires. Évite de déclencher des appels réseau pendant le rendu lui-même. En développement, certains environnements peuvent volontairement exécuter des effets plusieurs fois pour révéler des effets secondaires ; le code doit être robuste à ces scénarios et ne pas dépendre d’un seul déclenchement magique.</p></section><section class="lesson-section"><h2>3. Cache, fraîcheur et revalidation</h2><p>Un cache réduit les appels et accélère l’affichage, mais une donnée mise en cache peut devenir obsolète. La stratégie doit préciser la clé de cache, la durée de fraîcheur, les conditions de revalidation et les événements qui invalident les données. La clé doit inclure tous les paramètres qui changent le résultat : identifiant, filtre, pagination et parfois contexte d’utilisateur.</p>
+<p>Deux composants qui demandent la même ressource peuvent partager un cache et éviter des requêtes en double. Lorsqu’une mutation modifie une commande, invalide ou actualise les entrées qui dépendent de cette commande. Une invalidation trop large déclenche des requêtes inutiles ; une invalidation trop étroite laisse des vues incohérentes.</p>
+<p>Les bibliothèques telles que TanStack Query ou SWR gèrent de nombreux détails : déduplication, cache, revalidation, retries et états de requête. Elles ne choisissent pas la bonne politique métier à ta place. Il faut définir quand les données sont suffisamment fraîches, si une actualisation en arrière-plan est acceptable et comment signaler une erreur de revalidation sans effacer une valeur encore utile.</p></section><section class="lesson-section"><h2>4. Mutations, optimisme et idempotence</h2><p>Une mutation crée, modifie ou supprime des données. Après une réussite confirmée, l’interface doit mettre à jour les vues concernées. Deux approches fréquentes sont de recharger les données depuis le serveur ou de modifier le cache local avec une règle connue. Le rechargement est plus simple mais peut ajouter de la latence ; la mise à jour locale est rapide mais demande de préserver les invariants métier.</p>
+<p>Une mise à jour optimiste affiche le résultat attendu avant la confirmation du serveur. Elle améliore la sensation de réactivité, mais nécessite un retour arrière si la mutation échoue et une stratégie si une autre mise à jour concurrente survient. Utilise-la surtout lorsque le résultat est prévisible et que l’erreur est récupérable. Pour une action financière ou irréversible, la prudence est généralement préférable.</p>
+<p>Une coupure réseau après l’envoi ne prouve pas que le serveur n’a pas effectué l’opération. Pour les actions susceptibles d’être répétées, le backend peut avoir besoin d’une clé d’idempotence ou d’un mécanisme de vérification. Désactiver le bouton pendant une requête aide l’interface, mais ne garantit pas à lui seul l’absence de doublons.</p></section><section class="lesson-section"><h2>5. Choisir une stratégie et la tester</h2><p>Pour un petit composant, un `fetch` avec des états explicites peut suffire. Lorsque l’application possède beaucoup de ressources partagées, de mutations, de cache et de revalidation, une bibliothèque dédiée réduit le code spécifique et les bugs de synchronisation. Évalue les besoins réels avant d’ajouter une couche supplémentaire.</p>
+<p>Teste le chemin nominal, les erreurs HTTP, la panne réseau, le timeout, les réponses désordonnées, les données vides, les paramètres qui changent rapidement et les mutations échouées. Vérifie que les anciennes données ne sont pas attribuées à la mauvaise clé de cache et qu’une personne ne voit pas les données d’un autre utilisateur après un changement de session.</p>
+<p>Surveille le nombre de requêtes, la latence et les erreurs. Une stratégie de retry doit être limitée et adaptée : répéter automatiquement une requête de lecture peut être raisonnable, mais répéter une mutation non idempotente peut créer des doublons. La bonne politique dépend du contrat de l’API.</p></section><section class="lesson-section">
+<h2>Atelier approfondi — concevoir un cache de données fiable</h2>
+<h3>Objectifs ciblés</h3>
+<p>Tu sauras définir une clé de cache correcte, distinguer fraîcheur et présence en cache, invalider les données après une mutation et choisir une politique de nouvelle tentative selon le type d’échec. Le but n’est pas d’éviter toutes les requêtes, mais d’éviter les requêtes inutiles sans présenter une donnée périmée comme certaine.</p>
+<h3>La clé de requête est une identité</h3>
+<p>Une clé doit contenir toutes les variables qui changent le résultat : ressource, filtres, tri, page et, si le cache est partagé entre contextes, le périmètre de compte ou de tenant. Si deux requêtes différentes ont la même clé, une réponse peut être montrée au mauvais écran. À l’inverse, une clé instable recréée à chaque rendu peut empêcher la déduplication.</p>
+<pre><code>const queryKey = [
+  "projects",
+  { status, sort, page, tenantId }
+] as const;
+
+const projectsQuery = useQuery({
+  queryKey,
+  queryFn: async ({ signal }) =&gt; {
+    const params = new URLSearchParams({ status, sort, page: String(page) });
+    const response = await fetch(`/api/projects?${params}`, { signal });
+    if (!response.ok) {
+      throw new Error(`Chargement impossible (${response.status})`);
+    }
+    return response.json();
+  }
+});</code></pre>
+<p>L’exemple utilise la forme de l’API TanStack Query moderne ; adapte les détails à la version du projet. Le signal permet à la bibliothèque d’annuler une requête devenue inutile si la fonction de requête le transmet au transport. N’inscris jamais un jeton secret dans une clé : les clés peuvent être inspectées dans les outils de diagnostic. L’isolation du cache doit suivre les frontières d’identité de l’application.</p>
+<h3>Fraîcheur, invalidation et mutation</h3>
+<p>« Présent dans le cache » ne veut pas dire « à jour ». Une politique de fraîcheur indique pendant combien de temps une valeur peut être réutilisée sans revalidation. Après une modification, invalide les requêtes concernées ou mets à jour le cache à partir d’une réponse serveur fiable. Une invalidation trop large coûte des requêtes ; une invalidation trop étroite laisse des vues incohérentes.</p>
+<pre><code>const updateProject = useMutation({
+  mutationFn: saveProject,
+  onSuccess: (savedProject) =&gt; {
+    queryClient.setQueryData(
+      ["project", savedProject.id], savedProject
+    );
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
+  }
+});</code></pre>
+<p>Si une mutation est optimiste, garde une copie de l’état précédent et restaure-la en cas d’échec ; prévois aussi le cas où deux mutations concurrentes se terminent dans un ordre différent. Pour une modification complexe, attendre la réponse serveur est parfois plus simple et plus fiable qu’une mise à jour optimiste.</p>
+<h3>Choisir les retries d’après la cause</h3>
+<p>Une panne réseau temporaire ou une réponse 503 peut justifier une nouvelle tentative limitée avec délai progressif. Une erreur 400 due à une validation métier ne se corrigera pas en répétant la même requête. Les réponses 401/403 nécessitent généralement une décision d’authentification ou d’autorisation, pas une boucle de retry. Pour 429, respecte le délai indiqué par le serveur lorsqu’il existe.</p>
+<h3>Pièges spécifiques</h3>
+<ul><li>Un cache partagé entre utilisateurs sans séparation d’identité peut divulguer des données privées.</li><li>Un retry sans limite amplifie une panne et peut saturer le service.</li><li>Une mutation optimiste sans rollback laisse l’interface dans un état mensonger.</li><li>Un indicateur de chargement global peut masquer une actualisation en arrière-plan alors que des données sont déjà affichées.</li></ul>
+<h3>Exercice et critères de réussite</h3>
+<p>Implémente une liste paginée avec filtres, détail et édition. Définis les clés, la fraîcheur et les règles d’invalidation. Simule une réponse lente, une erreur 400, une erreur 503, une réponse 429 et deux modifications concurrentes. Vérifie également le changement de compte ou de tenant.</p>
+<ul><li>Deux filtres différents ne partagent pas accidentellement la même entrée de cache.</li><li>Les données sont invalidées ou mises à jour après une mutation réussie.</li><li>Les retries sont bornés et adaptés au type d’erreur.</li><li>Une erreur de mutation restaure ou conserve un état honnête.</li><li>Le cache n’expose pas les données d’un autre utilisateur.</li></ul>
+</section>
+<section class="lesson-section"><h2>Pièges, limites et compromis</h2><ul><li>Les types TypeScript ne valident pas les réponses JSON à l’exécution.</li><li>Un cache accélère l’affichage mais peut servir des données périmées.</li><li>Les requêtes concurrentes peuvent arriver dans un ordre différent de leur lancement.</li><li>L’annulation client ne garantit pas l’arrêt d’un traitement serveur.</li><li>Les mutations optimistes exigent une stratégie de rollback et de concurrence.</li><li>Ne suppose pas qu’un timeout signifie que la mutation n’a pas été exécutée.</li><li>Une bibliothèque de cache aide à gérer la mécanique, mais les règles de fraîcheur restent une décision produit.</li></ul></section><section class="lesson-section"><h2>Exercice</h2><p>Construis une page de recherche qui interroge une API simulée avec délai variable. Reproduis une réponse ancienne qui arrive après une réponse récente, puis corrige le problème. Ajoute une stratégie de cache et explique sa clé et sa durée de fraîcheur. Implémente une mutation qui échoue parfois et vérifie que l’interface restaure un état cohérent. Teste aussi le changement d’utilisateur et l’absence de résultats.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul class="checklist"><li>Je distingue données serveur et état local d’interface.</li><li>Les réponses HTTP et les données reçues sont traitées explicitement.</li><li>Une réponse obsolète ne remplace pas la requête courante.</li><li>La clé et la politique de cache sont justifiées.</li><li>Les mutations échouées ne laissent pas un état mensonger.</li><li>Les retries respectent le type d’opération et le contrat backend.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces références sont des points de départ ciblés pour vérifier les notions et poursuivre l’apprentissage. Consulte les documentations officielles à jour pour les détails propres à chaque outil.</p><ol><li><a href="https://react.dev/learn/synchronizing-with-effects" target="_blank" rel="noopener noreferrer">React — Synchroniser avec des effets</a></li><li><a href="https://tanstack.com/query/latest/docs/framework/react/overview" target="_blank" rel="noopener noreferrer">TanStack Query — Documentation</a></li><li><a href="https://swr.vercel.app/" target="_blank" rel="noopener noreferrer">SWR — Documentation</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/API/Fetch_API/Using_Fetch" target="_blank" rel="noopener noreferrer">MDN — Fetch API</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/API/AbortController" target="_blank" rel="noopener noreferrer">MDN — AbortController</a></li></ol></section>
+<nav class="lesson-nav" aria-label="Navigation entre les leçons">
+<a href="routage-frontend.html">← Précédent : Routage frontend</a>
+<a href="ssr-csr-hydratation.html">Suivant : SSR, CSR et hydratation →</a>
+</nav>
+</main>
+</body>
+</html>

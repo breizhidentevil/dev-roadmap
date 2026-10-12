@@ -1,0 +1,1250 @@
+{
+  "sourceVersion": "V40",
+  "sourceArchive": "Roadmap_Full_Stack_2026_V40.zip",
+  "chapters": [
+    {
+      "id": "00-informatique-generale",
+      "number": "00",
+      "title": "Informatique générale et fonctionnement des systèmes",
+      "description": "6 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "architecture-ordinateur",
+          "title": "Architecture d’un ordinateur",
+          "description": "Comprendre CPU, mémoire vive, stockage et périphériques.",
+          "path": "/lessons/architecture-ordinateur.html"
+        },
+        {
+          "id": "processus-threads-memoire",
+          "title": "Processus, threads et mémoire",
+          "description": "Comprendre l’exécution des programmes, la concurrence et l’utilisation de la mémoire.",
+          "path": "/lessons/processus-threads-memoire.html"
+        },
+        {
+          "id": "systeme-exploitation-fichiers",
+          "title": "Système d’exploitation et système de fichiers",
+          "description": "Comprendre les processus, permissions, chemins et opérations du système.",
+          "path": "/lessons/systeme-exploitation-fichiers.html"
+        },
+        {
+          "id": "reseaux-tcp-ip",
+          "title": "Réseaux : TCP/IP, ports et pare-feu",
+          "description": "Comprendre les échanges réseau et les principaux mécanismes de transport.",
+          "path": "/lessons/reseaux-tcp-ip.html"
+        },
+        {
+          "id": "dns-tls-proxy",
+          "title": "DNS, TLS et proxy",
+          "description": "Comprendre la résolution de noms, le chiffrement des connexions et les intermédiaires réseau.",
+          "path": "/lessons/dns-tls-proxy.html"
+        },
+        {
+          "id": "terminal-shell-bash",
+          "title": "Terminal, shell et Bash",
+          "description": "Utiliser efficacement la ligne de commande et automatiser des tâches simples.",
+          "path": "/lessons/terminal-shell-bash.html"
+        }
+      ]
+    },
+    {
+      "id": "01-fondamentaux",
+      "number": "01",
+      "title": "Fondamentaux de la programmation et du Web",
+      "description": "7 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "javascript-typescript",
+          "title": "JavaScript puis TypeScript",
+          "description": "Comprendre les bases d’un langage et ajouter progressivement le typage statique.",
+          "path": "/lessons/javascript-typescript.html"
+        },
+        {
+          "id": "structures-donnees-algorithmes",
+          "title": "Structures de données et algorithmes",
+          "description": "Manipuler tableaux, objets, dictionnaires, arbres, graphes, tri et recherche.",
+          "path": "/lessons/structures-donnees-algorithmes.html"
+        },
+        {
+          "id": "complexite-algorithmique",
+          "title": "Complexité algorithmique",
+          "description": "Évaluer le coût en temps et en mémoire d’un algorithme.",
+          "path": "/lessons/complexite-algorithmique.html"
+        },
+        {
+          "id": "javascript-avance",
+          "title": "JavaScript avancé",
+          "description": "Maîtriser promesses, async/await, closures, portée et event loop.",
+          "path": "/lessons/javascript-avance.html"
+        },
+        {
+          "id": "http",
+          "title": "HTTP et échanges Web",
+          "description": "Comprendre requêtes, réponses, en-têtes, codes de statut, cache, cookies, sessions et CORS.",
+          "path": "/lessons/http.html"
+        },
+        {
+          "id": "git",
+          "title": "Git et gestion de versions",
+          "description": "Créer des commits utiles, des branches et collaborer via un dépôt.",
+          "path": "/lessons/git.html"
+        },
+        {
+          "id": "navigateur-dom-devtools",
+          "title": "Navigateur, DOM et DevTools",
+          "description": "Comprendre le rendu côté navigateur, le DOM et le débogage dans les outils de développement.",
+          "path": "/lessons/navigateur-dom-devtools.html"
+        }
+      ]
+    },
+    {
+      "id": "02-frontend",
+      "number": "02",
+      "title": "Frontend",
+      "description": "18 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "html-semantique",
+          "title": "HTML sémantique",
+          "description": "Structurer une page avec des éléments HTML adaptés et accessibles.",
+          "path": "/lessons/html-semantique.html"
+        },
+        {
+          "id": "accessibilite",
+          "title": "Accessibilité Web",
+          "description": "Rendre les interfaces utilisables au clavier et par les technologies d’assistance.",
+          "path": "/lessons/accessibilite.html"
+        },
+        {
+          "id": "css-fondamentaux",
+          "title": "CSS : cascade, spécificité et box model",
+          "description": "Comprendre comment les règles CSS sont calculées et comment les éléments occupent l’espace.",
+          "path": "/lessons/css-fondamentaux.html"
+        },
+        {
+          "id": "flexbox-grid",
+          "title": "Flexbox et CSS Grid",
+          "description": "Construire des mises en page robustes avec les deux systèmes de layout.",
+          "path": "/lessons/flexbox-grid.html"
+        },
+        {
+          "id": "responsive-design",
+          "title": "Responsive design",
+          "description": "Adapter une interface à différentes tailles d’écran.",
+          "path": "/lessons/responsive-design.html"
+        },
+        {
+          "id": "javascript-dom",
+          "title": "JavaScript et manipulation du DOM",
+          "description": "Réagir aux événements et mettre à jour l’interface depuis JavaScript.",
+          "path": "/lessons/javascript-dom.html"
+        },
+        {
+          "id": "fetch-apis-navigateur",
+          "title": "Fetch et APIs du navigateur",
+          "description": "Appeler des services HTTP et utiliser les capacités du navigateur.",
+          "path": "/lessons/fetch-apis-navigateur.html"
+        },
+        {
+          "id": "debug-frontend",
+          "title": "Débogage frontend",
+          "description": "Identifier les erreurs d’interface, de logique et de réseau.",
+          "path": "/lessons/debug-frontend.html"
+        },
+        {
+          "id": "performance-frontend",
+          "title": "Performance frontend",
+          "description": "Mesurer et améliorer le chargement et la réactivité d’une page.",
+          "path": "/lessons/performance-frontend.html"
+        },
+        {
+          "id": "react-composants",
+          "title": "React : composants, props et state",
+          "description": "Composer une interface à partir de composants réutilisables.",
+          "path": "/lessons/react-composants.html"
+        },
+        {
+          "id": "react-hooks",
+          "title": "React Hooks",
+          "description": "Utiliser les hooks intégrés et créer des hooks personnalisés.",
+          "path": "/lessons/react-hooks.html"
+        },
+        {
+          "id": "react-evenements-formulaires",
+          "title": "Événements et formulaires React",
+          "description": "Gérer les interactions et les champs contrôlés.",
+          "path": "/lessons/react-evenements-formulaires.html"
+        },
+        {
+          "id": "gestion-etat",
+          "title": "Gestion d’état",
+          "description": "Choisir entre état local, Context et bibliothèques comme Zustand ou Redux.",
+          "path": "/lessons/gestion-etat.html"
+        },
+        {
+          "id": "typescript-react",
+          "title": "TypeScript avec React",
+          "description": "Typer props, événements, états et données d’API.",
+          "path": "/lessons/typescript-react.html"
+        },
+        {
+          "id": "tailwind-composants",
+          "title": "Tailwind CSS et bibliothèques de composants",
+          "description": "Construire une interface cohérente avec des styles utilitaires ou des composants existants.",
+          "path": "/lessons/tailwind-composants.html"
+        },
+        {
+          "id": "outils-frontend",
+          "title": "Vite, npm/pnpm, ESLint et Prettier",
+          "description": "Configurer les outils de développement, de qualité et de dépendances.",
+          "path": "/lessons/outils-frontend.html"
+        },
+        {
+          "id": "nextjs",
+          "title": "Next.js",
+          "description": "Comprendre routage, rendu serveur et récupération des données.",
+          "path": "/lessons/nextjs.html"
+        },
+        {
+          "id": "tests-frontend",
+          "title": "Tests frontend",
+          "description": "Tester les composants et les parcours utilisateurs.",
+          "path": "/lessons/tests-frontend.html"
+        }
+      ]
+    },
+    {
+      "id": "03-backend",
+      "number": "03",
+      "title": "Backend",
+      "description": "18 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "nodejs-typescript",
+          "title": "Node.js et TypeScript",
+          "description": "Exécuter du JavaScript côté serveur et structurer un projet typé.",
+          "path": "/lessons/nodejs-typescript.html"
+        },
+        {
+          "id": "cycle-requete-reponse",
+          "title": "Serveur et cycle requête/réponse",
+          "description": "Comprendre comment un serveur reçoit, traite et renvoie une requête.",
+          "path": "/lessons/cycle-requete-reponse.html"
+        },
+        {
+          "id": "framework-backend",
+          "title": "Express, Fastify ou NestJS",
+          "description": "Choisir et utiliser un framework backend adapté au projet.",
+          "path": "/lessons/framework-backend.html"
+        },
+        {
+          "id": "modules-responsabilites",
+          "title": "Modules et séparation des responsabilités",
+          "description": "Séparer routes, logique métier, accès aux données et configuration.",
+          "path": "/lessons/modules-responsabilites.html"
+        },
+        {
+          "id": "logique-metier-validation",
+          "title": "Logique métier et validation",
+          "description": "Appliquer les règles métier et rejeter les données invalides.",
+          "path": "/lessons/logique-metier-validation.html"
+        },
+        {
+          "id": "api-rest",
+          "title": "Conception d’API REST",
+          "description": "Organiser les ressources, méthodes HTTP et réponses d’une API.",
+          "path": "/lessons/api-rest.html"
+        },
+        {
+          "id": "codes-http",
+          "title": "Codes HTTP et idempotence",
+          "description": "Choisir les codes de réponse et comprendre les effets d’une répétition de requête.",
+          "path": "/lessons/codes-http.html"
+        },
+        {
+          "id": "versionnement-api",
+          "title": "Versionnement d’API",
+          "description": "Faire évoluer une API sans casser inutilement ses clients.",
+          "path": "/lessons/versionnement-api.html"
+        },
+        {
+          "id": "openapi-swagger",
+          "title": "Documentation OpenAPI/Swagger",
+          "description": "Décrire les routes, schémas et réponses d’une API.",
+          "path": "/lessons/openapi-swagger.html"
+        },
+        {
+          "id": "middlewares",
+          "title": "Middlewares",
+          "description": "Centraliser les traitements transverses comme les logs et la gestion d’erreurs.",
+          "path": "/lessons/middlewares.html"
+        },
+        {
+          "id": "validation-schema",
+          "title": "Validation avec Zod, Joi ou Yup",
+          "description": "Définir et vérifier des schémas de données.",
+          "path": "/lessons/validation-schema.html"
+        },
+        {
+          "id": "taches-asynchrones",
+          "title": "Tâches asynchrones et files d’attente",
+          "description": "Découpler les traitements longs avec des jobs et des files comme BullMQ.",
+          "path": "/lessons/taches-asynchrones.html"
+        },
+        {
+          "id": "redis-cache",
+          "title": "Redis et cache",
+          "description": "Mettre en cache des données et comprendre les compromis de cohérence.",
+          "path": "/lessons/redis-cache.html"
+        },
+        {
+          "id": "websockets-sse",
+          "title": "WebSockets et Server-Sent Events",
+          "description": "Transmettre des mises à jour en temps réel au navigateur.",
+          "path": "/lessons/websockets-sse.html"
+        },
+        {
+          "id": "authentification-autorisation",
+          "title": "Authentification et autorisation",
+          "description": "Distinguer identité, permissions et contrôle d’accès.",
+          "path": "/lessons/authentification-autorisation.html"
+        },
+        {
+          "id": "sessions-jwt",
+          "title": "Sessions, tokens et JWT",
+          "description": "Comprendre les mécanismes de session et les limites des tokens.",
+          "path": "/lessons/sessions-jwt.html"
+        },
+        {
+          "id": "oauth-oidc",
+          "title": "OAuth 2.0 et OpenID Connect",
+          "description": "Comprendre la délégation d’autorisation et l’authentification fédérée.",
+          "path": "/lessons/oauth-oidc.html"
+        },
+        {
+          "id": "hachage-mots-de-passe",
+          "title": "Stockage sécurisé des mots de passe",
+          "description": "Utiliser des fonctions de hachage adaptées et ne jamais stocker les mots de passe en clair.",
+          "path": "/lessons/hachage-mots-de-passe.html"
+        }
+      ]
+    },
+    {
+      "id": "04-donnees",
+      "number": "04",
+      "title": "Bases de données et modélisation",
+      "description": "11 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "sql",
+          "title": "SQL",
+          "description": "Lire et écrire des requêtes pour interroger et modifier des données.",
+          "path": "/lessons/sql.html"
+        },
+        {
+          "id": "postgresql",
+          "title": "PostgreSQL",
+          "description": "Installer, configurer et utiliser une base relationnelle robuste.",
+          "path": "/lessons/postgresql.html"
+        },
+        {
+          "id": "modelisation-donnees",
+          "title": "Modélisation des données",
+          "description": "Transformer un besoin métier en tables, relations et contraintes.",
+          "path": "/lessons/modelisation-donnees.html"
+        },
+        {
+          "id": "cles-relations",
+          "title": "Clés primaires et étrangères",
+          "description": "Garantir l’identification des lignes et l’intégrité des relations.",
+          "path": "/lessons/cles-relations.html"
+        },
+        {
+          "id": "normalisation",
+          "title": "Normalisation et dénormalisation",
+          "description": "Limiter les incohérences et savoir quand optimiser la lecture.",
+          "path": "/lessons/normalisation.html"
+        },
+        {
+          "id": "jointures-agregations",
+          "title": "Jointures et agrégations SQL",
+          "description": "Combiner plusieurs tables et résumer les données.",
+          "path": "/lessons/jointures-agregations.html"
+        },
+        {
+          "id": "index-performances",
+          "title": "Index et performances SQL",
+          "description": "Accélérer les requêtes et comprendre les coûts d’un index.",
+          "path": "/lessons/index-performances.html"
+        },
+        {
+          "id": "transactions",
+          "title": "Transactions et cohérence",
+          "description": "Garantir qu’un ensemble d’opérations reste cohérent.",
+          "path": "/lessons/transactions.html"
+        },
+        {
+          "id": "migrations",
+          "title": "Migrations de schéma",
+          "description": "Faire évoluer la structure de la base de façon reproductible.",
+          "path": "/lessons/migrations.html"
+        },
+        {
+          "id": "pooling-n-plus-un",
+          "title": "Pooling et problème N+1",
+          "description": "Gérer les connexions et éviter les requêtes répétitives coûteuses.",
+          "path": "/lessons/pooling-n-plus-un.html"
+        },
+        {
+          "id": "nosql-mongodb",
+          "title": "NoSQL et MongoDB",
+          "description": "Comprendre les modèles documentaires et quand les choisir.",
+          "path": "/lessons/nosql-mongodb.html"
+        }
+      ]
+    },
+    {
+      "id": "05-securite",
+      "number": "05",
+      "title": "Sécurité applicative",
+      "description": "11 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "injections-sql",
+          "title": "Prévention des injections SQL",
+          "description": "Utiliser des requêtes paramétrées et éviter la concaténation dangereuse.",
+          "path": "/lessons/injections-sql.html"
+        },
+        {
+          "id": "xss",
+          "title": "Prévention des attaques XSS",
+          "description": "Empêcher l’exécution de scripts injectés dans les pages.",
+          "path": "/lessons/xss.html"
+        },
+        {
+          "id": "csrf",
+          "title": "Prévention des attaques CSRF",
+          "description": "Protéger les actions authentifiées contre les requêtes forgées.",
+          "path": "/lessons/csrf.html"
+        },
+        {
+          "id": "cors",
+          "title": "Configuration de CORS",
+          "description": "Contrôler les origines autorisées à lire les réponses du serveur.",
+          "path": "/lessons/cors.html"
+        },
+        {
+          "id": "rate-limiting",
+          "title": "Rate limiting",
+          "description": "Limiter les abus et protéger les ressources contre les rafales de requêtes.",
+          "path": "/lessons/rate-limiting.html"
+        },
+        {
+          "id": "securite-sessions-tokens",
+          "title": "Sécurisation des sessions et tokens",
+          "description": "Réduire les risques de vol, fuite et réutilisation de credentials.",
+          "path": "/lessons/securite-sessions-tokens.html"
+        },
+        {
+          "id": "https-headers",
+          "title": "HTTPS et en-têtes de sécurité",
+          "description": "Protéger le transport et renforcer les politiques du navigateur.",
+          "path": "/lessons/https-headers.html"
+        },
+        {
+          "id": "gestion-secrets",
+          "title": "Gestion des secrets",
+          "description": "Sortir les clés et mots de passe du code et des dépôts Git.",
+          "path": "/lessons/gestion-secrets.html"
+        },
+        {
+          "id": "autorisations-serveur",
+          "title": "Autorisations côté serveur",
+          "description": "Vérifier les permissions sur chaque opération sensible.",
+          "path": "/lessons/autorisations-serveur.html"
+        },
+        {
+          "id": "donnees-logs",
+          "title": "Données sensibles et journaux",
+          "description": "Éviter d’exposer des informations personnelles ou des secrets dans les logs.",
+          "path": "/lessons/donnees-logs.html"
+        },
+        {
+          "id": "upload-fichiers",
+          "title": "Sécurité des fichiers téléversés",
+          "description": "Valider les fichiers et contrôler leur stockage et leur accès.",
+          "path": "/lessons/upload-fichiers.html"
+        }
+      ]
+    },
+    {
+      "id": "06-tests-qualite",
+      "number": "06",
+      "title": "Tests, débogage et qualité",
+      "description": "9 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "tests-unitaires",
+          "title": "Tests unitaires",
+          "description": "Vérifier une fonction ou un composant isolément avec Vitest ou Jest.",
+          "path": "/lessons/tests-unitaires.html"
+        },
+        {
+          "id": "tests-integration",
+          "title": "Tests d’intégration",
+          "description": "Vérifier la collaboration entre modules, API et base de données.",
+          "path": "/lessons/tests-integration.html"
+        },
+        {
+          "id": "tests-e2e",
+          "title": "Tests end-to-end",
+          "description": "Automatiser des parcours utilisateurs avec Playwright ou Cypress.",
+          "path": "/lessons/tests-e2e.html"
+        },
+        {
+          "id": "cas-limites-regressions",
+          "title": "Cas limites et régressions",
+          "description": "Tester les erreurs, limites et comportements qui doivent rester stables.",
+          "path": "/lessons/cas-limites-regressions.html"
+        },
+        {
+          "id": "debug-methodique",
+          "title": "Débogage méthodique",
+          "description": "Reproduire, isoler, diagnostiquer puis corriger un problème.",
+          "path": "/lessons/debug-methodique.html"
+        },
+        {
+          "id": "logs-erreurs",
+          "title": "Gestion des erreurs et logs structurés",
+          "description": "Rendre les incidents compréhensibles sans divulguer d’informations sensibles.",
+          "path": "/lessons/logs-erreurs.html"
+        },
+        {
+          "id": "lint-formatage",
+          "title": "Linting et formatage",
+          "description": "Automatiser la détection de problèmes et harmoniser le style du code.",
+          "path": "/lessons/lint-formatage.html"
+        },
+        {
+          "id": "refactoring",
+          "title": "Refactoring et maintenabilité",
+          "description": "Améliorer la structure du code sans changer son comportement observable.",
+          "path": "/lessons/refactoring.html"
+        },
+        {
+          "id": "lecture-code",
+          "title": "Lire le code d’autres développeurs",
+          "description": "Naviguer dans un projet existant et comprendre ses conventions.",
+          "path": "/lessons/lecture-code.html"
+        }
+      ]
+    },
+    {
+      "id": "07-devops",
+      "number": "07",
+      "title": "DevOps, déploiement et cloud",
+      "description": "11 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "linux-terminal",
+          "title": "Linux et ligne de commande",
+          "description": "Naviguer dans le système, manipuler les fichiers et exécuter des commandes utiles.",
+          "path": "/lessons/linux-terminal.html"
+        },
+        {
+          "id": "environnement-config",
+          "title": "Variables d’environnement et configuration",
+          "description": "Séparer configuration, secrets et code applicatif.",
+          "path": "/lessons/environnement-config.html"
+        },
+        {
+          "id": "docker",
+          "title": "Docker et conteneurs",
+          "description": "Construire une image et exécuter une application de façon reproductible.",
+          "path": "/lessons/docker.html"
+        },
+        {
+          "id": "ci-cd",
+          "title": "Intégration et déploiement continus",
+          "description": "Automatiser les vérifications et la livraison avec une pipeline.",
+          "path": "/lessons/ci-cd.html"
+        },
+        {
+          "id": "deploiement-base",
+          "title": "Déployer application et base de données",
+          "description": "Mettre en ligne une application avec une configuration reproductible.",
+          "path": "/lessons/deploiement-base.html"
+        },
+        {
+          "id": "dns-https-certificats",
+          "title": "DNS, HTTPS et certificats",
+          "description": "Relier un nom de domaine à un service et sécuriser les connexions.",
+          "path": "/lessons/dns-https-certificats.html"
+        },
+        {
+          "id": "sauvegardes-migrations-prod",
+          "title": "Sauvegardes et migrations en production",
+          "description": "Préparer la restauration et limiter les risques lors des changements de schéma.",
+          "path": "/lessons/sauvegardes-migrations-prod.html"
+        },
+        {
+          "id": "observabilite",
+          "title": "Logs, métriques, alertes et health checks",
+          "description": "Détecter les incidents et comprendre l’état du système.",
+          "path": "/lessons/observabilite.html"
+        },
+        {
+          "id": "cloud",
+          "title": "Fondamentaux du cloud",
+          "description": "Comprendre les services de calcul, stockage, réseau et bases de données gérés.",
+          "path": "/lessons/cloud.html"
+        },
+        {
+          "id": "infrastructure-as-code",
+          "title": "Infrastructure as code",
+          "description": "Décrire et versionner l’infrastructure avec des outils adaptés.",
+          "path": "/lessons/infrastructure-as-code.html"
+        },
+        {
+          "id": "kubernetes",
+          "title": "Kubernetes",
+          "description": "Comprendre l’orchestration de conteneurs et savoir quand elle est utile.",
+          "path": "/lessons/kubernetes.html"
+        }
+      ]
+    },
+    {
+      "id": "08-architecture",
+      "number": "08",
+      "title": "Architecture et conception logicielle",
+      "description": "8 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "architecture-modulaire",
+          "title": "Architecture modulaire",
+          "description": "Découper le système en modules cohérents et à responsabilités claires.",
+          "path": "/lessons/architecture-modulaire.html"
+        },
+        {
+          "id": "separation-responsabilites",
+          "title": "Séparation des responsabilités",
+          "description": "Éviter le mélange des règles métier, du transport et de la persistance.",
+          "path": "/lessons/separation-responsabilites.html"
+        },
+        {
+          "id": "design-patterns",
+          "title": "Patterns de conception",
+          "description": "Reconnaître les problèmes récurrents et les solutions adaptées.",
+          "path": "/lessons/design-patterns.html"
+        },
+        {
+          "id": "api-evolutives",
+          "title": "API évolutives et rétrocompatibles",
+          "description": "Faire évoluer les contrats sans perturber les consommateurs existants.",
+          "path": "/lessons/api-evolutives.html"
+        },
+        {
+          "id": "cache-compromis",
+          "title": "Cache et compromis de performance",
+          "description": "Évaluer latence, fraîcheur des données et complexité opérationnelle.",
+          "path": "/lessons/cache-compromis.html"
+        },
+        {
+          "id": "monolithe-microservices",
+          "title": "Monolithe ou microservices",
+          "description": "Choisir une architecture proportionnée aux besoins réels.",
+          "path": "/lessons/monolithe-microservices.html"
+        },
+        {
+          "id": "scalabilite",
+          "title": "Montée en charge",
+          "description": "Comprendre les limites et les leviers d’échelle d’une application.",
+          "path": "/lessons/scalabilite.html"
+        },
+        {
+          "id": "conception-exploitation",
+          "title": "Concevoir pour l’exploitation",
+          "description": "Intégrer observabilité, déploiement, maintenance et récupération dès la conception.",
+          "path": "/lessons/conception-exploitation.html"
+        }
+      ]
+    },
+    {
+      "id": "09-professionnel",
+      "number": "09",
+      "title": "Compétences professionnelles et évolution",
+      "description": "6 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "projets-complets",
+          "title": "Construire des projets complets",
+          "description": "Consolider les acquis en livrant des applications fonctionnelles.",
+          "path": "/lessons/projets-complets.html"
+        },
+        {
+          "id": "documentation-officielle",
+          "title": "Lire la documentation officielle",
+          "description": "Trouver l’information fiable et vérifier les comportements d’un outil.",
+          "path": "/lessons/documentation-officielle.html"
+        },
+        {
+          "id": "open-source",
+          "title": "Lire et contribuer à l’open source",
+          "description": "Comprendre un projet partagé et proposer des contributions ciblées.",
+          "path": "/lessons/open-source.html"
+        },
+        {
+          "id": "usage-ia",
+          "title": "Utiliser l’IA comme outil de développement",
+          "description": "S’en servir pour explorer et vérifier, tout en gardant la maîtrise du code.",
+          "path": "/lessons/usage-ia.html"
+        },
+        {
+          "id": "choix-techniques",
+          "title": "Expliquer les choix techniques",
+          "description": "Présenter les avantages, coûts et compromis d’une décision.",
+          "path": "/lessons/choix-techniques.html"
+        },
+        {
+          "id": "specialisation",
+          "title": "Approfondissement et spécialisation",
+          "description": "Développer une expertise ciblée sans perdre la vision globale du stack.",
+          "path": "/lessons/specialisation.html"
+        }
+      ]
+    },
+    {
+      "id": "10-typescript-avance",
+      "number": "10",
+      "title": "TypeScript approfondi",
+      "description": "6 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "typescript-generiques",
+          "title": "Types génériques",
+          "description": "Écrire des fonctions et structures réutilisables qui conservent l’information de type.",
+          "path": "/lessons/typescript-generiques.html"
+        },
+        {
+          "id": "typescript-unions-intersections",
+          "title": "Unions, intersections et narrowing",
+          "description": "Modéliser plusieurs formes de données et affiner les types en toute sécurité.",
+          "path": "/lessons/typescript-unions-intersections.html"
+        },
+        {
+          "id": "typescript-types-conditionnels-mappes",
+          "title": "Types conditionnels et types mappés",
+          "description": "Construire des types avancés à partir d’autres types.",
+          "path": "/lessons/typescript-types-conditionnels-mappes.html"
+        },
+        {
+          "id": "typescript-utilitaires",
+          "title": "Types utilitaires : Pick, Omit, Partial et Record",
+          "description": "Transformer des types existants avec les utilitaires intégrés.",
+          "path": "/lessons/typescript-utilitaires.html"
+        },
+        {
+          "id": "typescript-unknown-never",
+          "title": "Inférence, unknown et never",
+          "description": "Comprendre l’inférence et représenter correctement les valeurs inconnues ou impossibles.",
+          "path": "/lessons/typescript-unknown-never.html"
+        },
+        {
+          "id": "typescript-modules-tsconfig",
+          "title": "Modules, déclarations et tsconfig",
+          "description": "Organiser les modules et configurer la compilation TypeScript.",
+          "path": "/lessons/typescript-modules-tsconfig.html"
+        }
+      ]
+    },
+    {
+      "id": "11-api-integration",
+      "number": "11",
+      "title": "Conception et intégration des API",
+      "description": "6 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "api-pagination-filtrage",
+          "title": "Pagination, tri et filtrage",
+          "description": "Concevoir des endpoints efficaces pour parcourir des collections.",
+          "path": "/lessons/api-pagination-filtrage.html"
+        },
+        {
+          "id": "contrats-api-validation",
+          "title": "Contrats d’API et validation des réponses",
+          "description": "Définir des contrats explicites et vérifier les données entrantes comme sortantes.",
+          "path": "/lessons/contrats-api-validation.html"
+        },
+        {
+          "id": "api-erreurs-coherentes",
+          "title": "Gestion cohérente des erreurs d’API",
+          "description": "Normaliser les erreurs et produire des réponses prévisibles.",
+          "path": "/lessons/api-erreurs-coherentes.html"
+        },
+        {
+          "id": "timeouts-retries-annulation",
+          "title": "Timeouts, retries et annulation",
+          "description": "Gérer les appels lents, les échecs temporaires et l’annulation des requêtes.",
+          "path": "/lessons/timeouts-retries-annulation.html"
+        },
+        {
+          "id": "idempotence-api",
+          "title": "Idempotence des API",
+          "description": "Concevoir des opérations qui supportent les répétitions de requêtes.",
+          "path": "/lessons/idempotence-api.html"
+        },
+        {
+          "id": "webhooks",
+          "title": "Webhooks et intégrations tierces",
+          "description": "Recevoir des événements externes et vérifier leur authenticité.",
+          "path": "/lessons/webhooks.html"
+        }
+      ]
+    },
+    {
+      "id": "12-donnees-avancees",
+      "number": "12",
+      "title": "Données avancées",
+      "description": "6 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "isolation-transactions-verrous",
+          "title": "Isolation des transactions et verrous",
+          "description": "Comprendre les anomalies de concurrence et les mécanismes de verrouillage.",
+          "path": "/lessons/isolation-transactions-verrous.html"
+        },
+        {
+          "id": "concurrence-mises-a-jour",
+          "title": "Concurrence et mises à jour perdues",
+          "description": "Protéger les données lorsque plusieurs opérations sont concurrentes.",
+          "path": "/lessons/concurrence-mises-a-jour.html"
+        },
+        {
+          "id": "plans-execution-sql",
+          "title": "Plans d’exécution SQL",
+          "description": "Lire un plan d’exécution et repérer les requêtes coûteuses.",
+          "path": "/lessons/plans-execution-sql.html"
+        },
+        {
+          "id": "strategie-sauvegarde-restauration",
+          "title": "Sauvegarde et restauration",
+          "description": "Définir des sauvegardes vérifiables et tester la restauration.",
+          "path": "/lessons/strategie-sauvegarde-restauration.html"
+        },
+        {
+          "id": "migrations-sans-interruption",
+          "title": "Migrations sans interruption",
+          "description": "Faire évoluer le schéma tout en maintenant le service disponible.",
+          "path": "/lessons/migrations-sans-interruption.html"
+        },
+        {
+          "id": "recherche-textuelle-pagination",
+          "title": "Recherche textuelle et pagination efficace",
+          "description": "Choisir des stratégies adaptées à la recherche et aux grands volumes.",
+          "path": "/lessons/recherche-textuelle-pagination.html"
+        }
+      ]
+    },
+    {
+      "id": "13-securite-avancee",
+      "number": "13",
+      "title": "Sécurité approfondie",
+      "description": "6 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "modele-menace",
+          "title": "Modèle de menace et analyse des risques",
+          "description": "Identifier actifs, menaces, surfaces d’attaque et mesures de réduction du risque.",
+          "path": "/lessons/modele-menace.html"
+        },
+        {
+          "id": "rbac-abac-controle-acces",
+          "title": "Contrôle d’accès par rôle et par ressource",
+          "description": "Appliquer des permissions au niveau des fonctions et des objets.",
+          "path": "/lessons/rbac-abac-controle-acces.html"
+        },
+        {
+          "id": "securite-dependances",
+          "title": "Dépendances et chaîne d’approvisionnement",
+          "description": "Réduire les risques liés aux packages, versions et pipelines.",
+          "path": "/lessons/securite-dependances.html"
+        },
+        {
+          "id": "securite-api-abus",
+          "title": "Sécurité des API et prévention des abus",
+          "description": "Protéger les endpoints contre les usages abusifs et les accès excessifs.",
+          "path": "/lessons/securite-api-abus.html"
+        },
+        {
+          "id": "rotation-secrets-chiffrement",
+          "title": "Rotation des secrets et chiffrement",
+          "description": "Protéger les secrets et données sensibles en transit et au repos.",
+          "path": "/lessons/rotation-secrets-chiffrement.html"
+        },
+        {
+          "id": "journalisation-incidents",
+          "title": "Journalisation de sécurité et incidents",
+          "description": "Détecter les événements suspects et préparer la réponse aux incidents.",
+          "path": "/lessons/journalisation-incidents.html"
+        }
+      ]
+    },
+    {
+      "id": "14-ux-accessibilite-performance",
+      "number": "14",
+      "title": "UX, accessibilité et qualité produit",
+      "description": "5 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "ergonomie-interface",
+          "title": "Ergonomie et conception d’interface",
+          "description": "Organiser une interface compréhensible et cohérente.",
+          "path": "/lessons/ergonomie-interface.html"
+        },
+        {
+          "id": "etats-interface",
+          "title": "États de chargement, erreur et vide",
+          "description": "Concevoir les états qui rendent l’application claire en toutes circonstances.",
+          "path": "/lessons/etats-interface.html"
+        },
+        {
+          "id": "navigation-clavier-lecteurs",
+          "title": "Navigation clavier et lecteurs d’écran",
+          "description": "Rendre les parcours accessibles sans souris et avec les technologies d’assistance.",
+          "path": "/lessons/navigation-clavier-lecteurs.html"
+        },
+        {
+          "id": "contraste-semantique-aria",
+          "title": "Contraste, sémantique et ARIA",
+          "description": "Appliquer les bases d’accessibilité aux composants et contenus.",
+          "path": "/lessons/contraste-semantique-aria.html"
+        },
+        {
+          "id": "core-web-vitals",
+          "title": "Core Web Vitals et performances réelles",
+          "description": "Mesurer l’expérience réelle de chargement, interactivité et stabilité visuelle.",
+          "path": "/lessons/core-web-vitals.html"
+        }
+      ]
+    },
+    {
+      "id": "15-travail-equipe",
+      "number": "15",
+      "title": "Méthodes de travail en équipe",
+      "description": "6 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "issues-tickets-acceptation",
+          "title": "Issues, tickets et critères d’acceptation",
+          "description": "Transformer un besoin en tâches vérifiables.",
+          "path": "/lessons/issues-tickets-acceptation.html"
+        },
+        {
+          "id": "pull-requests-revue-code",
+          "title": "Pull requests et revue de code",
+          "description": "Proposer, discuter et valider des changements de façon collaborative.",
+          "path": "/lessons/pull-requests-revue-code.html"
+        },
+        {
+          "id": "branches-conflits-git",
+          "title": "Stratégie Git et résolution de conflits",
+          "description": "Collaborer avec des branches et résoudre les conflits proprement.",
+          "path": "/lessons/branches-conflits-git.html"
+        },
+        {
+          "id": "semver-changelogs",
+          "title": "Versionnement sémantique et changelogs",
+          "description": "Publier des versions compréhensibles et communiquer les changements.",
+          "path": "/lessons/semver-changelogs.html"
+        },
+        {
+          "id": "documentation-decisions",
+          "title": "Documentation technique et décisions d’architecture",
+          "description": "Documenter les choix qui influencent la maintenance du projet.",
+          "path": "/lessons/documentation-decisions.html"
+        },
+        {
+          "id": "licences-publication-packages",
+          "title": "Dépendances, licences et publication de packages",
+          "description": "Vérifier les licences et préparer des packages réutilisables.",
+          "path": "/lessons/licences-publication-packages.html"
+        }
+      ]
+    },
+    {
+      "id": "16-architecture-frontend",
+      "number": "16",
+      "title": "Architecture frontend approfondie",
+      "description": "4 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "routage-frontend",
+          "title": "Routage frontend",
+          "description": "Structurer la navigation, les paramètres et les routes protégées.",
+          "path": "/lessons/routage-frontend.html"
+        },
+        {
+          "id": "donnees-distantes-frontend",
+          "title": "Gestion des données distantes",
+          "description": "Gérer cache, chargement, erreurs, invalidation et synchronisation des données.",
+          "path": "/lessons/donnees-distantes-frontend.html"
+        },
+        {
+          "id": "ssr-csr-hydratation",
+          "title": "SSR, CSR et hydratation",
+          "description": "Comparer les stratégies de rendu et comprendre leurs implications.",
+          "path": "/lessons/ssr-csr-hydratation.html"
+        },
+        {
+          "id": "decoupage-composants",
+          "title": "Découpage et composition des composants",
+          "description": "Créer des composants cohérents, réutilisables et faciles à tester.",
+          "path": "/lessons/decoupage-composants.html"
+        }
+      ]
+    },
+    {
+      "id": "17-architecture-backend",
+      "number": "17",
+      "title": "Architecture backend approfondie",
+      "description": "4 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "injection-dependances",
+          "title": "Injection de dépendances",
+          "description": "Découpler les composants et faciliter les tests.",
+          "path": "/lessons/injection-dependances.html"
+        },
+        {
+          "id": "transactions-metier",
+          "title": "Transactions et cohérence métier",
+          "description": "Préserver les invariants lors d’opérations métier multiples.",
+          "path": "/lessons/transactions-metier.html"
+        },
+        {
+          "id": "frontieres-modules",
+          "title": "Frontières entre modules",
+          "description": "Limiter le couplage et clarifier les contrats internes.",
+          "path": "/lessons/frontieres-modules.html"
+        },
+        {
+          "id": "architecture-hexagonale",
+          "title": "Architecture hexagonale",
+          "description": "Isoler le domaine métier des frameworks et des systèmes externes.",
+          "path": "/lessons/architecture-hexagonale.html"
+        }
+      ]
+    },
+    {
+      "id": "18-performance-scalabilite",
+      "number": "18",
+      "title": "Performance et scalabilité",
+      "description": "4 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "profilage-application",
+          "title": "Profilage d’application",
+          "description": "Mesurer CPU, mémoire, réseau et latence avant d’optimiser.",
+          "path": "/lessons/profilage-application.html"
+        },
+        {
+          "id": "cache-http-cdn",
+          "title": "Cache HTTP et CDN",
+          "description": "Réduire les temps de réponse et la charge grâce au cache et à la distribution de contenu.",
+          "path": "/lessons/cache-http-cdn.html"
+        },
+        {
+          "id": "tests-charge",
+          "title": "Tests de charge",
+          "description": "Évaluer le comportement du système sous une charge réaliste.",
+          "path": "/lessons/tests-charge.html"
+        },
+        {
+          "id": "goulots-etranglement",
+          "title": "Identification des goulots d’étranglement",
+          "description": "Prioriser les optimisations à partir de mesures.",
+          "path": "/lessons/goulots-etranglement.html"
+        }
+      ]
+    },
+    {
+      "id": "19-observabilite",
+      "number": "19",
+      "title": "Observabilité approfondie",
+      "description": "3 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "traces-distribuees",
+          "title": "Traces distribuées",
+          "description": "Suivre une requête à travers plusieurs composants.",
+          "path": "/lessons/traces-distribuees.html"
+        },
+        {
+          "id": "correlation-logs",
+          "title": "Corrélation des logs",
+          "description": "Relier les événements d’une même requête avec des identifiants de corrélation.",
+          "path": "/lessons/correlation-logs.html"
+        },
+        {
+          "id": "metriques-alertes",
+          "title": "Métriques et alertes",
+          "description": "Choisir des indicateurs pertinents et définir des alertes actionnables.",
+          "path": "/lessons/metriques-alertes.html"
+        }
+      ]
+    },
+    {
+      "id": "20-livraison-logicielle",
+      "number": "20",
+      "title": "Livraison logicielle",
+      "description": "3 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "environnements-dev-test-prod",
+          "title": "Environnements de développement, test et production",
+          "description": "Séparer les configurations et limiter les écarts entre environnements.",
+          "path": "/lessons/environnements-dev-test-prod.html"
+        },
+        {
+          "id": "rollback-deploiement",
+          "title": "Rollback et stratégies de déploiement",
+          "description": "Revenir à une version stable et limiter le risque des mises en production.",
+          "path": "/lessons/rollback-deploiement.html"
+        },
+        {
+          "id": "migrations-livraison",
+          "title": "Migrations pendant la livraison",
+          "description": "Orchestrer les changements applicatifs et de données de façon sûre.",
+          "path": "/lessons/migrations-livraison.html"
+        }
+      ]
+    },
+    {
+      "id": "21-gestion-projet",
+      "number": "21",
+      "title": "Gestion de projet et expression du besoin",
+      "description": "3 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "recueil-besoin-specifications",
+          "title": "Recueil du besoin et spécifications",
+          "description": "Clarifier le problème à résoudre, les utilisateurs et les contraintes.",
+          "path": "/lessons/recueil-besoin-specifications.html"
+        },
+        {
+          "id": "decoupage-taches-estimation",
+          "title": "Découpage en tâches et estimation",
+          "description": "Transformer un périmètre en étapes livrables et estimables.",
+          "path": "/lessons/decoupage-taches-estimation.html"
+        },
+        {
+          "id": "priorisation-produit",
+          "title": "Priorisation produit",
+          "description": "Arbitrer entre valeur, coût, risque et urgence.",
+          "path": "/lessons/priorisation-produit.html"
+        }
+      ]
+    },
+    {
+      "id": "22-ia-developpement",
+      "number": "22",
+      "title": "Intelligence artificielle appliquée au développement",
+      "description": "3 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "assistants-code",
+          "title": "Assistants de code",
+          "description": "Utiliser l’IA pour explorer, générer et expliquer du code avec discernement.",
+          "path": "/lessons/assistants-code.html"
+        },
+        {
+          "id": "verification-code-ia",
+          "title": "Vérification du code généré",
+          "description": "Contrôler exactitude, sécurité, tests, licences et maintenabilité.",
+          "path": "/lessons/verification-code-ia.html"
+        },
+        {
+          "id": "limites-securite-ia",
+          "title": "Limites et sécurité des outils IA",
+          "description": "Éviter de divulguer des secrets et reconnaître les sorties non fiables.",
+          "path": "/lessons/limites-securite-ia.html"
+        }
+      ]
+    },
+    {
+      "id": "23-specialisations",
+      "number": "23",
+      "title": "Spécialisations avancées",
+      "description": "5 compétences à maîtriser",
+      "lessons": [
+        {
+          "id": "graphql",
+          "title": "GraphQL",
+          "description": "Comprendre schémas, queries, mutations et limites d’une API GraphQL.",
+          "path": "/lessons/graphql.html"
+        },
+        {
+          "id": "recherche-moteurs",
+          "title": "Moteurs de recherche",
+          "description": "Découvrir indexation, pertinence et recherche dédiée.",
+          "path": "/lessons/recherche-moteurs.html"
+        },
+        {
+          "id": "systemes-distribues",
+          "title": "Systèmes distribués",
+          "description": "Comprendre latence réseau, pannes partielles et cohérence.",
+          "path": "/lessons/systemes-distribues.html"
+        },
+        {
+          "id": "architecture-evenementielle",
+          "title": "Architecture événementielle",
+          "description": "Découpler des composants par événements et messages.",
+          "path": "/lessons/architecture-evenementielle.html"
+        },
+        {
+          "id": "applications-temps-reel",
+          "title": "Applications temps réel",
+          "description": "Approfondir la diffusion d’événements et la synchronisation des clients.",
+          "path": "/lessons/applications-temps-reel.html"
+        }
+      ]
+    },
+    {
+      "id": "24-projets-pratiques",
+      "number": "24",
+      "title": "Projets pratiques et validation des acquis",
+      "description": "5 projets de synthèse pour transformer les connaissances en compétences",
+      "lessons": [
+        {
+          "id": "projet-1-site-frontend",
+          "title": "Projet 1 — Site frontend",
+          "description": "HTML, CSS, JavaScript, responsive design et accessibilité.",
+          "path": "/lessons/projet-1-site-frontend.html"
+        },
+        {
+          "id": "projet-2-api-base-donnees",
+          "title": "Projet 2 — API et base de données",
+          "description": "TypeScript, Node.js, API REST, PostgreSQL, validation et tests.",
+          "path": "/lessons/projet-2-api-base-donnees.html"
+        },
+        {
+          "id": "projet-3-application-fullstack",
+          "title": "Projet 3 — Application Full Stack",
+          "description": "React, authentification, CRUD, permissions et gestion des erreurs.",
+          "path": "/lessons/projet-3-application-fullstack.html"
+        },
+        {
+          "id": "projet-4-production",
+          "title": "Projet 4 — Mise en production",
+          "description": "Docker, CI/CD, déploiement, sauvegardes, logs et monitoring.",
+          "path": "/lessons/projet-4-production.html"
+        },
+        {
+          "id": "projet-5-application-professionnelle",
+          "title": "Projet 5 — Application de niveau professionnel",
+          "description": "Architecture modulaire, sécurité, tests complets, performance et documentation.",
+          "path": "/lessons/projet-5-application-professionnelle.html"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Découpage et composition des composants
+Domaine documentaire : frontend
+Ces références sont des points de départ ciblés pour approfondir le sujet ; cette liste ne prétend pas que chaque page liée a été lue intégralement.
+1. React — Penser en composants — https://react.dev/learn/thinking-in-react
+2. React — Passer des props à un composant — https://react.dev/learn/passing-props-to-a-component
+3. React — Partager l’état entre composants — https://react.dev/learn/sharing-state-between-components
+4. Vue — Composition des composants — https://vuejs.org/guide/essentials/component-basics.html
+5. Martin Fowler — Refactoring — https://martinfowler.com/books/refactoring.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Créer des composants dont les responsabilités, les interfaces et les dépendances restent compréhensibles.">
+<title>Découpage et composition des composants — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">16. Architecture frontend approfondie</p>
+<h1>Découpage et composition des composants</h1>
+<p class="lead">Créer des composants dont les responsabilités, les interfaces et les dépendances restent compréhensibles.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Lecture et mise en pratique</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2><p>Tu sauras identifier une responsabilité de composant, choisir entre composition et configuration, partager l’état au bon niveau et reconnaître les signes d’un découpage trop fin ou trop large. Tu apprendras à faire évoluer les interfaces de composants sans multiplier les dépendances implicites.</p>
+<p>Prérequis : composants React ou équivalent, props, état local et rendu conditionnel. Les exemples parlent de React, mais les principes sont transposables.</p></section><section class="lesson-section"><h2>1. Découper selon les responsabilités</h2><p>Un composant est une unité de rendu et de comportement. Un bon découpage rend une partie de l’interface plus facile à comprendre, tester ou réutiliser. Il n’est pas nécessaire que chaque élément HTML devienne un composant séparé : extraire une abstraction sans valeur ajoute des fichiers, des noms et des indirections.</p>
+<p>Commence par repérer les zones ayant un objectif clair : carte produit, formulaire d’adresse, barre de filtres, tableau de commandes. Chaque composant devrait avoir une responsabilité compréhensible et une interface cohérente. Si une fonction gère en même temps la requête réseau, la transformation métier, la mise en page et la gestion de plusieurs dialogues, elle peut être difficile à modifier sans effets secondaires.</p>
+<p>Le nombre de lignes ne suffit pas à décider. Un composant long mais linéaire peut être plus lisible que cinq composants minuscules qui se passent de nombreuses props. À l’inverse, une grande page contenant plusieurs sections indépendantes, chacune avec son état et ses règles, mérite souvent un découpage. La question est de savoir si l’extraction clarifie une intention ou masque le flux de données.</p></section><section class="lesson-section"><h2>2. Composition plutôt que multiplication des options</h2><p>Un composant configurable peut commencer par quelques props simples, puis devenir une API complexe avec des dizaines de booléens. Les combinaisons sont alors difficiles à comprendre et à tester. La composition permet au parent de fournir des parties de contenu au lieu de prévoir toutes les variantes à l’avance.</p>
+<p>Par exemple, un composant `Panel` peut recevoir un titre et un contenu enfant, tandis que le parent compose les actions spécifiques. Cette approche permet d’ajouter une variante sans modifier le composant générique. Les slots de Vue et les enfants de React expriment des idées similaires, même si leurs API diffèrent.</p>
+<p>La composition ne signifie pas que toute logique doit être externalisée. Un composant doit conserver la responsabilité du comportement qui appartient naturellement à son abstraction. Un champ de formulaire peut gérer l’affichage de son label et de son erreur ; le formulaire parent gère l’orchestration et la soumission. Évite les composants « universels » qui tentent de couvrir des besoins trop différents avec une configuration opaque.</p></section><section class="lesson-section"><h2>3. Placer l’état au bon niveau</h2><p>L’état doit vivre à l’endroit qui peut le posséder sans duplication. Si deux composants frères ont besoin de la même sélection, remonte l’état à leur parent commun ou utilise un mécanisme partagé approprié. Si une valeur n’est utilisée que dans un seul composant, la remonter inutilement crée des dépendances et des re-rendus sans bénéfice.</p>
+<p>Ne stocke pas séparément des valeurs calculables. Si le total d’un panier dépend des lignes, calcule-le à partir des lignes au lieu de maintenir deux états indépendants qui peuvent diverger. Pour une valeur dérivée coûteuse, une mémorisation peut être utile, mais elle doit répondre à un coût mesuré et respecter les règles du framework.</p>
+<p>Une prop est un contrat. N’envoie pas un objet géant lorsque le composant n’a besoin que de deux champs, sauf si l’objet représente réellement l’abstraction publique. Les interfaces trop larges rendent les dépendances cachées et compliquent les tests. Les interfaces trop étroites peuvent, à l’inverse, obliger à propager des dizaines de props sans cohérence ; la bonne forme dépend du domaine.</p></section><section class="lesson-section"><h2>4. Couplage, réutilisation et tests</h2><p>Un composant réutilisable ne devrait pas dépendre d’un contexte métier implicite qu’il ne contrôle pas. Une carte générique peut recevoir un titre, une description et des actions, tandis qu’un composant métier sait comment calculer le prix ou l’état de stock. Séparer présentation et logique peut améliorer les tests, mais une séparation forcée en couches artificielles peut rendre le flux plus difficile à suivre.</p>
+<p>Le couplage apparaît lorsque modifier un composant oblige à connaître plusieurs détails internes d’autres composants. Les noms d’événements et les props doivent exprimer l’intention : `onSave` est plus clair que `onClick2`. Les événements devraient transporter les informations nécessaires sans exposer inutilement la structure interne.</p>
+<p>Teste les comportements publics du composant : ce qu’il affiche, les interactions qu’il déclenche et la façon dont il réagit aux props. Évite de tester des détails internes qui pourraient changer sans impact utilisateur. Les tests unitaires d’un petit composant ne remplacent pas les tests d’intégration du parcours qui relie plusieurs composants.</p></section><section class="lesson-section"><h2>5. Exemple de refactorisation progressive</h2><p>Supposons qu’une page catalogue contienne un formulaire de filtre, une liste de produits et une pagination. Commence par isoler les zones dont la responsabilité est évidente. Définis ensuite les données et événements que chaque composant reçoit. La page peut gérer l’état des filtres et la pagination, tandis que `ProductList` reçoit les produits et `ProductCard` affiche un élément.</p>
+<p>Évite d’introduire immédiatement une architecture abstraite de rendu. Commence par déplacer un bloc sans changer le comportement, lance les tests et compare le résultat. Puis clarifie les props et déplace l’état si nécessaire. Ce processus limite le nombre de changements simultanés et facilite le diagnostic d’une régression.</p>
+<p>Si plusieurs composants répètent réellement le même comportement, crée une abstraction partagée. Si la similitude n’est que visuelle mais que les règles métier diffèrent, la duplication limitée peut être plus simple qu’une abstraction avec de nombreux paramètres. La réutilisation est un moyen de réduire le coût de changement, pas un objectif absolu.</p></section><section class="lesson-section">
+<h2>Atelier approfondi — définir un contrat de composant</h2>
+<h3>Objectifs ciblés</h3>
+<p>Tu sauras décider où placer une responsabilité et un état, concevoir une interface de composant stable et choisir entre composition, props et contexte sans créer une abstraction prématurée.</p>
+<h3>Découper par cohésion, pas par nombre de lignes</h3>
+<p>Un composant mérite une frontière lorsqu’il possède une responsabilité compréhensible, un comportement réutilisable, un état qu’il doit protéger ou une raison de changer distincte. Extraire chaque ligne dans un composant augmente les déplacements entre fichiers sans réduire le couplage. À l’inverse, un composant qui gère simultanément la requête réseau, le filtrage, les permissions, le formulaire et la présentation est difficile à tester et à modifier.</p>
+<pre><code>type Product = {
+  id: string;
+  name: string;
+  price: number;
+};
+
+type ProductCardProps = {
+  product: Product;
+  onAdd: (productId: string) =&gt; void;
+};
+
+function ProductCard({ product, onAdd }: ProductCardProps) {
+  return (
+    &lt;article&gt;
+      &lt;h2&gt;{product.name}&lt;/h2&gt;
+      &lt;p&gt;{product.price.toFixed(2)} €&lt;/p&gt;
+      &lt;button onClick={() =&gt; onAdd(product.id)}&gt;
+        Ajouter au panier
+      &lt;/button&gt;
+    &lt;/article&gt;
+  );
+}</code></pre>
+<p>Le composant reçoit les données et expose une intention via <code>onAdd</code>. Il ne décide pas lui-même comment enregistrer le panier, où le sauvegarder ou comment appeler l’API. Cette frontière permet de réutiliser la carte et de tester séparément le comportement de la page qui possède l’action.</p>
+<h3>Placer l’état au plus petit niveau qui le partage</h3>
+<p>Un état utilisé par un seul champ reste local. Un état partagé par plusieurs composants frères remonte vers leur parent commun. Un état serveur ne doit pas être recopié sans politique dans plusieurs états locaux. Les valeurs calculables à partir de props ou d’un état existant doivent généralement être dérivées plutôt que stockées en double : deux sources de vérité créent des mises à jour contradictoires.</p>
+<p>Une interface de composant est aussi un contrat d’accessibilité et de comportement : indique ce qui se passe au clic, comment les erreurs sont affichées, quelles propriétés sont obligatoires et qui possède le focus. Si le composant a trop de booléens qui peuvent se combiner de manière incohérente, une API de variantes explicites ou des sous-composants composables peut être plus lisible.</p>
+<h3>Composition ou abstraction ?</h3>
+<p>Privilégie la composition lorsqu’une zone doit être personnalisable sans ajouter une longue liste d’options. Un composant conteneur peut fournir la disposition et recevoir des éléments enfants. N’introduis pas un composant générique pour deux éléments seulement si leurs comportements vont probablement diverger ; la duplication locale est parfois moins coûteuse qu’une abstraction qui doit ensuite gérer toutes les exceptions.</p>
+<h3>Pièges spécifiques</h3>
+<ul><li>Une extraction purement mécanique peut déplacer la complexité sans clarifier la responsabilité.</li><li>Un composant qui importe directement un client API concret devient difficile à tester et à réutiliser.</li><li>Des valeurs dérivées stockées en double peuvent se désynchroniser après une modification.</li><li>Un contexte global pour un état utilisé à un seul endroit élargit inutilement la surface de dépendance.</li></ul>
+<h3>Exercice et critères de réussite</h3>
+<p>Choisis un écran qui mélange données, filtre, formulaire et rendu. Dessine ses responsabilités, puis extrais une carte de présentation et un composant de filtre. Définis les props avant de déplacer le code. Ajoute un test du comportement observable et note ce qui reste dans le parent ainsi que la raison de chaque état.</p>
+<ul><li>Chaque composant extrait a une responsabilité et un contrat explicites.</li><li>L’état est possédé par le plus petit niveau qui doit réellement le partager.</li><li>Les valeurs dérivées ne sont pas stockées en double sans raison démontrée.</li><li>Les dépendances réseau et métier ne sont pas cachées dans un composant de présentation.</li><li>Les tests couvrent le comportement public et la refactorisation ne change pas le résultat attendu.</li></ul>
+</section>
+<section class="lesson-section"><h2>Pièges, limites et compromis</h2><ul><li>Ne découpe pas mécaniquement selon le nombre de lignes.</li><li>Trop de booléens peuvent créer une API impossible à comprendre et à tester.</li><li>La composition peut clarifier les variantes, mais un excès de couches rend le flux difficile à suivre.</li><li>Ne duplique pas un état calculable dans plusieurs variables indépendantes.</li><li>Les composants partagés doivent avoir un contrat explicite et éviter les dépendances métier cachées.</li><li>Une petite duplication est parfois préférable à une abstraction prématurée.</li><li>Les tests doivent couvrir le comportement observable, pas seulement les détails d’implémentation.</li></ul></section><section class="lesson-section"><h2>Exercice</h2><p>Choisis une page de 150 lignes ou plus. Dessine les responsabilités qu’elle mélange, puis extrais deux composants dont les rôles sont clairement distincts. Définis leurs props et événements avant de déplacer le code. Vérifie qu’aucun état n’est dupliqué et ajoute un test du comportement principal. Compare le résultat : combien de dépendances sont devenues plus claires et quels coûts de navigation supplémentaires as-tu introduits ?</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul class="checklist"><li>Chaque composant a une responsabilité compréhensible.</li><li>Les props et événements expriment un contrat explicite.</li><li>L’état partagé vit à un niveau approprié.</li><li>Les valeurs dérivées ne sont pas maintenues en double sans raison.</li><li>La composition est utilisée lorsque les variantes le justifient.</li><li>La refactorisation conserve le comportement et possède des tests pertinents.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces références sont des points de départ ciblés pour vérifier les notions et poursuivre l’apprentissage. Consulte les documentations officielles à jour pour les détails propres à chaque outil.</p><ol><li><a href="https://react.dev/learn/thinking-in-react" target="_blank" rel="noopener noreferrer">React — Penser en composants</a></li><li><a href="https://react.dev/learn/passing-props-to-a-component" target="_blank" rel="noopener noreferrer">React — Passer des props à un composant</a></li><li><a href="https://react.dev/learn/sharing-state-between-components" target="_blank" rel="noopener noreferrer">React — Partager l’état entre composants</a></li><li><a href="https://vuejs.org/guide/essentials/component-basics.html" target="_blank" rel="noopener noreferrer">Vue — Composition des composants</a></li><li><a href="https://martinfowler.com/books/refactoring.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Refactoring</a></li></ol></section>
+<nav class="lesson-nav" aria-label="Navigation entre les leçons">
+<a href="ssr-csr-hydratation.html">← Précédent : SSR, CSR et hydratation</a>
+<a href="injection-dependances.html">Suivant : Injection de dépendances →</a>
+</nav>
+</main>
+</body>
+</html>

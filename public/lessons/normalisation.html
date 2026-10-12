@@ -1,0 +1,70 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Normalisation et dénormalisation
+Références documentaires proposées comme points d’entrée ; cela ne signifie pas que chaque source a été intégralement étudiée.
+1. PostgreSQL — Contraintes — https://www.postgresql.org/docs/current/ddl-constraints.html
+2. PostgreSQL — Types de données — https://www.postgresql.org/docs/current/datatype.html
+3. Microsoft — Database normalization — https://learn.microsoft.com/en-us/office/troubleshoot/access/database-normalization-description
+4. IBM — Database normalization — https://www.ibm.com/think/topics/database-normalization
+5. Use The Index, Luke — Performance SQL — https://use-the-index-luke.com/
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Réduire les incohérences, puis dénormaliser seulement lorsque le besoin est mesuré." name="description"/>
+<title>Normalisation et dénormalisation — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">4. Bases de données et modélisation</p>
+<h1>Normalisation et dénormalisation</h1>
+<p class="lead">Réduire les incohérences, puis dénormaliser seulement lorsque le besoin est mesuré.</p>
+<div class="lesson-meta"><span>Seconde passe pédagogique</span><span>Base de données</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Identifier les anomalies de mise à jour.</li><li>Expliquer les formes normales courantes.</li><li>Choisir entre normalisation et dénormalisation selon un besoin mesuré.</li></ul></section>
+<section class="lesson-section"><h2>1. Pourquoi normaliser ?</h2><p>La normalisation organise les données pour qu’un fait soit stocké à un endroit cohérent. Quand la même information est répétée dans plusieurs lignes, sa modification doit être répercutée partout. Cela provoque des anomalies de mise à jour, d’insertion et de suppression.</p><p>Par exemple, si chaque commande répète le nom et l’e-mail du client, changer l’e-mail exige de corriger toutes ses commandes. Une table client séparée réduit cette duplication.</p><pre><code>CREATE TABLE clients (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  nom TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE
+);
+CREATE TABLE commandes (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  client_id BIGINT NOT NULL REFERENCES clients(id),
+  cree_le TIMESTAMPTZ NOT NULL DEFAULT now()
+);</code></pre></section>
+<section class="lesson-section"><h2>2. Les formes normales</h2><p>La première forme normale vise des valeurs atomiques dans chaque cellule et des lignes identifiables. La deuxième forme normale concerne les dépendances à une partie seulement d’une clé candidate composée. La troisième forme normale cherche à éliminer les dépendances transitives inappropriées entre attributs non-clés. Ces définitions servent à repérer les anomalies, pas à appliquer mécaniquement une recette sans comprendre les dépendances fonctionnelles.</p><p>Exemple : si une table de lignes de commande répète <code>nom_client</code> et que <code>client_id</code> détermine ce nom, une correction de nom doit sinon toucher plusieurs lignes. Déplace les données du client dans une table distincte si elles décrivent bien l’état courant. En revanche, conserve le prix appliqué à une ligne de commande si ce prix représente le prix historique de la vente, et non le prix actuel du catalogue.</p><p>Pour chaque duplication, demande-toi : quelle est la source de vérité, quand la valeur peut-elle changer, et quelle règle maintient les copies cohérentes ?</p></section>
+<section class="lesson-section"><h2>3. Lire une dépendance fonctionnelle avant de décomposer</h2>
+<p>Supposons une table de lignes de commande dont la clé candidate est <code>(commande_id, produit_id)</code>. Si <code>produit_id</code> détermine <code>nom_produit</code>, ce nom dépend seulement d’une partie de la clé composée : le conserver sur chaque ligne crée une dépendance partielle. En revanche, <code>quantite</code> et le prix réellement payé dépendent de la ligne complète. Le prix appliqué doit souvent rester un instantané historique, même si le prix courant du catalogue change.</p>
+<pre><code>CREATE TABLE produits (
+  id BIGINT PRIMARY KEY,
+  nom TEXT NOT NULL
+);
+
+CREATE TABLE commandes_lignes (
+  commande_id BIGINT NOT NULL REFERENCES commandes(id),
+  produit_id BIGINT NOT NULL REFERENCES produits(id),
+  quantite INTEGER NOT NULL CHECK (quantite &gt; 0),
+  prix_unitaire_applique NUMERIC(12,2) NOT NULL
+    CHECK (prix_unitaire_applique &gt;= 0),
+  PRIMARY KEY (commande_id, produit_id)
+);</code></pre>
+<p>Pour la troisième forme normale, examine aussi les dépendances transitives : si <code>departement_id</code> détermine <code>nom_departement</code>, stocker ce nom sur chaque employé le répète sans nécessité. Une table <code>departements</code> séparée devient la source de vérité. Cette décomposition suppose qu’un seul département est associé à chaque identifiant ; les règles réelles doivent être modélisées explicitement.</p>
+<p>La clé composée ci-dessus suppose qu’un produit ne peut apparaître qu’une fois par commande. Si le métier autorise plusieurs lignes pour le même produit (par exemple des lots ou des remises distinctes), choisis une clé de ligne dédiée ou une autre contrainte métier au lieu d’imposer cette hypothèse silencieusement.</p></section>
+<section class="lesson-section"><h2>4. Dénormaliser avec intention</h2><p>La dénormalisation peut réduire des jointures ou accélérer des lectures fréquentes, mais elle introduit une obligation de synchronisation. Elle se justifie après mesure : requête identifiée, latence cible, volume et coût d’écriture connus. Documente l’autorité de la donnée, le moment où la copie est mise à jour et le comportement si une mise à jour échoue.</p><p>Exemples possibles : compteur de commentaires maintenu par transaction, projection de lecture reconstruisible ou instantané de facture. Ce sont des sémantiques différentes. Un compteur recalculable n’a pas les mêmes exigences qu’un montant légal archivé. Prévois une procédure de réconciliation qui compare les valeurs dérivées à leur source.</p></section>
+<section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Stocker une liste séparée par des virgules dans une colonne.</li><li>Répéter une information modifiable dans plusieurs tables sans règle de cohérence.</li><li>Dénormaliser avant d’avoir mesuré un problème réel.</li><li>Confondre une redondance historique voulue et une duplication accidentelle.</li></ul></section>
+<section class="lesson-section"><h2>Exercice</h2><p>Modélise une boutique avec clients, commandes, produits et lignes de commande. Une commande contient plusieurs produits et un produit apparaît dans plusieurs commandes. Propose les tables, clés et contraintes. Décide quelles données doivent être conservées comme instantané historique, par exemple le prix unitaire au moment de l’achat.</p><h3>Critères de réussite</h3><ul><li>La relation plusieurs-à-plusieurs passe par les lignes de commande.</li><li>Les données du client et du produit ne sont pas répétées inutilement.</li><li>Le prix historique est distingué du prix courant.</li><li>Chaque redondance a une justification et une règle de cohérence.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://www.postgresql.org/docs/current/ddl-constraints.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Contraintes</a></li>
+<li><a href="https://www.postgresql.org/docs/current/datatype.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Types de données</a></li>
+<li><a href="https://learn.microsoft.com/en-us/office/troubleshoot/access/database-normalization-description" rel="noopener noreferrer" target="_blank">Microsoft — Database normalization</a></li>
+<li><a href="https://www.ibm.com/think/topics/database-normalization" rel="noopener noreferrer" target="_blank">IBM — Database normalization</a></li>
+<li><a href="https://use-the-index-luke.com/" rel="noopener noreferrer" target="_blank">Use The Index, Luke — Performance SQL</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"/> Je sais expliquer les anomalies d’insertion, de mise à jour et de suppression.</label><label><input type="checkbox"/> Je sais repérer une dépendance fonctionnelle simple.</label><label><input type="checkbox"/> Je sais justifier une dénormalisation par des mesures et une règle de synchronisation.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="cles-relations.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="jointures-agregations.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

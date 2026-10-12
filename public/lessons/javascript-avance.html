@@ -1,0 +1,139 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : JavaScript avancé
+Domaine documentaire : apprentissage ciblé
+Les références ci-dessous sont des ressources de référence à étudier pour approfondir et vérifier les notions. Le tutoriel est une synthèse originale et ne prétend pas reproduire intégralement chaque source.
+1. MDN — Closures — https://developer.mozilla.org/fr/docs/Web/JavaScript/Closures
+2. MDN — Promises — https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Promise
+3. MDN — async function — https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Statements/async_function
+4. MDN — Event loop — https://developer.mozilla.org/en-US/docs/Web/JavaScript/Event_loop
+5. javascript.info — Promesses, async/await — https://fr.javascript.info/async
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Maîtriser promesses, async/await, closures, portée et event loop.">
+  <title>JavaScript avancé — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">1. Fondamentaux de la programmation et du Web</p>
+    <h1>JavaScript avancé</h1>
+    <p class="lead">Comprendre la portée lexicale, les closures, les promesses, la boucle d’événements et les erreurs asynchrones.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 5 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Expliquer la portée lexicale et le fonctionnement d’une closure.</li><li>Manipuler des promesses avec <code>then</code>, <code>catch</code> et <code>finally</code>.</li><li>Utiliser <code>async/await</code> sans perdre la gestion des erreurs.</li><li>Différencier tâches synchrones, microtâches et tâches de la boucle d’événements.</li><li>Choisir entre exécution séquentielle et concurrente.</li></ul></section>
+    <section class="lesson-section"><h2>1. Portée lexicale et closures</h2><p>La portée lexicale détermine où un nom peut être utilisé à partir de la structure du code. Une closure est une fonction associée à l’environnement lexical dans lequel elle a été créée. Elle peut donc conserver l’accès à des variables même après le retour de la fonction externe.</p>
+    <pre><code>function creerCompteur() {
+      let valeur = 0;
+      return function incrementer() {
+        valeur += 1;
+        return valeur;
+      };
+    }
+    const compteur = creerCompteur();
+    console.log(compteur()); // 1
+    console.log(compteur()); // 2</code></pre>
+    <p>La variable <code>valeur</code> n’est pas globale : elle reste accessible via la fonction retournée. Les closures sont utiles pour encapsuler un état, fabriquer des fonctions spécialisées ou conserver des callbacks. Elles peuvent toutefois prolonger la durée de vie d’objets en mémoire si des références inutiles sont conservées.</p></section>
+    <section class="lesson-section"><h2>2. Promesses et propagation des erreurs</h2>
+    <pre><code>function chargerProfil(id) {
+      return fetch(`/api/profils/${id}`)
+        .then(reponse => {
+          if (!reponse.ok) throw new Error(`HTTP ${reponse.status}`);
+          return reponse.json();
+        });
+    }
+    
+    chargerProfil("u-42")
+      .then(profil => afficher(profil))
+      .catch(erreur => afficherErreur(erreur))
+      .finally(() => masquerIndicateur());</code></pre>
+    <p>Une promesse représente un résultat futur : en attente, accomplie ou rejetée. Une réponse HTTP 404 ne rejette pas automatiquement la promesse renvoyée par <code>fetch</code> ; il faut vérifier <code>response.ok</code>. Une chaîne de <code>then</code> renvoie une nouvelle promesse, ce qui permet de propager les résultats et les erreurs.</p></section>
+    <section class="lesson-section"><h2>3. async/await</h2>
+    <pre><code>async function chargerProfil(id) {
+      const reponse = await fetch(`/api/profils/${id}`);
+      if (!reponse.ok) {
+        throw new Error(`Échec HTTP ${reponse.status}`);
+      }
+      return reponse.json();
+    }
+    
+    async function afficherProfil(id) {
+      try {
+        const profil = await chargerProfil(id);
+        afficher(profil);
+      } catch (erreur) {
+        afficherErreur(erreur);
+      }
+    }</code></pre>
+    <p>Une fonction <code>async</code> renvoie toujours une promesse. <code>await</code> suspend la progression de cette fonction jusqu’au règlement de la promesse, sans bloquer à lui seul le thread JavaScript de l’interface. Une exception dans la fonction se traduit par une promesse rejetée. Intercepte les erreurs au niveau où une décision utile peut être prise, sans les avaler silencieusement.</p></section>
+    <section class="lesson-section"><h2>4. Séquentiel ou concurrent ?</h2>
+    <pre><code>async function chargerEnSequence(id) {
+      // À choisir si la seconde opération dépend du premier résultat.
+      const profil = await chargerProfil(id);
+      const commandes = await chargerCommandes(id);
+      return { profil, commandes };
+    }
+
+    async function chargerEnParallele(id) {
+      // À choisir uniquement si les deux appels sont indépendants.
+      const [profil, commandes] = await Promise.all([
+        chargerProfil(id),
+        chargerCommandes(id)
+      ]);
+      return { profil, commandes };
+    }</code></pre>
+    <p>Ces deux fonctions sont des variantes : appelle celle qui correspond aux dépendances réelles, au lieu d’exécuter les deux exemples successivement. <code>Promise.all</code> rejette dès qu’un membre échoue, mais n’annule pas automatiquement les autres opérations. Si les résultats partiels sont utiles, examine <code>Promise.allSettled</code>. N’exécute pas en parallèle des opérations dépendantes ou susceptibles de saturer un service.</p></section>
+    <section class="lesson-section"><h2>5. La boucle d’événements</h2><pre><code>console.log("A");
+    setTimeout(() => console.log("timer"), 0);
+    Promise.resolve().then(() => console.log("microtâche"));
+    console.log("B");
+    // A, B, microtâche, timer</code></pre>
+    <p>Le code courant s’exécute jusqu’à la fin de la pile. Les callbacks de promesses sont planifiés comme microtâches, généralement traitées avant les tâches de minuterie suivantes. Un délai de zéro milliseconde ne signifie pas une exécution immédiate. Un calcul synchrone long bloque le thread principal et retarde les interactions, même si des opérations réseau sont asynchrones.</p></section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Oublier <code>return</code> dans une chaîne de promesses et perdre la propagation.</li><li>Ne pas vérifier <code>response.ok</code> après <code>fetch</code>.</li><li>Mettre des <code>await</code> en série alors que les opérations sont indépendantes.</li><li>Lancer une promesse sans gérer son rejet.</li><li>Confondre asynchronisme et parallélisme : le code JavaScript ne s’exécute pas automatiquement sur plusieurs cœurs.</li></ul></section>
+    <section class="lesson-section"><h2>Exercice</h2><p>Crée une closure qui limite le nombre d’appels à une fonction. Ensuite, écris une fonction qui charge deux ressources indépendantes en parallèle, vérifie les statuts HTTP et présente un message exploitable en cas d’échec.</p><h3>Critères de réussite</h3><ul><li>L’état privé n’est pas exposé globalement.</li><li>Les erreurs sont propagées puis traitées au bon niveau.</li><li>Les appels indépendants sont concurrents, les dépendances restent séquentielles.</li><li>L’ordre des logs de l’exemple de boucle d’événements est expliqué.</li></ul></section>
+        <section class="lesson-section"><h2>Approfondissement — comprendre ce que conserve une closure et ce que promet une opération asynchrone</h2>
+    <p>Une closure conserve l’accès à une liaison lexicale, pas nécessairement une photographie de sa valeur au moment où la fonction est créée. Cette différence explique certains bugs de callbacks : plusieurs fonctions peuvent observer la même variable modifiée ultérieurement.</p>
+    <pre><code>const actions = [];
+for (let i = 0; i &lt; 3; i++) {
+  actions.push(() =&gt; i);
+}
+console.log(actions.map(action =&gt; action())); // [0, 1, 2]</code></pre>
+    <p>Avec <code>let</code>, chaque itération de cette boucle crée une liaison propre à l’itération. Avec un ancien <code>var</code>, les callbacks partageraient la même variable de fonction et liraient la valeur finale après la boucle. Lorsque tu écris un callback, demande-toi si tu veux lire une valeur future ou conserver une valeur déterminée ; copie-la explicitement si une photographie est nécessaire.</p>
+    <p>Pour les promesses, distingue aussi l’échec d’une requête réseau de la réponse HTTP d’erreur : <code>fetch</code> rejette en cas d’échec réseau ou d’interruption, mais une réponse 404 ou 500 reste une réponse à inspecter via <code>response.ok</code>. Une chaîne asynchrone doit décider à quel niveau l’erreur peut être traduite en message utilisateur, journalisée ou propagée à l’appelant.</p>
+    <h3>Annuler une opération devenue inutile</h3>
+    <pre><code>async function chargerRecherche(terme, signal) {
+  const url = `/api/recherche?q=${encodeURIComponent(terme)}`;
+  const reponse = await fetch(url, { signal });
+  if (!reponse.ok) throw new Error(`HTTP ${reponse.status}`);
+  return reponse.json();
+}
+
+async function demonstrerAnnulation() {
+  const controleur = new AbortController();
+  const promesse = chargerRecherche("clavier", controleur.signal);
+  // Une nouvelle saisie peut déclencher cette annulation.
+  controleur.abort();
+  try {
+    await promesse;
+  } catch (erreur) {
+    if (erreur instanceof DOMException &amp;&amp; erreur.name === "AbortError") {
+      // Annulation attendue : ne pas l'afficher comme une panne serveur.
+    } else {
+      throw erreur;
+    }
+  }
+}</code></pre>
+    <p>L’annulation est utile pour les recherches à chaque frappe, les changements de page ou les composants démontés. Elle ne garantit pas qu’un serveur ayant déjà reçu la requête arrête le travail ; elle permet au client d’interrompre l’attente et le traitement associé. Une annulation attendue doit être distinguée d’une erreur inattendue.</p>
+    <h3>Parallélisme logique et gestion des échecs</h3><p><code>Promise.all</code> permet d’attendre plusieurs résultats indépendants, mais la promesse agrégée est rejetée dès qu’un membre échoue. Cela n’annule pas automatiquement les autres opérations. Si chaque résultat doit être examiné même en cas d’échec partiel, <code>Promise.allSettled</code> fournit un statut pour chacune. Choisis selon le contrat fonctionnel : un écran peut accepter des widgets indépendants en échec partiel, alors qu’une validation de paiement doit souvent échouer comme un tout.</p>
+    <h3>Exercice de vérification</h3><p>Écris une recherche déclenchée par un champ texte. Chaque nouvelle saisie doit annuler la requête précédente, ignorer les erreurs d’annulation attendues et afficher les erreurs réseau ou HTTP utiles. Ajoute ensuite deux appels indépendants : montre le comportement de <code>Promise.all</code> lorsqu’un seul échoue, puis celui de <code>Promise.allSettled</code>.</p>
+    <h3>Critères de réussite</h3><ul><li>Le comportement d’une closure est expliqué en termes de liaison et de portée.</li><li>Les statuts HTTP sont vérifiés explicitement après <code>fetch</code>.</li><li>L’annulation attendue n’est pas affichée comme une panne utilisateur.</li><li>Le choix entre <code>Promise.all</code> et <code>Promise.allSettled</code> est justifié.</li><li>Les erreurs inattendues ne sont ni avalées ni transformées en succès fictif.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Web/JavaScript/Closures" target="_blank" rel="noopener noreferrer">MDN — Closures</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Promise" target="_blank" rel="noopener noreferrer">MDN — Promises</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Statements/async_function" target="_blank" rel="noopener noreferrer">MDN — async function</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Event_loop" target="_blank" rel="noopener noreferrer">MDN — Event loop</a></li><li><a href="https://fr.javascript.info/async" target="_blank" rel="noopener noreferrer">javascript.info — Promesses, async/await</a></li></ul></section>
+    <nav class="lesson-nav"><a class="nav-link" href="complexite-algorithmique.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="http.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

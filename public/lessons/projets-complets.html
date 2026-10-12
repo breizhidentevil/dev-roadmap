@@ -1,0 +1,68 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Construire des projets complets
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. GitHub Skills — Introduction to GitHub — https://skills.github.com/
+2. The Twelve-Factor App — https://12factor.net/
+3. OWASP Application Security Verification Standard — https://owasp.org/www-project-application-security-verification-standard/
+4. MDN — Testing — https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Testing
+5. Google Engineering Practices — Code Review — https://google.github.io/eng-practices/review/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Passer d’une compétence isolée à une application livrable, testée et documentée.">
+<title>Construire des projets complets — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Parcours Full Stack · Pratique et qualité</p>
+<h1>Construire des projets complets</h1>
+<p class="lead">Un projet complet démontre votre capacité à relier interface, API, données, sécurité, tests et déploiement. Sa valeur vient moins du nombre de fonctionnalités que de la cohérence du périmètre et de la qualité du résultat vérifiable.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Un projet complet sert à prouver qu’une solution fonctionne au-delà d’un exemple isolé. Il doit répondre à un besoin identifiable, présenter un parcours utilisateur cohérent et expliquer comment l’installer, le tester et le déployer. Il n’est pas nécessaire de construire une plateforme gigantesque : un périmètre limité mais terminé est plus convaincant.</p><ul><li>Définir un MVP et des critères d’acceptation.</li><li>Découper le travail en incréments démontrables.</li><li>Intégrer sécurité, tests et exploitation dès le début.</li><li>Documenter les décisions et les limites connues.</li></ul>
+</section>
+<section class="lesson-section"><h2>1. Choisir un problème et un périmètre</h2>
+<p>Commencez par un utilisateur cible et un problème précis. « Application de gestion » est trop vague ; « permettre à une association de suivre les prêts de matériel et de savoir qui doit rendre chaque objet » décrit un besoin testable.</p><p>Écrivez les parcours essentiels avant de choisir une pile technique. Un MVP peut inclure la création d’un objet, son emprunt, son retour et la consultation de l’historique. Les notifications, tableaux de bord avancés et intégrations externes peuvent rester hors périmètre jusqu’à ce que le flux principal soit fiable.</p><p>Définissez les critères d’acceptation en termes observables : un utilisateur authentifié peut créer un prêt ; un prêt déjà clôturé ne peut pas être rendu une seconde fois ; une personne non autorisée ne peut pas modifier le prêt d’autrui. Ces critères guident le modèle de données et les tests.</p>
+</section>
+<section class="lesson-section"><h2>2. Concevoir l’architecture utile</h2>
+<p>Une application web classique peut comporter une interface, une API, une base de données et un processus de déploiement. Dessinez les flux principaux : quelles données entrent, quelles règles s’appliquent, où elles sont stockées et comment les erreurs reviennent à l’utilisateur. Un schéma d’une page suffit souvent au départ.</p><p>Définissez les responsabilités : le navigateur améliore l’expérience et valide certains champs ; le serveur reste responsable de l’autorisation et des invariants métier ; la base impose les contraintes qui doivent survivre à la concurrence, comme l’unicité d’une adresse ou la cohérence d’une relation.</p><p>Choisissez la technologie en fonction de vos objectifs d’apprentissage, de la simplicité de déploiement et de votre capacité à la maintenir. N’ajoutez pas un broker de messages, une architecture microservices ou Kubernetes sans exigence qui les justifie.</p>
+</section>
+<section class="lesson-section"><h2>3. Construire par tranches verticales</h2>
+<p>Une tranche verticale traverse l’interface, la logique serveur et les données pour livrer un parcours complet. Par exemple, réaliser « créer un élément » de bout en bout avant d’implémenter dix écrans sans backend permet de découvrir tôt les problèmes de contrat et de validation.</p><ol><li>Créer le dépôt, le README et les conventions de travail.</li><li>Définir le modèle et une première migration de base de données.</li><li>Implémenter un cas d’usage complet avec validation serveur.</li><li>Relier l’interface et gérer les états de chargement, succès et erreur.</li><li>Ajouter des tests automatisés sur la règle métier et le contrat API.</li><li>Déployer un environnement de démonstration et vérifier le flux réel.</li></ol><p>Gardez les commits lisibles et les changements petits. Les pull requests, même pour un projet personnel, permettent de pratiquer la revue de code et de garder une trace de la raison d’un changement.</p>
+</section>
+<section class="lesson-section"><h2>4. Qualité, sécurité et livraison</h2>
+<p>La qualité n’est pas seulement l’absence de bugs visibles. Testez les règles métier en priorité, les frontières avec les systèmes externes ensuite, puis les parcours critiques via des tests end-to-end ciblés. Un grand nombre de tests fragiles ne garantit pas la qualité ; chaque test doit protéger un comportement important.</p><p>Traitez les risques de sécurité dès le MVP : autorisation côté serveur, stockage sûr des mots de passe si vous gérez l’authentification, secrets hors du dépôt, dépendances mises à jour, requêtes paramétrées et erreurs publiques non bavardes. N’inventez pas votre propre cryptographie ou protocole de session.</p><p>La livraison doit être reproductible : configuration documentée, variables d’environnement listées, migrations explicites, commande de test et procédure de déploiement. Ajoutez au minimum un health check utile, des journaux sans données sensibles et une sauvegarde si les données sont importantes.</p>
+</section>
+<section class="lesson-section"><h2>5. README et démonstration</h2>
+<p>Le README est une interface pour les personnes qui évaluent ou reprennent le projet. Il doit expliquer le problème, les fonctionnalités, la pile, les prérequis, l’installation, la configuration, les tests, le déploiement et les limites connues. Des captures d’écran ou une courte démonstration peuvent aider, mais elles ne remplacent pas les instructions reproductibles.</p><p>Documentez les choix importants et leurs compromis : pourquoi une base relationnelle, pourquoi cette méthode d’authentification, quelles fonctionnalités ont été reportées. N’affirmez pas qu’un projet est sécurisé ou scalable sans préciser les contrôles réellement mis en place.</p><ul><li>Ne laissez pas de fichier de configuration contenant des secrets dans le dépôt.</li><li>Ne décrivez pas des fonctionnalités qui ne fonctionnent pas.</li><li>Ne présentez pas un déploiement local comme une production robuste.</li><li>Ne repoussez pas tous les tests et la documentation à la fin.</li></ul>
+</section>
+<section class="lesson-section"><section class="lesson-section"><h2>Approfondissement pratique : prouver qu’un projet est réellement terminé</h2>
+<p>Un projet complet n’est pas une collection de fonctionnalités isolées : il doit permettre à une autre personne de comprendre le besoin, installer le système, exécuter les tests, observer le comportement et reproduire une démonstration. La définition de « terminé » doit donc inclure le parcours principal, les erreurs attendues, la sécurité minimale, les données de démonstration, la documentation et une livraison reproductible.</p>
+<h3>Découper par tranches verticales</h3><p>Construisez d’abord un parcours utilisateur de bout en bout, même réduit : interface, validation côté serveur, persistance, réponse d’erreur et test. Une tranche verticale expose tôt les problèmes d’intégration. À l’inverse, terminer toute l’interface, puis toute l’API, puis la base peut repousser les incompatibilités jusqu’à la fin. Chaque tranche doit produire une preuve visible et testable.</p>
+<h3>Checklist de livraison</h3><ul><li>Le README décrit le problème, les prérequis, l’installation, la configuration et les commandes de lancement.</li><li>Les secrets sont fournis par variables d’environnement ou un mécanisme de configuration, jamais commités.</li><li>Les tests couvrent le parcours critique, les validations et au moins un cas d’échec.</li><li>Les erreurs sont compréhensibles sans exposer de détails internes sensibles.</li><li>Une migration ou un script de préparation permet de recréer les données nécessaires.</li><li>Les limites connues et les décisions techniques importantes sont documentées.</li><li>La démonstration utilise un scénario déterministe et des données non sensibles.</li></ul>
+<h3>Exemple de preuve reproductible</h3><pre><code># Exemple de séquence à documenter dans le README
+npm ci
+npm test
+npm run build
+npm run start</code></pre><p>Ces commandes sont illustratives : adaptez-les au gestionnaire de paquets et aux scripts réellement présents dans le projet. N’annoncez pas qu’une commande fonctionne avant de l’avoir exécutée dans un environnement propre. Distinguez ce qui a été testé localement de ce qui a été testé en intégration ou en production.</p>
+<h3>Exercice de portfolio</h3><p>Choisissez un projet réalisable en une semaine. Rédigez une définition de fini en dix points maximum, un parcours utilisateur principal, trois scénarios d’erreur et un plan de démonstration de cinq minutes. Demandez à une personne qui ne connaît pas le dépôt de suivre le README sans assistance et notez les étapes ambiguës.</p>
+<p><strong>Critères de réussite :</strong> une personne externe peut installer et lancer le projet, reproduire le parcours principal, comprendre les choix majeurs et identifier clairement les limites restantes.</p></section>
+<h2>Exercice guidé</h2>
+<p>Construisez une application de suivi de lecture avec livres, statut de lecture et notes personnelles. Limitez la première version à la création d’un livre, au changement de statut et à la consultation de la liste.</p><ol><li>Écrivez trois critères d’acceptation et un cas d’erreur.</li><li>Définissez les tables ou collections et les règles d’autorisation.</li><li>Implémentez une tranche verticale complète avant d’ajouter d’autres écrans.</li><li>Choisissez cinq tests qui protègent les comportements les plus importants.</li><li>Écrivez les étapes exactes pour lancer le projet depuis un dépôt neuf.</li></ol><p><strong>Critères de réussite :</strong> un autre développeur peut installer et lancer l’application, les parcours essentiels fonctionnent, les validations et autorisations sont côté serveur, les tests sont exécutables et les limites sont décrites honnêtement.</p>
+</section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces références permettent d’approfondir les notions et de vérifier les détails propres aux outils. Les exemples du tutoriel sont synthétiques ; vérifiez la version et le contexte avant une application en production.</p><ol><li><a href="https://skills.github.com/" target="_blank" rel="noopener noreferrer">GitHub Skills — Introduction to GitHub</a></li>
+<li><a href="https://12factor.net/" target="_blank" rel="noopener noreferrer">The Twelve-Factor App</a></li>
+<li><a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener noreferrer">OWASP Application Security Verification Standard</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Testing" target="_blank" rel="noopener noreferrer">MDN — Testing</a></li>
+<li><a href="https://google.github.io/eng-practices/review/" target="_blank" rel="noopener noreferrer">Google Engineering Practices — Code Review</a></li></ol></section>
+<nav class="lesson-nav" aria-label="Navigation entre les compétences"><a href="conception-exploitation.html">← Compétence précédente</a><a href="documentation-officielle.html">Compétence suivante →</a></nav>
+</main>
+<footer class="site-footer"><p>Roadmap Full Stack 2026 · Apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

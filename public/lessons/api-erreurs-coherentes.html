@@ -1,0 +1,190 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Gestion cohérente des erreurs d’API
+Domaine documentaire : api
+Références consultées pour vérifier l’existence et l’adéquation générale des ressources. Elles servent de base de travail, pas de classement absolu des cinq meilleures ressources.
+1. OpenAPI — Spécification — https://spec.openapis.org/oas/latest.html
+2. MDN — Vue d’ensemble HTTP — https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview
+3. MDN — Méthodes HTTP — https://developer.mozilla.org/fr/docs/Web/HTTP/Reference/Methods
+4. MDN — Codes de statut HTTP — https://developer.mozilla.org/fr/docs/Web/HTTP/Reference/Status
+5. Express — Guide du routage — https://expressjs.com/fr/guide/error-handling/
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Normaliser les erreurs et produire des réponses prévisibles." name="description"/>
+<title>Gestion cohérente des erreurs d’API — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">11. Conception et intégration des API</p>
+<h1>Gestion cohérente des erreurs d’API</h1>
+<p class="lead">Normaliser les erreurs et produire des réponses prévisibles.</p>
+<div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 2 h</span></div>
+<section class="lesson-section">
+<h2>Objectifs d’apprentissage</h2>
+<ul><li>Différencier erreur de validation, absence de ressource, authentification, autorisation et panne serveur.</li><li>Choisir des codes HTTP cohérents et une structure d’erreur stable.</li><li>Centraliser le traitement des exceptions sans exposer d’informations sensibles.</li><li>Documenter et tester le contrat d’erreur d’une API.</li></ul>
+</section>
+<section class="lesson-section">
+<h2>1. Pourquoi normaliser les erreurs ?</h2>
+<p>Un client d’API doit savoir distinguer une requête invalide, une session expirée, une ressource absente et une panne temporaire. Si chaque endpoint invente son format, le client doit multiplier les cas particuliers et risque de traiter incorrectement une erreur.</p>
+<p>Une réponse d’erreur robuste possède trois couches : un code HTTP qui décrit la catégorie générale, un corps structuré qui apporte un code métier stable et un message compréhensible, puis éventuellement des détails de validation ou un identifiant de corrélation pour le support.</p>
+</section>
+<section class="lesson-section">
+<h2>2. Choisir le code HTTP</h2>
+<table><thead><tr><th>Code</th><th>Usage courant</th><th>Attention</th></tr></thead><tbody>
+<tr><td><code>400</code></td><td>Requête mal formée ou paramètres invalides au niveau syntaxique</td><td>Décrire précisément la correction attendue.</td></tr>
+<tr><td><code>401</code></td><td>Authentification absente ou invalide</td><td>Ce code ne signifie pas « pas autorisé » au sens des permissions.</td></tr>
+<tr><td><code>403</code></td><td>Identité connue mais action interdite</td><td>Ne pas divulguer inutilement des détails sur les ressources protégées.</td></tr>
+<tr><td><code>404</code></td><td>Ressource absente ou volontairement masquée</td><td>Une API peut choisir de masquer l’existence d’une ressource sensible.</td></tr>
+<tr><td><code>409</code></td><td>Conflit avec l’état actuel, par exemple une contrainte métier</td><td>Expliquer ce qui entre en conflit et comment résoudre le conflit.</td></tr>
+<tr><td><code>422</code></td><td>Contenu syntaxiquement compris mais sémantiquement invalide, si ce choix fait partie du contrat</td><td>Ne pas mélanger arbitrairement 400 et 422.</td></tr>
+<tr><td><code>429</code></td><td>Limite de débit atteinte</td><td>Fournir si possible une indication de temporisation, par exemple <code>Retry-After</code>.</td></tr>
+<tr><td><code>500</code></td><td>Erreur inattendue côté serveur</td><td>Ne jamais renvoyer stack trace, secrets ou requêtes internes au client.</td></tr>
+<tr><td><code>503</code></td><td>Service temporairement indisponible</td><td>Peut être accompagné d’une indication de reprise.</td></tr>
+</tbody></table>
+<p>Le choix exact doit être cohérent avec les standards HTTP et le contrat public. Évitez d’utiliser 200 pour une erreur métier : le client et les outils de supervision interpréteraient la requête comme un succès HTTP.</p>
+</section>
+<section class="lesson-section">
+<h2>3. Définir un format stable</h2>
+<p>Exemple de contrat simple, inspiré des formats d’erreur structurés courants :</p>
+<pre><code>{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Certains champs sont invalides.",
+    "details": [
+      { "field": "email", "code": "INVALID_FORMAT" }
+    ],
+    "requestId": "req_7f3a"
+  }
+}</code></pre>
+<p>Les propriétés ont des rôles différents :</p>
+<ul><li><code>code</code> : identifiant stable que le client peut traiter par programmation ; ne le changez pas pour une simple reformulation du texte.</li><li><code>message</code> : résumé destiné à être compris par un humain. Pour une interface multilingue, le client peut traduire à partir du code.</li><li><code>details</code> : détails limités et structurés, utiles notamment pour la validation.</li><li><code>requestId</code> : identifiant qui permet de retrouver les journaux internes sans exposer ces journaux.</li></ul>
+<p>Ne renvoyez pas d’objet d’exception brut. Il peut contenir un chemin de fichier, une requête SQL, des données utilisateur ou des secrets.</p>
+</section>
+<section class="lesson-section">
+<h2>4. Centraliser le traitement avec Express</h2>
+<p>Les routes traitent les erreurs métier attendues et transmettent les erreurs inattendues au gestionnaire central. L’identifiant de requête est créé une fois, propagé dans la réponse et utilisé pour retrouver les traces internes.</p>
+<pre><code>import express, { type Request, type Response, type NextFunction } from "express";
+import { randomUUID } from "node:crypto";
+
+const app = express();
+
+// Créer l’identifiant avant les parseurs : leurs erreurs seront corrélables.
+app.use((req: Request, res: Response, next: NextFunction) =&gt; {
+  res.locals.requestId = randomUUID();
+  res.setHeader("X-Request-Id", res.locals.requestId);
+  next();
+});
+app.use(express.json());
+
+app.get("/users/:id", async (req: Request, res: Response, next: NextFunction) =&gt; {
+  try {
+    const user = await findUser(req.params.id);
+    if (!user) {
+      res.status(404).json({
+        error: {
+          code: "USER_NOT_FOUND",
+          message: "Utilisateur introuvable.",
+          requestId: res.locals.requestId
+        }
+      });
+      return;
+    }
+    res.json({ data: user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.use((error: unknown, req: Request, res: Response, next: NextFunction) =&gt; {
+  if (res.headersSent) return next(error);
+
+  const requestId = String(res.locals.requestId ?? "unknown");
+  const parserErrorType =
+    typeof error === "object" && error !== null && "type" in error
+      ? error.type
+      : undefined;
+
+  // Les types ci-dessous sont ceux du body-parser utilisé par Express.
+  if (parserErrorType === "entity.parse.failed") {
+    res.status(400).json({
+      error: {
+        code: "INVALID_JSON",
+        message: "Le corps JSON est invalide.",
+        requestId
+      }
+    });
+    return;
+  }
+  if (parserErrorType === "entity.too.large") {
+    res.status(413).json({
+      error: {
+        code: "PAYLOAD_TOO_LARGE",
+        message: "Le corps de la requête est trop volumineux.",
+        requestId
+      }
+    });
+    return;
+  }
+
+  // logger est un logger structuré, protégé et configuré pour expurger
+  // secrets et données personnelles ; ne pas sérialiser l’objet brut.
+  logger.error({
+    requestId,
+    errorName: error instanceof Error ? error.name : "UnknownError",
+    method: req.method
+  }, "API request failed");
+
+  res.status(500).json({
+    error: {
+      code: "INTERNAL_ERROR",
+      message: "Une erreur inattendue est survenue.",
+      requestId
+    }
+  });
+});</code></pre>
+<p><code>findUser</code> et <code>logger</code> représentent des composants applicatifs à fournir. Le middleware de corrélation précède <code>express.json()</code> afin qu’une erreur de parsing possède aussi un identifiant de requête. Le gestionnaire distingue le JSON mal formé (<code>400</code>) et le corps trop volumineux (<code>413</code>) des défaillances inattendues (<code>500</code>) ; il s’appuie ici sur les types d’erreur documentés par le parseur Express et ne fait pas confiance à un statut arbitraire porté par toute exception. Le journal interne doit permettre un diagnostic sans renvoyer l’exception au client ; si la stack est conservée, elle doit rester dans un système d’observabilité à accès contrôlé et avec expurgation. Le gestionnaire doit respecter le comportement du framework lorsque les en-têtes ont déjà été envoyés. Les erreurs attendues (validation, conflit, autorisation) doivent être converties en réponses contractuelles avant d’arriver à ce gestionnaire d’erreurs inattendues.</p>
+</section>
+<section class="lesson-section">
+<h2>5. Erreurs de validation</h2>
+<p>Validez les données à l’entrée du système et distinguez au moins :</p>
+<ul><li>JSON mal formé ou paramètres impossibles à interpréter ;</li><li>champs obligatoires absents ;</li><li>format incorrect ;</li><li>valeurs hors limites ;</li><li>violation d’une règle métier ;</li><li>conflit avec une donnée déjà existante.</li></ul>
+<p>Une erreur de validation peut contenir plusieurs détails, mais elle ne doit pas révéler les règles internes au-delà de ce qui est nécessaire. Le client ne doit pas avoir à analyser une phrase libre pour identifier le champ en erreur.</p>
+</section>
+<section class="lesson-section">
+<h2>6. Réessais, idempotence et observabilité</h2>
+<p>Les clients ne doivent pas réessayer toutes les erreurs. Une requête mal formée ne deviendra pas valide en étant répétée. Une erreur temporaire de service peut justifier un nouvel essai avec délai exponentiel et aléa, mais les opérations non idempotentes peuvent créer des doublons si le client ne sait pas si la première tentative a été appliquée.</p>
+<p>Associez les erreurs à des métriques et journaux structurés : code HTTP, code applicatif, route, durée, identifiant de requête et résultat. Évitez les données personnelles dans les logs. Une hausse des 5xx ou des 429 doit pouvoir être détectée sans consulter manuellement chaque ligne.</p>
+</section>
+<section class="lesson-section">
+<h2>7. Tests du contrat d’erreur</h2>
+<ul><li>Chaque erreur attendue renvoie le code HTTP prévu.</li><li>Le JSON suit le schéma et contient le code applicatif stable.</li><li>Les erreurs inattendues renvoient une réponse générique en production.</li><li>Les détails de validation sont déterministes et n’exposent pas de données sensibles.</li><li>Les clients peuvent distinguer une erreur réessayable d’une erreur définitive lorsque le contrat le prévoit.</li><li>Les changements du format d’erreur sont couverts par des tests de contrat.</li></ul>
+<h3>Contrôles négatifs à inclure</h3><ul><li>Une erreur métier ne doit pas être renvoyée en HTTP 200 avec un champ <code>success: false</code>.</li><li>Ne convertis pas toutes les exceptions en 400 : distingue les erreurs client des défaillances serveur.</li><li>Ne journalise pas le corps complet des requêtes par défaut ; masque les champs sensibles et les identifiants qui ne sont pas nécessaires au diagnostic.</li><li>Vérifie que le même <code>requestId</code> apparaît dans l’en-tête, le corps d’erreur et les journaux associés.</li></ul></section>
+<section class="lesson-section">
+<h2>8. Exercice</h2>
+<p>Concevez les réponses d’erreur pour une API de gestion de tâches : tâche absente, utilisateur non connecté, action interdite, titre vide, titre déjà utilisé, limite de débit dépassée et panne de base de données. Pour chaque cas, définissez code HTTP, code applicatif, message, détails éventuels et comportement du client.</p>
+<h3>Critères de réussite</h3><p>Le format est identique d’un endpoint à l’autre, le code applicatif est stable, les erreurs attendues sont distinguées des pannes inattendues et aucune stack trace n’est envoyée au client.</p>
+</section>
+<section class="lesson-section">
+<h2>Sources à étudier</h2>
+<ul><li><a href="https://spec.openapis.org/oas/latest.html">OpenAPI Specification</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview">MDN — Vue d’ensemble HTTP</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Reference/Methods">MDN — Méthodes HTTP</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Reference/Status">MDN — Codes de statut HTTP</a></li><li><a href="https://expressjs.com/fr/guide/error-handling/">Express — Gestion des erreurs</a></li></ul>
+</section>
+<section class="lesson-section checklist">
+<h2>Validation des acquis</h2>
+<label><input type="checkbox"/> Je choisis des codes HTTP adaptés aux scénarios courants.</label>
+<label><input type="checkbox"/> Je peux définir un format d’erreur stable et documenté.</label>
+<label><input type="checkbox"/> Je centralise les erreurs inattendues sans exposer de détails internes.</label>
+<label><input type="checkbox"/> Je teste le contrat d’erreur et les comportements de réessai.</label>
+</section>
+<nav class="lesson-nav"><a class="nav-link" href="contrats-api-validation.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="timeouts-retries-annulation.html">Compétence suivante →</a></nav>
+
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

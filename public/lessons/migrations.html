@@ -1,0 +1,59 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Migrations de schéma
+Références documentaires proposées comme points d’entrée ; cela ne signifie pas que chaque source a été intégralement étudiée.
+1. Prisma — Migrations — https://www.prisma.io/docs/orm/prisma-migrate
+2. Flyway — Documentation — https://documentation.red-gate.com/flyway
+3. Liquibase — Documentation — https://docs.liquibase.com/
+4. Django — Migrations — https://docs.djangoproject.com/en/stable/topics/migrations/
+5. PostgreSQL — ALTER TABLE — https://www.postgresql.org/docs/current/sql-altertable.html
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Faire évoluer la structure d’une base de manière versionnée, reproductible et sûre." name="description"/>
+<title>Migrations de schéma — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">4. Bases de données et modélisation</p>
+<h1>Migrations de schéma</h1>
+<p class="lead">Faire évoluer la structure d’une base de manière versionnée, reproductible et sûre.</p>
+<div class="lesson-meta"><span>Seconde passe pédagogique</span><span>Base de données</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Expliquer pourquoi le schéma de base doit être versionné.</li><li>Écrire une migration reproductible et comprendre ses limites de réversibilité.</li><li>Planifier un changement compatible avec un déploiement progressif.</li></ul></section>
+<section class="lesson-section"><h2>1. Le schéma comme historique versionné</h2><p>Une migration décrit une évolution précise de la base : créer une table, ajouter une colonne, introduire une contrainte ou transformer des données. Les migrations sont conservées dans le dépôt et exécutées dans un ordre déterminé. L’outil de migration enregistre généralement celles qui ont été appliquées.</p><p>Le schéma local, celui des tests et celui de production doivent pouvoir être rapprochés à partir du même historique. Une modification manuelle en production sans migration crée une dérive difficile à reproduire.</p><pre><code>-- Exemple de migration ascendante
+ALTER TABLE utilisateurs
+ADD COLUMN nom_affiche TEXT;</code></pre><p>Une migration doit avoir une intention claire, un ordre stable et des conditions d’exécution connues. Elle doit être testée sur une base représentative, pas uniquement sur une base vide.</p></section>
+<section class="lesson-section"><h2>2. Changer le schéma sans casser l’application</h2><p>Un déploiement progressif peut faire coexister l’ancienne et la nouvelle version du code. La stratégie « expand–migrate–contract » réduit le risque : ajouter d’abord une structure compatible, déployer un code qui sait la lire/écrire, remplir les anciennes lignes, vérifier les résultats, puis retirer l’ancien champ lors d’un déploiement ultérieur.</p><ol><li><strong>Expand :</strong> ajouter la colonne ou la table sans rendre immédiatement l’ancien code invalide.</li><li><strong>Migrate :</strong> remplir les données par lots si le volume est important, en surveillant verrous, durée et charge.</li><li><strong>Switch :</strong> basculer les lectures et écritures, puis vérifier métriques et cohérence.</li><li><strong>Contract :</strong> supprimer l’ancien champ uniquement après confirmation qu’aucun code actif ne l’utilise.</li></ol><p>Les détails dépendent du SGBD : certaines opérations prennent des verrous forts ou réécrivent la table. Vérifie le comportement de la version exacte et teste sur un volume proche de la production.</p>
+<h3>Exemple de contrainte progressive sous PostgreSQL</h3>
+<ol><li>Ajouter <code>nom_affiche</code> nullable et déployer une version du code qui renseigne le champ pour les nouvelles écritures.</li><li>Remplir les anciennes lignes par lots bornés, puis mesurer les valeurs manquantes et vides.</li><li>Une fois le backfill terminé, ajouter puis valider la contrainte :</li></ol>
+<pre><code>ALTER TABLE utilisateurs
+  ADD CONSTRAINT utilisateurs_nom_affiche_valide
+  CHECK (nom_affiche IS NOT NULL AND length(btrim(nom_affiche)) &gt; 0)
+  NOT VALID;
+
+ALTER TABLE utilisateurs
+  VALIDATE CONSTRAINT utilisateurs_nom_affiche_valide;
+
+-- Planifier ensuite SET NOT NULL après vérification du verrouillage
+-- et des garanties de la version PostgreSQL utilisée.</code></pre>
+<p>Dans PostgreSQL, une contrainte <code>CHECK ... NOT VALID</code> n’inspecte pas immédiatement toutes les lignes existantes, mais elle est appliquée aux nouvelles lignes et aux lignes modifiées ; la validation explicite vérifie ensuite les données déjà présentes. Ajoute cette contrainte après le backfill si des lignes historiques ne la respectent pas encore. Ne suppose pas qu’une opération est sans verrou parce qu’elle est déclarée en ligne.</p></section>
+<section class="lesson-section"><h2>3. Réversibilité et données</h2><p>Un rollback de migration ne restaure pas nécessairement les données supprimées ou transformées. Distingue l’inversion du schéma, la compensation métier et la restauration depuis sauvegarde. Avant une transformation destructive, conserve une copie vérifiable, mesure les lignes concernées et définis le point au-delà duquel un retour arrière n’est plus simple.</p><p>Une migration doit être reproductible, ordonnée et traçable. Évite de modifier après coup une migration déjà appliquée dans plusieurs environnements : crée une nouvelle migration corrective. En CI, teste une base vide et, si le projet le permet, une mise à niveau depuis un schéma précédent contenant des données réalistes.</p></section>
+<section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Modifier le schéma à la main sans enregistrer de migration.</li><li>Ajouter une contrainte incompatible avec les données existantes.</li><li>Supprimer une colonne avant que toutes les versions de l’application aient cessé de l’utiliser.</li><li>Supposer qu’une migration descendante restaure les données supprimées.</li><li>Tester seulement sur une base vide et ignorer la durée des opérations.</li><li>Utiliser <code>IF NOT EXISTS</code> pour masquer une dérive de schéma sans vérifier la définition réellement présente.</li><li>Laisser chaque instance applicative lancer les migrations au démarrage sans mécanisme de sérialisation adapté à l’outil.</li></ul></section>
+<section class="lesson-section"><h2>Exercice</h2><p>Une table <code>utilisateurs</code> contient des milliers de lignes et doit recevoir un champ obligatoire <code>nom_affiche</code>. Propose un plan de migrations compatible avec un déploiement progressif, incluant le remplissage des anciennes lignes et les contrôles avant d’imposer la contrainte.</p><h3>Critères de réussite</h3><ul><li>Les étapes n’exigent pas que toutes les instances changent simultanément.</li><li>Les anciennes lignes sont remplies et vérifiées avant la contrainte.</li><li>Le plan prévoit surveillance, sauvegarde et gestion d’échec.</li><li>Les suppressions irréversibles sont différées jusqu’à ce qu’elles soient sûres.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://www.prisma.io/docs/orm/prisma-migrate" rel="noopener noreferrer" target="_blank">Prisma — Migrations</a></li>
+<li><a href="https://documentation.red-gate.com/flyway" rel="noopener noreferrer" target="_blank">Flyway — Documentation</a></li>
+<li><a href="https://docs.liquibase.com/" rel="noopener noreferrer" target="_blank">Liquibase — Documentation</a></li>
+<li><a href="https://docs.djangoproject.com/en/stable/topics/migrations/" rel="noopener noreferrer" target="_blank">Django — Migrations</a></li>
+<li><a href="https://www.postgresql.org/docs/current/sql-altertable.html" rel="noopener noreferrer" target="_blank">PostgreSQL — ALTER TABLE</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"/> Je sais expliquer le rôle de l’historique des migrations.</label><label><input type="checkbox"/> Je sais planifier une évolution compatible avec plusieurs versions de l’application.</label><label><input type="checkbox"/> Je sais distinguer rollback et restauration de données.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="transactions.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="pooling-n-plus-un.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

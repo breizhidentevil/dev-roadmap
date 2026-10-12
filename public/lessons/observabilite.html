@@ -1,0 +1,71 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Logs, métriques, alertes et health checks
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. OpenTelemetry — Documentation — https://opentelemetry.io/docs/
+2. Google SRE Book — Monitoring Distributed Systems — https://sre.google/sre-book/monitoring-distributed-systems/
+3. Prometheus — Overview — https://prometheus.io/docs/introduction/overview/
+4. Grafana — Alerting — https://grafana.com/docs/grafana/latest/alerting/
+5. OWASP — Logging Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Observabilité applicative, logs structurés, métriques, health checks et alertes fondées sur l’impact utilisateur.">
+<title>Logs, métriques, alertes et health checks — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">7. Environnement, livraison et exploitation</p>
+<h1>Logs, métriques, alertes et health checks</h1>
+<p class="lead">Détecter les incidents et comprendre l’état d’un système à partir de signaux complémentaires et d’alertes actionnables.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>L’observabilité consiste à déduire l’état interne d’un système à partir de ses sorties. Les logs décrivent des événements, les métriques résument des valeurs dans le temps et les traces suivent une opération entre plusieurs composants. Aucun signal ne suffit seul : un log détaillé peut expliquer une erreur précise, tandis qu’une métrique permet de voir si le problème touche beaucoup d’utilisateurs.</p><ul><li>Produire des logs structurés et utiles.</li><li>Choisir des métriques liées au comportement du service.</li><li>Créer des alertes qui correspondent à une action possible.</li><li>Distinguer liveness et readiness.</li><li>Protéger les données personnelles et secrets dans la télémétrie.</li></ul>
+</section><section class="lesson-section"><h2>1. Logs structurés</h2>
+<p>Un log devrait répondre à des questions opérationnelles : quand l’événement a-t-il eu lieu, quel composant est concerné, quelle opération a échoué et quel identifiant permet de relier les événements ? Un format structuré, souvent JSON, facilite la recherche et l’agrégation.</p><pre><code>{
+  "timestamp": "2026-10-10T10:15:00Z",
+  "level": "error",
+  "service": "orders-api",
+  "event": "database_query_failed",
+  "request_id": "req_7f31",
+  "duration_ms": 842
+}</code></pre><p>Cet objet est un exemple fictif. Il ne contient ni mot de passe, ni token, ni corps de requête. Évite d’enregistrer par défaut les en-têtes d’authentification, les chaînes de connexion, les données de paiement et les données personnelles non nécessaires. Masquer les secrets après les avoir écrits dans un système central n’est pas aussi sûr que de ne pas les émettre.</p><p>Choisis des niveaux cohérents : debug pour le diagnostic détaillé, info pour les événements importants, warn pour une situation anormale récupérable et error pour un échec nécessitant une attention. Ne transforme pas chaque événement en erreur : le bruit rend les incidents réels plus difficiles à repérer.</p>
+</section><section class="lesson-section"><h2>2. Métriques : latence, trafic, erreurs et saturation</h2>
+<p>Pour un service HTTP, quatre familles donnent un premier aperçu :</p><ul><li><strong>Trafic :</strong> nombre de requêtes ou opérations.</li><li><strong>Erreurs :</strong> proportion de requêtes échouées, séparée par classe utile.</li><li><strong>Latence :</strong> durée des opérations, souvent observée avec des percentiles comme p50, p95 et p99.</li><li><strong>Saturation :</strong> proximité des limites CPU, mémoire, connexions ou files d’attente.</li></ul><p>Une moyenne de latence peut cacher une minorité de requêtes extrêmement lentes. Les percentiles aident à voir la queue de distribution. Pour une proportion d’erreurs, examine le numérateur et le dénominateur : trois erreurs sur trois requêtes ne signifient pas la même chose que trois erreurs sur un million.</p><p>Évite les labels à cardinalité illimitée comme un identifiant unique d’utilisateur ou de requête dans chaque série de métriques. Cela peut augmenter fortement le coût de stockage. Les identifiants individuels appartiennent plutôt aux logs et aux traces.</p>
+</section><section class="lesson-section"><h2>3. Health checks et disponibilité</h2>
+<p>La <em>liveness</em> répond à la question « le processus est-il bloqué au point de devoir être redémarré ? ». La <em>readiness</em> répond à « cette instance peut-elle recevoir du trafic maintenant ? ». Une application peut être vivante mais pas prête si elle termine son initialisation ou n’a pas de connexion à une dépendance indispensable.</p><p>Un endpoint de santé doit rester rapide, prévisible et peu coûteux. Si chaque contrôle déclenche une requête lourde ou une cascade vers tous les services, le contrôle lui-même peut aggraver une panne. Il faut décider quelles dépendances déterminent réellement la capacité à servir les requêtes.</p><p>Ne rends pas un endpoint de diagnostic détaillé public sans contrôle d’accès : les versions, noms d’hôtes et états internes peuvent aider un attaquant. L’endpoint de santé exposé peut renvoyer un statut minimal tandis que les détails restent réservés à l’exploitation.</p>
+</section><section class="lesson-section"><h2>4. Alertes qui appellent une action</h2>
+<p>Une alerte utile décrit un symptôme ayant un impact ou un risque opérationnel, une condition de déclenchement, une fenêtre temporelle et une action à entreprendre. « CPU supérieur à 80 % » n’est pas toujours une alerte pertinente si le service répond normalement ; une hausse durable des erreurs ou de la latence peut être plus directement liée à l’expérience utilisateur.</p><p>Définis un propriétaire, un niveau de gravité et un runbook. Une alerte qui ne conduit jamais à une action ou qui se déclenche trop souvent doit être ajustée. Les seuils absolus sont simples, mais les ratios et les fenêtres temporelles réduisent parfois les faux positifs. Pour les services importants, les objectifs de niveau de service (SLO) et le budget d’erreur peuvent aider à prioriser les interruptions.</p><p>Teste les alertes : une règle non déclenchée lors d’un incident simulé n’est pas validée. Vérifie aussi la livraison de la notification, les horaires de garde et les procédures d’escalade.</p>
+</section><section class="lesson-section"><h2>5. Traces et corrélation</h2>
+<p>Une trace représente le parcours d’une opération à travers des composants. Chaque étape peut être représentée par un span ; un identifiant de trace relie les spans d’une même opération. Associée à un identifiant de requête dans les logs, cette trace permet de passer d’un symptôme global à une requête particulière.</p><p>La propagation des contextes doit être cohérente entre services et bibliothèques. Sans propagation, chaque service peut créer une trace indépendante. Les données capturées doivent être limitées et protégées : une trace peut contenir des noms de routes, des attributs utilisateur ou des paramètres sensibles si l’instrumentation est mal configurée.</p><p>OpenTelemetry fournit des API et des conventions pour générer et exporter traces, métriques et logs vers des systèmes compatibles. Il ne remplace pas la définition de ce qui est important à mesurer ni la gouvernance des données envoyées.</p>
+</section><section class="lesson-section"><h2>6. Transformer les signaux en diagnostic</h2>
+<p>Les logs décrivent des événements individuels, les métriques résument des mesures dans le temps et les traces relient les opérations entre services. Ces signaux se complètent : un taux d’erreur élevé alerte sur l’impact, une trace peut montrer l’appel lent et les logs contextualisent l’échec. Aucun signal pris isolément ne garantit une explication.</p>
+<p>Pour une API, commence par un petit tableau de bord : débit des requêtes, taux de réponses 5xx, latence p50/p95/p99, saturation du pool de connexions et disponibilité des dépendances. Une moyenne de latence peut masquer une minorité d’utilisateurs très affectés ; observe les percentiles et ventile prudemment par route ou version. Évite les labels à cardinalité illimitée comme identifiant utilisateur, URL libre ou identifiant de requête dans les séries métriques.</p>
+<pre><code># Exemple de contrat de health checks
+/live   -> le processus est vivant
+/ready  -> l’instance peut recevoir du trafic</code></pre>
+<p>La sonde de vivacité doit signaler un processus bloqué, pas faire échouer l’instance simplement parce qu’une dépendance distante est momentanément indisponible. La readiness peut inclure les dépendances indispensables au service. Sinon, une panne partagée peut faire redémarrer toutes les instances en boucle. Définis des délais, des seuils et des actions distinctes pour chaque sonde.</p>
+<p>Une alerte utile est actionnable : elle décrit l’impact, le seuil, la durée, le lien vers le tableau de bord et la première vérification à effectuer. Teste-la en simulant un incident en environnement sûr, puis vérifie la réception, l’escalade et le runbook.</p>
+</section>
+<section class="lesson-section"><h2>Erreurs fréquentes et compromis</h2>
+<ul><li><strong>Logger tout le corps de requête :</strong> collecte uniquement ce qui est nécessaire.</li><li><strong>Utiliser les logs comme seule mesure :</strong> complète-les avec métriques et traces.</li><li><strong>Créer une alerte sur chaque variation :</strong> cible les symptômes importants et durables.</li><li><strong>Confondre liveness et readiness :</strong> leurs effets sur le redémarrage et le trafic sont différents.</li><li><strong>Mettre un identifiant unique en label métrique :</strong> limite la cardinalité.</li><li><strong>Installer des outils sans runbook :</strong> relie chaque alerte à une action documentée.</li></ul><p>L’observabilité a un coût de stockage, de réseau et d’attention. Commence avec un ensemble réduit de signaux à forte valeur, puis ajoute les détails qui répondent à des questions concrètes d’exploitation.</p>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Ajoute à une API un log JSON à l’entrée et à la sortie d’une requête, avec identifiant de corrélation, statut et durée. Assure-toi que les erreurs sont loguées sans enregistrer le token d’authentification.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Définis un tableau de bord minimal pour un endpoint : trafic, taux d’erreur, latence p95 et saturation pertinente. Écris une alerte, son seuil, son propriétaire et un runbook de première intervention.</p><ul><li>Les logs ont des champs cohérents et une corrélation.</li><li>Les données sensibles sont exclues ou masquées à la source.</li><li>Les métriques couvrent trafic, erreurs, latence et saturation.</li><li>Les health checks distinguent vivant et prêt.</li><li>Les alertes sont actionnables et testées.</li><li>Les traces permettent de suivre une requête entre composants.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Utilise ces références pour approfondir les notions et vérifier les détails liés aux versions de tes outils.</p><ol><li><a href="https://opentelemetry.io/docs/" target="_blank" rel="noopener noreferrer">OpenTelemetry — Documentation</a></li><li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" target="_blank" rel="noopener noreferrer">Google SRE Book — Monitoring Distributed Systems</a></li><li><a href="https://prometheus.io/docs/introduction/overview/" target="_blank" rel="noopener noreferrer">Prometheus — Overview</a></li><li><a href="https://grafana.com/docs/grafana/latest/alerting/" target="_blank" rel="noopener noreferrer">Grafana — Alerting</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Logging Cheat Sheet</a></li></ol></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2>
+<label><input type="checkbox"> Je peux expliquer les concepts essentiels avec mes propres mots.</label>
+<label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+<label><input type="checkbox"> Je sais diagnostiquer les erreurs et expliquer les compromis.</label>
+<label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+<p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p></section>
+<nav class="lesson-nav"><a class="nav-link" href="sauvegardes-migrations-prod.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="cloud.html">Compétence suivante →</a></nav>
+</main><footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body></html>

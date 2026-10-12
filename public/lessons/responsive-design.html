@@ -1,0 +1,85 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Responsive design
+Les références sont des ressources de référence à consulter pour approfondir les notions. Le tutoriel est une synthèse pédagogique originale.
+1. MDN — Responsive design — https://developer.mozilla.org/fr/docs/Learn_web_development/Core/CSS_layout/Responsive_Design
+2. MDN — Media queries — https://developer.mozilla.org/fr/docs/Web/CSS/CSS_media_queries/Using_media_queries
+3. web.dev — Learn Responsive Design — https://web.dev/learn/design/
+4. W3C WAI — Reflow — https://www.w3.org/WAI/WCAG22/Understanding/reflow.html
+5. MDN — Meta viewport — https://developer.mozilla.org/fr/docs/Web/HTML/Viewport_meta_tag
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Adapter une interface à différentes tailles d’écran.">
+  <title>Responsive design — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">2. Frontend</p>
+    <h1>Responsive design</h1>
+    <p class="lead">Concevoir des interfaces qui s’adaptent au contenu, à la fenêtre, aux préférences d’affichage et aux différents modes d’interaction.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 7 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Différencier une mise en page fluide d’une mise en page adaptative.</li><li>Utiliser des unités relatives, des contraintes de largeur et des media queries.</li><li>Choisir les points de rupture à partir du contenu.</li><li>Tester le zoom, l’orientation et les préférences de l’utilisateur.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Penser en contraintes plutôt qu’en appareils</h2>
+    <p>Le responsive design vise à préserver l’accès au contenu et aux fonctionnalités lorsque l’espace disponible ou le mode d’interaction change. Il ne s’agit pas de reproduire un modèle de téléphone précis, mais de faire en sorte que la mise en page réagisse à ses contraintes. Une grille fluide, des images flexibles et des composants capables de se réorganiser sont généralement plus robustes qu’une collection de tailles fixes.</p><p>Commence par une structure simple qui fonctionne sur une petite largeur, puis élargis progressivement. Observe à quel moment le contenu devient trop serré : ce point, plutôt qu’une liste de modèles d’appareils, est un bon candidat pour un point de rupture.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Préparer le viewport et les dimensions</h2>
+    <p>Sur une page HTML destinée aux appareils mobiles, indique le viewport pour que la largeur CSS corresponde à la largeur de l’appareil.</p><pre><code>&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;</code></pre><p>Préfère des limites souples : <code>width: 100%</code>, <code>max-width</code>, <code>min()</code>, <code>max()</code> et <code>clamp()</code>. Par exemple, un conteneur peut occuper la largeur disponible tout en restant limité sur un grand écran.</p><pre><code>.contenu {
+      width: min(100% - 2rem, 72rem);
+      margin-inline: auto;
+    }
+    h1 { font-size: clamp(1.8rem, 4vw, 3.5rem); }
+    img, video { max-width: 100%; height: auto; }</code></pre>
+    </section>
+    <section class="lesson-section"><h2>3. Media queries et points de rupture</h2>
+    <p>Les media queries permettent d’appliquer des règles selon les caractéristiques du support, notamment la largeur de viewport, l’orientation ou les préférences utilisateur. Utilise-les lorsque le contenu a besoin d’une autre disposition, pas pour chaque appareil rencontré.</p><pre><code>.layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    @media (min-width: 48rem) {
+      .layout { grid-template-columns: 16rem minmax(0, 1fr); }
+    }</code></pre><p>Les seuils dépendent de la typographie, des libellés et du contenu réel. Vérifie aussi le comportement juste avant et juste après chaque seuil : les défauts de responsive apparaissent souvent à ces largeurs intermédiaires.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Toucher, clavier et préférences</h2>
+    <p>Une interface responsive doit aussi rester utilisable avec des modes d’interaction différents. Les zones interactives doivent être suffisamment grandes et espacées, sans dépendre uniquement du survol. Conserve un focus visible au clavier. Si une animation n’est pas indispensable, respecte la préférence de réduction des mouvements.</p><pre><code>@media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }</code></pre><p>Adapte cette règle avec discernement : certaines animations transmettent une information. La durée très courte et une seule itération évitent notamment qu’une animation infinie continue de tourner. Pour un mouvement non essentiel, supprimer entièrement l’animation peut être préférable ; vérifie que le changement d’état reste compréhensible sans mouvement.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Tester le responsive</h2>
+    <p>Teste plusieurs largeurs, l’agrandissement du texte, le zoom, l’orientation et les contenus longs. Le simulateur du navigateur est utile, mais ne reproduit pas toutes les caractéristiques d’un appareil réel. Vérifie les formulaires, les menus, les tableaux, les images et les composants qui affichent des données variables.</p><p>Un défilement horizontal peut être légitime pour un tableau de données ou un éditeur, mais il ne devrait pas être nécessaire pour lire le texte courant. N’utilise pas <code>overflow-x: hidden</code> comme correctif universel : identifie d’abord l’élément responsable du débordement.</p>
+    </section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Choisir des points de rupture uniquement selon des modèles d’appareils.</li><li>Fixer la largeur et la hauteur de tous les composants.</li><li>Oublier les textes longs, les traductions et les zooms.</li><li>Supprimer les indicateurs de focus ou dépendre du survol.</li><li>Masquer le débordement au lieu d’en comprendre la cause.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Analyse approfondie : valider les vrais cas limites</h2>
+<p>Le responsive ne se résume pas à vérifier une largeur de téléphone et une largeur d’ordinateur. Les défauts apparaissent souvent entre les points de rupture, avec des traductions longues, un zoom important, une barre de navigation ouverte ou une police différente.</p>
+<h3>Protocole de test</h3><ol><li>Teste les largeurs juste en dessous, au niveau et juste au-dessus de chaque media query.</li><li>Vérifie le zoom navigateur et l’agrandissement du texte, sans supposer que le zoom équivaut à un viewport mobile.</li><li>Contrôle les tableaux, menus, formulaires et dialogues : chacun peut avoir des contraintes différentes.</li><li>Vérifie les images, vidéos et contenus embarqués, ainsi que les chaînes longues sans espace.</li><li>Contrôle le focus clavier après la réorganisation et l’orientation portrait/paysage.</li></ol>
+<h3>Respecter les préférences utilisateur</h3><pre><code>@media (prefers-reduced-motion: reduce) {
+  .animation-longue {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+}</code></pre>
+<p>Cette règle est une illustration : selon l’animation, il peut être préférable de supprimer complètement le mouvement plutôt que d’en réduire la durée. Le principe est de ne pas imposer une animation non essentielle aux personnes qui demandent une réduction des mouvements. Pense aussi au contraste en mode sombre, au contenu quand les polices système sont agrandies et aux zones tactiles suffisamment espacées.</p></section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Transforme une page de catalogue à trois colonnes en une mise en page fluide. Ajoute une barre de navigation qui peut se réorganiser, limite la largeur du texte et adapte les tailles de titre avec <code>clamp()</code>. Teste à plusieurs largeurs ainsi qu’avec un zoom élevé.</p><h3>Critères de réussite</h3><ul><li>Le contenu principal ne nécessite pas de défilement horizontal involontaire.</li><li>Les points de rupture correspondent à un besoin observable du contenu.</li><li>Les images et cartes restent dans leur conteneur.</li><li>Les actions sont utilisables au clavier et au toucher.</li><li>Le texte reste lisible quand il est agrandi.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Learn_web_development/Core/CSS_layout/Responsive_Design" target="_blank" rel="noopener noreferrer">MDN — Responsive design</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/CSS/CSS_media_queries/Using_media_queries" target="_blank" rel="noopener noreferrer">MDN — Media queries</a></li><li><a href="https://web.dev/learn/design/" target="_blank" rel="noopener noreferrer">web.dev — Learn Responsive Design</a></li><li><a href="https://www.w3.org/WAI/WCAG22/Understanding/reflow.html" target="_blank" rel="noopener noreferrer">W3C WAI — Reflow</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTML/Viewport_meta_tag" target="_blank" rel="noopener noreferrer">MDN — Meta viewport</a></li></ul></section>
+        <nav class="lesson-nav"><a class="nav-link" href="flexbox-grid.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="javascript-dom.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

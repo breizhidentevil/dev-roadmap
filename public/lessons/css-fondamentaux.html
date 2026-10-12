@@ -1,0 +1,89 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : CSS fondamentaux
+Références de départ pour approfondir les notions ; le tutoriel constitue une synthèse pédagogique originale.
+1. MDN — CSS : premières étapes — https://developer.mozilla.org/fr/docs/Learn_web_development/Core/Styling_basics
+2. MDN — Cascade et héritage — https://developer.mozilla.org/fr/docs/Web/CSS/Cascade
+3. MDN — Spécificité — https://developer.mozilla.org/fr/docs/Web/CSS/Specificity
+4. MDN — Modèle de boîte — https://developer.mozilla.org/fr/docs/Web/CSS/CSS_box_model/Introduction_to_the_CSS_box_model
+5. web.dev — Learn CSS — https://web.dev/learn/css/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Comprendre comment les règles CSS sont calculées et comment les éléments occupent l’espace.">
+  <title>CSS : cascade, spécificité et box model — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">2. Frontend</p>
+    <h1>CSS fondamentaux</h1>
+    <p class="lead">Maîtriser cascade, héritage, spécificité, unités et modèle de boîte pour produire des styles prévisibles et maintenables.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 8 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Expliquer comment la cascade sélectionne une déclaration.</li><li>Calculer les grandes différences de spécificité entre sélecteurs.</li><li>Comprendre contenu, padding, bordure et marge.</li><li>Choisir des unités adaptées et limiter les valeurs rigides.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Relier CSS et HTML</h2>
+    <p>Une règle CSS associe un sélecteur à des déclarations. Une feuille externe est généralement préférable pour les styles partagés : elle sépare contenu et présentation, facilite la réutilisation et permet la mise en cache. Les styles en ligne peuvent être utiles dans certains cas, mais rendent souvent la maintenance et les surcharges plus difficiles.</p><pre><code>.carte {
+      color: #202124;
+      background: white;
+      padding: 1rem;
+      border-radius: 0.5rem;
+    }</code></pre><p>Commence par des règles simples et réutilisables. Évite d’ajouter des sélecteurs très longs qui dépendent de la structure exacte de tous les ancêtres.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Cascade, héritage et spécificité</h2>
+    <p>Lorsque plusieurs déclarations visent la même propriété, le navigateur applique la cascade : pertinence des règles, origine et importance, couche de cascade, spécificité, proximité de portée si <code>@scope</code> intervient, puis ordre d’apparition. Les animations et transitions suivent aussi des règles de priorité particulières. L’héritage transmet certaines propriétés des parents aux enfants, mais pas toutes.</p><pre><code>p { color: #333; }
+    .notice { color: #075985; }
+    #alerte { color: #b91c1c; }</code></pre><p>Dans cet exemple, si le même paragraphe correspond aux trois sélecteurs et que l’origine, l’importance et la couche sont identiques, <code>#alerte</code> gagne : sa spécificité (1, 0, 0) dépasse celle de <code>.notice</code> (0, 1, 0), elle-même supérieure à <code>p</code> (0, 0, 1). Ces valeurs ne s’additionnent pas comme un nombre décimal. Les déclarations importantes et les couches sont évaluées avant la spécificité ; utilise l’inspecteur pour trouver la déclaration gagnante plutôt que d’ajouter des règles au hasard.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Modèle de boîte</h2>
+    <p>Chaque boîte CSS comprend le contenu, le remplissage interne (<code>padding</code>), la bordure et la marge externe (<code>margin</code>). Avec le modèle par défaut, la largeur déclarée ne comprend pas nécessairement le remplissage et la bordure. La convention suivante rend souvent les dimensions plus intuitives :</p><pre><code>*, *::before, *::after {
+      box-sizing: border-box;
+    }</code></pre><p>Avec <code>border-box</code>, la largeur déclarée inclut le contenu, le padding et la bordure. La marge reste à l’extérieur. Cette règle ne dispense pas de vérifier les contraintes de largeur, les éléments flexibles et les débordements.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Unités et dimensions fluides</h2>
+    <p>Les pixels CSS conviennent à certaines bordures ou détails ; <code>rem</code> est utile pour des dimensions liées à la taille de police racine, <code>%</code> dépend du contexte de mise en page, et <code>vw</code>/<code>vh</code> dépendent du viewport. Les unités ne sont pas interchangeables : choisis-les selon le comportement attendu.</p><pre><code>.contenu {
+      width: min(100% - 2rem, 70rem);
+      margin-inline: auto;
+    }
+    .titre {
+      font-size: clamp(1.75rem, 4vw, 3rem);
+    }</code></pre><p>Utilise <code>min()</code>, <code>max()</code> et <code>clamp()</code> pour exprimer des limites. Évite de verrouiller la hauteur d’un bloc contenant du texte variable, ce qui risque de couper le contenu lorsque le texte est agrandi ou traduit.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Organiser les styles</h2>
+    <p>Regroupe les styles par composant ou domaine fonctionnel, adopte une convention de nommage cohérente et limite les exceptions. Les propriétés personnalisées CSS permettent de centraliser des valeurs partagées comme les couleurs et espacements.</p><pre><code>:root {
+      --couleur-principale: #2457a7;
+      --espace: 1rem;
+    }
+    .bouton-principal {
+      background: var(--couleur-principale);
+      padding: var(--espace);
+    }</code></pre><p>Les styles doivent rester compréhensibles lorsqu’un autre développeur doit les modifier. N’utilise pas <code>!important</code> comme méthode générale de résolution des conflits ; identifie la cause dans la cascade et clarifie l’organisation des règles.</p>
+    </section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Ajouter des règles répétées sans inspecter la cascade.</li><li>Confondre largeur du contenu et largeur totale de la boîte.</li><li>Utiliser des hauteurs fixes pour du texte variable.</li><li>Employer des unités relatives sans comprendre leur référence.</li><li>Multiplier les identifiants et les déclarations <code>!important</code>.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Analyse approfondie : diagnostiquer une déclaration CSS</h2>
+<p>Quand une propriété ne produit pas l’effet attendu, vérifie d’abord si le sélecteur correspond, si la déclaration est valide, si une autre règle la remplace et si la propriété est héritée. Ajouter <code>!important</code> avant d’avoir compris la cascade rend souvent le problème plus difficile à résoudre.</p>
+<h3>Calcul du modèle de boîte</h3><pre><code>.carte {
+  box-sizing: content-box;
+  width: 300px;
+  padding: 20px;
+  border: 2px solid;
+}</code></pre>
+<p>Avec <code>content-box</code>, la largeur extérieure vaut ici 300 + 40 + 4 = 344 pixels CSS, sans compter la marge. Avec <code>border-box</code>, les 300 pixels incluent contenu, remplissage et bordure ; la zone de contenu devient donc plus petite. Cette différence explique de nombreux débordements en grille.</p>
+<h3>Routine de diagnostic</h3><ol><li>Sélectionne l’élément dans l’inspecteur.</li><li>Lis les styles calculés et repère la déclaration gagnante et celles barrées.</li><li>Vérifie dimensions, padding, bordure, marge, contraintes min/max et contenu intrinsèque.</li><li>Désactive temporairement une règle pour tester une hypothèse, puis applique la correction dans la feuille de style.</li><li>Teste le zoom et plusieurs largeurs pour éviter de corriger un cas au prix d’un autre.</li></ol>
+<p>Les valeurs personnalisées CSS (<code>--espace</code>) sont héritées et peuvent être redéfinies localement. Donne-leur des noms décrivant leur rôle et vérifie la valeur calculée au point où elles sont utilisées.</p></section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Crée une carte produit avec titre, description, prix et bouton. Définis des variables CSS pour les couleurs et l’espacement, applique <code>border-box</code> et utilise une largeur maximale. Ajoute une règle volontairement conflictuelle et diagnostique-la dans DevTools.</p><h3>Critères de réussite</h3><ul><li>La cascade peut être expliquée et les styles sont prévisibles.</li><li>La boîte conserve les dimensions attendues avec padding et bordure.</li><li>Le contenu s’adapte à la largeur disponible et au zoom.</li><li>Les valeurs récurrentes sont centralisées.</li><li>Aucun correctif global ne masque un débordement non compris.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Learn_web_development/Core/Styling_basics" target="_blank" rel="noopener noreferrer">MDN — CSS : premières étapes</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/CSS/Cascade" target="_blank" rel="noopener noreferrer">MDN — Cascade et héritage</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/CSS/Specificity" target="_blank" rel="noopener noreferrer">MDN — Spécificité</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/CSS/CSS_box_model/Introduction_to_the_CSS_box_model" target="_blank" rel="noopener noreferrer">MDN — Modèle de boîte</a></li><li><a href="https://web.dev/learn/css/" target="_blank" rel="noopener noreferrer">web.dev — Learn CSS</a></li></ul></section>
+        <nav class="lesson-nav"><a class="nav-link" href="accessibilite.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="flexbox-grid.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

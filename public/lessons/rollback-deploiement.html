@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Rollback et stratégies de déploiement
+Domaine documentaire : livraison logicielle
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. Google SRE — Releasing Software — https://sre.google/sre-book/release-engineering/
+2. Kubernetes — Déploiements et mises à jour progressives — https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+3. Martin Fowler — Blue Green Deployment — https://martinfowler.com/bliki/BlueGreenDeployment.html
+4. Martin Fowler — Canary Release — https://martinfowler.com/bliki/CanaryRelease.html
+5. AWS — Rollback strategies for deployments — https://docs.aws.amazon.com/whitepapers/latest/overview-deployment-options/rollback.html
+
+Note : les cinq références documentaires ci-dessous sont reprises dans la liste visible de la page.-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Revenir à une version stable et limiter le risque des mises en production.">
+<title>Rollback et stratégies de déploiement — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Livraison logicielle</p>
+<h1>Rollback et stratégies de déploiement</h1>
+<p class="lead">Revenir à une version stable et limiter le risque des mises en production.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un contexte réel et justifier tes décisions en fonction des contraintes et des risques.</p>
+<ul><li>Comprendre les notions essentielles et le problème qu’elles permettent de résoudre.</li><li>Appliquer une méthode concrète et vérifier son résultat.</li><li>Identifier les limites, les compromis et les erreurs fréquentes.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Le rollback n’est pas simplement « redéployer l’ancienne version »</h2>
+<p>Un rollback consiste à revenir à un état applicatif connu comme stable après un déploiement problématique. Cela peut signifier redéployer un artefact précédent, rediriger le trafic vers une ancienne version, désactiver une fonctionnalité ou appliquer une correction en avant. Le choix dépend de la nature du défaut et de la compatibilité entre code, données, infrastructure et clients.</p>
+<p>Avant de choisir une stratégie, définis le signal de déclenchement : hausse du taux d’erreur, latence au-delà d’un objectif, échec d’un parcours métier, saturation d’une ressource ou alerte de sécurité. Une impression générale comme « le déploiement semble mauvais » ne suffit pas à rendre la décision reproductible. Les seuils doivent être adaptés à la criticité et associés à une fenêtre d’observation pour éviter de réagir à un pic isolé.</p>
+<p>Le retour arrière doit être préparé avant la mise en production. Il faut savoir quel artefact stable réinstaller, qui peut déclencher l’opération, comment vérifier la santé du service et quels changements ne sont pas réversibles. Une procédure jamais testée en situation réaliste n’est qu’une hypothèse.</p></section>
+<section class="lesson-section"><h2>2. Stratégies de déploiement</h2>
+<p><strong>Déploiement progressif (rolling update).</strong> Les instances sont remplacées par étapes. Cela limite parfois l’interruption, mais les versions anciennes et nouvelles coexistent. Elles doivent donc rester compatibles avec les mêmes API, événements et schémas de données pendant la transition.</p>
+<p><strong>Blue-green.</strong> Deux environnements comparables existent : l’un reçoit le trafic, l’autre est préparé avec la nouvelle version. Après vérification, le trafic bascule vers le nouvel environnement. Le retour peut être rapide en rebascule, mais il faut financer et maintenir deux environnements et maîtriser les effets partagés comme les écritures en base ou les tâches planifiées.</p>
+<p><strong>Canary.</strong> Une fraction du trafic est envoyée à la nouvelle version. On compare ses indicateurs à ceux de la version stable, puis on augmente progressivement la part si les résultats sont acceptables. La méthode réduit l’exposition, mais exige des métriques fiables, un trafic représentatif et une règle de progression claire.</p>
+<p><strong>Feature flags.</strong> Une fonctionnalité peut être activée séparément du déploiement du code. Cela permet de couper rapidement une fonction défectueuse sans redéployer, mais les drapeaux oubliés s’accumulent et multiplient les chemins de code. Chaque drapeau doit avoir un propriétaire, une finalité et une date de retrait.</p></section>
+<section class="lesson-section"><h2>3. Compatibilité du code et des données</h2>
+<p>Le point le plus délicat est souvent la base de données. Si la nouvelle version supprime une colonne encore utilisée par l’ancienne, le rollback applicatif ne restaurera pas la compatibilité. Préfère une migration en plusieurs étapes : ajouter le nouveau champ, déployer un code qui sait lire l’ancien et le nouveau format, migrer les données, basculer les lectures et écritures, puis supprimer l’ancien champ après une période de stabilité.</p>
+<p>Les événements asynchrones et les messages présentent un risque similaire. Une version précédente peut ne pas comprendre un nouveau format de message. Pour éviter ce blocage, versionne les contrats, garde une compatibilité ascendante ou descendante lorsque nécessaire et ne déploie pas simultanément des changements incompatibles sans coordination.</p>
+<p>Les opérations externes — paiement, envoi d’e-mail, création d’une livraison — ne s’annulent pas forcément lorsqu’on remet le code précédent. Un rollback ne doit pas rejouer aveuglément une commande métier. Pour les opérations non réversibles, prévois l’idempotence, une compensation métier explicite ou une correction en avant.</p></section>
+<section class="lesson-section"><h2>4. Procédure de rollback vérifiable</h2>
+<ol><li>Détecter le problème et confirmer son impact à l’aide des métriques, traces, logs et tests de parcours.</li><li>Geler les changements supplémentaires et identifier l’artefact ainsi que la configuration déployés.</li><li>Choisir entre désactivation d’une fonctionnalité, retour au précédent artefact ou correction en avant.</li><li>Vérifier les préconditions : compatibilité du schéma, messages en attente, tâches planifiées et état des écritures.</li><li>Appliquer la procédure autorisée, puis contrôler la santé technique et les parcours métier.</li><li>Documenter la décision, les effets observés et les actions de suivi.</li></ol>
+<p>Le retour arrière ne doit pas être considéré comme réussi parce que le déploiement est terminé. Il faut confirmer que les utilisateurs peuvent réaliser les actions critiques, que les erreurs diminuent et que les données restent cohérentes. Si le problème persiste, stoppe les changements automatiques et passe à une procédure d’incident.</p></section>
+<section class="lesson-section"><h2>5. Limites et erreurs fréquentes</h2>
+<ul><li><strong>Rollback trop tardif :</strong> les indicateurs ne sont pas surveillés ou personne n’a l’autorité de décider.</li><li><strong>Artefact introuvable :</strong> les builds précédents ne sont pas conservés ou leur provenance est inconnue.</li><li><strong>Version précédente incompatible :</strong> une migration destructive a été appliquée sans plan de compatibilité.</li><li><strong>Trafic partagé :</strong> l’ancienne version revient, mais une file ou une base contient déjà des données au nouveau format.</li><li><strong>Absence de test :</strong> la procédure n’a jamais été exécutée et le temps de récupération est inconnu.</li></ul>
+<p>Le rollback n’est pas toujours le meilleur choix. Si une migration est irréversible ou si les écritures ont déjà modifié l’état métier, une correction en avant peut être plus sûre. Décide à partir de l’état réel du système, pas d’une règle absolue.</p></section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Une nouvelle version de ton API fait passer le taux d’erreur de 0,2 % à 4 % et introduit une colonne supplémentaire en base. Rédige un runbook exécutable par un autre membre de l’équipe : seuil et fenêtre d’observation, personne autorisée à décider, identifiant/digest de l’artefact stable, commande ou mécanisme de bascule, contrôles de compatibilité du schéma et des messages, parcours métier à vérifier, délai de récupération visé et condition d’arrêt si les données ne sont pas réversibles. Ajoute le cas où la nouvelle version a déjà écrit des données que l’ancienne ne sait pas lire.</p><p>Répète la procédure en préproduction avec des données synthétiques. Mesure le temps entre la décision et le retour à un état sain, note les étapes manuelles et vérifie qu’aucun secret ni donnée personnelle n’est copié dans le rapport. Ne lance jamais cet exercice sur la production réelle sans procédure approuvée.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je distingue rolling update, blue-green, canary et feature flags.</li><li>Je sais identifier les changements qui empêchent un rollback sûr.</li><li>Je définis des critères de déclenchement et de validation du retour arrière.</li><li>Je conserve des artefacts identifiables et une procédure testée.</li><li>Je peux justifier quand une correction en avant est préférable.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les points de la leçon. Consulte les sections pertinentes et vérifie les détails qui dépendent des versions, des outils ou du contexte de ton projet.</p><ol><li><a href="https://sre.google/sre-book/release-engineering/" target="_blank" rel="noopener noreferrer">Google SRE — Releasing Software</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/" target="_blank" rel="noopener noreferrer">Kubernetes — Déploiements et mises à jour progressives</a></li>
+<li><a href="https://martinfowler.com/bliki/BlueGreenDeployment.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Blue Green Deployment</a></li>
+<li><a href="https://martinfowler.com/bliki/CanaryRelease.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Canary Release</a></li>
+<li><a href="https://docs.aws.amazon.com/whitepapers/latest/overview-deployment-options/rollback.html" target="_blank" rel="noopener noreferrer">AWS — Rollback strategies for deployments</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="environnements-dev-test-prod.html">← Environnements de développement, test et production</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="migrations-livraison.html">Migrations pendant la livraison →</a></nav>
+
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : WebSockets et Server-Sent Events
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. MDN — WebSockets API — https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API
+2. MDN — Server-sent events — https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events
+3. WHATWG — WebSockets Standard — https://websockets.spec.whatwg.org/
+4. WHATWG — HTML EventSource — https://html.spec.whatwg.org/multipage/server-sent-events.html
+5. OWASP — WebSocket Security Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/WebSocket_Security_Cheat_Sheet.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Choisir le bon mécanisme pour diffuser des changements du serveur vers les clients en temps réel.">
+  <title>WebSockets et Server-Sent Events — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">3. Backend</p>
+    <h1>WebSockets et Server-Sent Events</h1>
+    <p class="lead">Transmettre des mises à jour en temps réel au navigateur.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 12 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Différencier polling, SSE et WebSockets.</li><li>Choisir selon la direction des messages et les contraintes réseau.</li><li>Gérer reconnexion, sécurité, montée en charge et observabilité.</li><li>Comprendre que temps réel ne signifie pas livraison garantie.</li></ul></section>
+    <section class="lesson-section"><h2>1. Trois modèles</h2><p>Le polling HTTP interroge périodiquement le serveur : c’est simple, mais les mises à jour peuvent être retardées et les requêtes inutiles nombreuses. SSE maintient un flux HTTP principalement serveur-vers-client. WebSockets permet un échange bidirectionnel persistant.</p><p>Choisis selon le besoin : des notifications unidirectionnelles conviennent souvent à SSE ; un chat ou une collaboration interactive peut justifier WebSockets ; un rafraîchissement peu fréquent peut rester en polling.</p></section>
+    <section class="lesson-section"><h2>2. SSE en pratique</h2><p>Le navigateur peut utiliser EventSource pour écouter un flux d’événements textuels. Le serveur garde la réponse ouverte et envoie des événements nommés, avec des données et éventuellement un identifiant d’événement. Le navigateur peut tenter une reconnexion automatique.</p><p>La reconnexion ne garantit pas que tous les événements seront rejoués. Définis une stratégie de reprise et un moyen de relire l’état courant via une API classique.</p></section>
+    <section class="lesson-section"><h2>3. WebSockets en pratique</h2><p>Définis un format de message explicite, des types connus, une version de protocole et des limites de taille. Valide chaque message comme une entrée non fiable ; ne fais pas confiance aux rôles ou identifiants transmis par le client.</p><p>Prévois une détection d’inactivité, des reconnexions avec délai progressif et jitter, et un mécanisme de resynchronisation si la connexion a été interrompue.</p></section>
+    <section class="lesson-section"><h2>4. Sécurité et déploiement</h2><p>Authentifie la connexion et autorise chaque action ou abonnement côté serveur. Contrôle Origin lorsque pertinent, limite le débit et le nombre de connexions, protège les messages volumineux et ne place pas de secrets dans les URL.</p><p>Les connexions persistantes consomment des ressources et doivent être prises en compte par proxy, load balancer et déploiement. Avec plusieurs instances, un broker ou une diffusion partagée peut être nécessaire pour distribuer les événements.</p></section>
+    <section class="lesson-section"><h2>5. Fiabilité et source de vérité</h2><p>Une notification en temps réel est un signal, pas forcément un historique fiable. Pour les actions importantes, conserve l’état métier dans une base. Après une coupure, le client peut récupérer l’état courant, dédupliquer les messages rejoués et reprendre à partir d’un identifiant d’événement si le système le permet.</p></section>
+    <section class="lesson-section"><h2>6. Étude de cas : reconnecter un client sans perdre l’état</h2>
+<p>Dans un tableau de bord, SSE convient si le serveur pousse principalement des mises à jour vers le navigateur. Un chat interactif peut justifier WebSockets parce que les deux côtés envoient fréquemment des messages. Dans les deux cas, le canal persistant transporte des événements ; il ne remplace ni la source de vérité ni une API de lecture classique.</p>
+<h3>Protocole minimal à définir</h3><ul><li>Nom et version du type d’événement, par exemple <code>task.updated.v1</code>.</li><li>Identifiant d’événement ou de séquence pour détecter un trou ou un doublon.</li><li>Charge utile minimale, avec schéma validé côté serveur et côté client.</li><li>Politique de reconnexion, heartbeat, expiration de connexion et taille maximale des messages.</li><li>Autorisation à l’ouverture et lors de chaque action sensible ; la connexion établie ne doit pas figer les permissions pour toujours.</li></ul>
+<p>Pour SSE, un identifiant d’événement et <code>Last-Event-ID</code> peuvent aider le serveur à reprendre un flux, si le serveur conserve assez d’historique. Ce mécanisme ne crée pas un journal durable par lui-même. Si la reprise n’est pas possible, le client doit récupérer l’état courant par HTTP puis se réabonner. Pour WebSockets, définis un message de reprise ou un curseur explicite : une reconnexion TCP ne rejoue pas automatiquement les messages applicatifs perdus.</p>
+<p><strong>Montée en charge :</strong> une connexion persistante consomme des ressources et doit être fermée proprement. Avec plusieurs instances, le serveur qui reçoit un événement doit pouvoir le diffuser aux instances détenant les connexions concernées, par exemple via un broker ou un mécanisme pub/sub. Le pub/sub en mémoire d’un seul processus ne suffit pas après déploiement horizontal. Mesure le nombre de connexions, les déconnexions, la latence de diffusion et les échecs de reprise.</p>
+<p><strong>Sécurité :</strong> valider l’origine selon le modèle de client, protéger les cookies contre les attaques cross-site, limiter la fréquence et la taille des messages, vérifier l’autorisation par message et éviter les jetons dans les URL ou les logs. Le canal chiffré ne rend pas le contenu fiable.</p>
+<p><strong>Exercice :</strong> coupe le réseau pendant 15 secondes pendant que plusieurs mises à jour arrivent. À la reconnexion, compare l’état affiché à la source de vérité et démontre qu’un trou est détecté ou que l’état est resynchronisé. Ajoute un utilisateur qui tente d’écouter une ressource à laquelle il n’a pas accès.</p>
+<p><strong>Critère de réussite :</strong> le choix entre polling, SSE et WebSockets est justifié par le besoin, et les pertes, doublons, reconnexions et révocations d’accès ont un comportement documenté.</p></section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Choisir WebSockets sans besoin bidirectionnel.</li><li>Supposer qu’un événement sera toujours reçu.</li><li>Oublier la diffusion entre instances.</li><li>Ne pas autoriser chaque action côté serveur.</li><li>Ignorer les fermetures de connexion pendant les déploiements.</li></ul></section>
+    <section class="lesson-section"><h2>Exercice guidé</h2><p>Choisis entre polling, SSE et WebSockets pour des notifications de commande, un chat et la progression d’un export. Pour chaque cas, précise reconnexion, sécurité et resynchronisation.</p><h3>Critères de réussite</h3><p>choix justifié par le besoin ; protocole défini ; authentification et limites prévues ; coupures traitées ; fonctionnement multi-instance évalué.</p></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Références documentaires de départ pour approfondir les concepts et vérifier les détails propres aux outils utilisés.</p><ul><li><a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API" target="_blank" rel="noopener noreferrer">MDN — WebSockets API</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events" target="_blank" rel="noopener noreferrer">MDN — Server-sent events</a></li><li><a href="https://websockets.spec.whatwg.org/" target="_blank" rel="noopener noreferrer">WHATWG — WebSockets Standard</a></li><li><a href="https://html.spec.whatwg.org/multipage/server-sent-events.html" target="_blank" rel="noopener noreferrer">WHATWG — HTML EventSource</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/WebSocket_Security_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — WebSocket Security Cheat Sheet</a></li></ul></section>
+    <nav class="lesson-nav"><a class="nav-link" href="redis-cache.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="authentification-autorisation.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

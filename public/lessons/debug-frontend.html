@@ -1,0 +1,45 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Débogage frontend méthodique
+Les références sont des ressources de référence à consulter pour approfondir les notions. Le tutoriel est une synthèse pédagogique originale.
+1. Chrome DevTools — JavaScript debugging — https://developer.chrome.com/docs/devtools/javascript/
+2. Firefox DevTools — Debugger — https://firefox-source-docs.mozilla.org/devtools-user/debugger/
+3. MDN — Console API — https://developer.mozilla.org/fr/docs/Web/API/Console
+4. Chrome DevTools — Network panel — https://developer.chrome.com/docs/devtools/network/
+5. web.dev — Debugging — https://web.dev/learn/
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Identifier les erreurs d’interface, de logique et de réseau." name="description"/>
+<title>Débogage frontend — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">2. Frontend</p>
+<h1>Débogage frontend méthodique</h1>
+<p class="lead">Diagnostiquer les défauts d’interface par reproduction, hypothèses, mesures et vérifications plutôt que par corrections au hasard.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 7 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Reproduire et décrire précisément un défaut.</li><li>Formuler une hypothèse testable et isoler la cause.</li><li>Utiliser console, points d’arrêt, inspecteur et réseau.</li><li>Corriger la cause plutôt que masquer le symptôme.</li><li>Ajouter une vérification qui évite une régression.</li></ul>
+</section><section class="lesson-section"><h2>Fil directeur</h2><p>Le débogage est une enquête : partir d’un symptôme observable, réduire l’espace des causes possibles, puis confirmer une cause par une observation. Modifier plusieurs éléments à la fois détruit cette information et rend le résultat difficile à expliquer.</p></section><section class="lesson-section"><h2>1. Établir un cas reproductible</h2><p>Décris le contexte, les étapes exactes, le résultat attendu, le résultat observé et la fréquence. Ajoute les versions pertinentes, l’état de connexion et les données utilisées, sans inclure de secrets ni de données personnelles.</p><p>Réduis ensuite le scénario au plus petit ensemble d’actions qui déclenche encore le défaut. Pour un problème intermittent, compare une exécution réussie à une exécution en échec et note ce qui diffère. Une reproduction précise transforme « ça ne marche pas » en test exploitable.</p><pre><code>// Une trace doit répondre à une question précise
+console.debug("état de recherche", { terme, chargement });
+console.table(resultats);</code></pre><p>Utilise ces traces temporairement et retire-les ou réduis-les avant livraison.</p></section><section class="lesson-section"><h2>2. Formuler et tester une hypothèse</h2><p>Écris une hypothèse falsifiable : « le bouton n’apparaît pas parce que la condition dépend d’une valeur vide ». Indique quelle observation confirmerait ou réfuterait cette hypothèse. Ne confonds pas corrélation et cause : une erreur affichée après le symptôme n’est pas nécessairement son origine.</p><p>Lis le premier message pertinent de la console, ouvre la ligne indiquée et remonte la pile d’appels. Place un point d’arrêt à l’entrée de la fonction et inspecte les arguments, puis avance pas à pas jusqu’au premier état inattendu. Un point d’arrêt conditionnel est utile lorsque la ligne s’exécute très souvent.</p></section><section class="lesson-section"><h2>3. Isoler la couche fautive</h2><p>Procède du plus observable au plus spécifique. Dans l’inspecteur, vérifie d’abord si l’élément existe dans le DOM ; s’il existe, regarde les styles calculés, les règles qui les appliquent et la géométrie. S’il n’existe pas, examine la condition de rendu et les données qui la pilotent.</p><p>Dans l’onglet Réseau, contrôle l’URL, la méthode, le statut, les en-têtes et le corps de réponse. Un 404 est une réponse HTTP, pas une exception JavaScript ; inversement, un 200 peut contenir une structure de données invalide. Vérifie la frontière où les données entrent dans l’application.</p><ol><li>DOM absent : rendu, condition ou sélecteur.</li><li>DOM présent mais invisible : CSS, dimensions ou superposition.</li><li>Données manquantes : requête, parsing, validation ou état asynchrone.</li></ol></section><section class="lesson-section"><h2>4. Corriger et prouver la correction</h2><p>Applique le changement le plus petit qui traite la cause démontrée. Rejoue le scénario initial, puis vérifie les cas voisins : valeur vide, erreur réseau, double clic, écran étroit ou état de chargement selon le contexte.</p><p>Quand le défaut est reproductible, transforme le scénario en test automatisé. Le test doit échouer avant le correctif et réussir après. Documente la cause si elle révèle une règle de conception utile à l’équipe.</p></section><section class="lesson-section"><h2>Erreurs fréquentes et diagnostic</h2><ul><li>Changer plusieurs choses avant d’avoir isolé une cause.</li><li>Ne lire que le dernier message de la console.</li><li>Confondre réponse HTTP, erreur de parsing et exception JavaScript.</li><li>Masquer le symptôme sans tester la régression.</li><li>Partager des traces contenant des données sensibles.</li></ul></section><section class="lesson-section"><h2>Exercice guidé</h2><p>Introduis trois défauts dans une petite page : sélecteur DOM erroné, règle CSS qui masque un bouton et URL d’API incorrecte. Pour chaque défaut, écris la reproduction, une hypothèse et l’observation qui la confirme ou la réfute. Corrige-le, rejoue le scénario et ajoute un test de non-régression lorsque c’est pertinent.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul><li>Chaque défaut a une reproduction minimale et un résultat attendu explicite.</li><li>L’hypothèse est testée avant la modification.</li><li>Les outils Console, Elements et Network sont utilisés selon la couche suspectée.</li><li>Le correctif traite la cause et couvre au moins un cas voisin.</li><li>Aucune donnée sensible n’est exposée dans les traces.</li></ul></section>
+
+
+
+
+
+
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.chrome.com/docs/devtools/javascript/" rel="noopener noreferrer" target="_blank">Chrome DevTools — JavaScript debugging</a></li><li><a href="https://firefox-source-docs.mozilla.org/devtools-user/debugger/" rel="noopener noreferrer" target="_blank">Firefox DevTools — Debugger</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/API/Console" rel="noopener noreferrer" target="_blank">MDN — Console API</a></li><li><a href="https://developer.chrome.com/docs/devtools/network/" rel="noopener noreferrer" target="_blank">Chrome DevTools — Network panel</a></li><li><a href="https://web.dev/learn/" rel="noopener noreferrer" target="_blank">web.dev — Debugging</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="fetch-apis-navigateur.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="performance-frontend.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

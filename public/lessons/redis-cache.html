@@ -1,0 +1,63 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Redis et stratégies de cache
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. Redis — Documentation — https://redis.io/docs/latest/
+2. Redis — Cache patterns — https://redis.io/docs/latest/develop/use/patterns/
+3. AWS — Caching best practices — https://aws.amazon.com/caching/best-practices/
+4. Microsoft — Cache-Aside pattern — https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside
+5. MDN — HTTP caching — https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Réduire la latence et la charge avec un cache sans sacrifier la cohérence des données.">
+  <title>Redis et stratégies de cache — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">3. Backend</p>
+    <h1>Redis et cache</h1>
+    <p class="lead">Mettre en cache des données et comprendre les compromis de cohérence.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 12 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Expliquer où et pourquoi mettre en cache.</li><li>Comparer cache-aside et cache HTTP.</li><li>Choisir clés, TTL et règles d’invalidation.</li><li>Anticiper les données périmées, les pannes et les pics de charge.</li></ul></section>
+    <section class="lesson-section"><h2>1. Pourquoi mettre en cache</h2><p>Un cache conserve temporairement une copie d’une donnée coûteuse à récupérer ou recalculer. Redis est un magasin en mémoire utilisé pour des valeurs clé/valeur, compteurs et structures de données. Le cache peut réduire la latence et la charge, mais ajoute un deuxième état à maintenir.</p><p>Ne mets en cache que si le gain est mesuré et si l’application sait fonctionner en cas d’absence, d’expiration ou d’indisponibilité du cache. La base de données reste généralement la source de vérité.</p></section>
+    <section class="lesson-section"><h2>2. Modèle cache-aside</h2><p>L’application lit d’abord le cache. Si la clé est absente, elle lit la source de vérité, place le résultat dans le cache avec une durée de vie (TTL), puis renvoie la donnée. Ce modèle est simple et largement utilisé.</p><p>Distingue une clé absente d’une valeur métier vide. Définis aussi ce que fait le backend si Redis échoue : selon le cas, il peut continuer sans cache, refuser la requête ou utiliser une dégradation contrôlée.</p></section>
+    <section class="lesson-section"><h2>3. Clés, TTL et invalidation</h2><p>Une clé doit inclure tous les paramètres qui changent le résultat : identifiant, langue, filtres, version de schéma et contexte de tenant ou de droits si nécessaire. Des clés trop générales peuvent mélanger des réponses appartenant à des utilisateurs différents.</p><p>Le TTL limite la durée de conservation, mais ne garantit pas une fraîcheur immédiate. Après une modification, choisis entre invalidation, mise à jour du cache ou acceptation d’un délai de cohérence. Documente cette décision par type de donnée.</p></section>
+    <section class="lesson-section"><h2>4. Cache HTTP et cache applicatif</h2><p>Le cache HTTP s’appuie notamment sur Cache-Control, ETag et les requêtes conditionnelles ; il peut éviter du travail dans le navigateur ou un CDN. Redis est souvent piloté par le backend pour stocker résultats métier, sessions ou compteurs.</p><p>N’autorise pas un cache partagé à conserver une réponse privée. Vérifie les directives de cache, Vary, l’authentification et les règles propres au contenu renvoyé.</p></section>
+    <section class="lesson-section"><h2>5. Pannes et concurrence</h2><p>Un cache stampede survient lorsque de nombreuses requêtes recalculent simultanément une valeur expirée. Selon le contexte, utilise coalescence des requêtes, verrou court ou variation aléatoire des TTL.</p><p>La mémoire est limitée : surveille les évictions, le taux de succès et la latence. Si le cache tombe en panne, la charge peut basculer brutalement sur la base ; prévois timeouts, limites et capacité de dégradation.</p></section>
+    <section class="lesson-section"><h2>6. Étude de cas : cache périmé après une modification</h2>
+<p>Une route <code>GET /products/42</code> lit une valeur cache-aside. Une route de mise à jour modifie ensuite le produit dans la base, mais l’ancienne valeur reste en cache. Définis explicitement la garantie attendue : une cohérence immédiate stricte, une cohérence éventuelle bornée par un TTL, ou une stratégie de rafraîchissement. Le cache ne devient pas automatiquement cohérent parce qu’il expire un jour.</p>
+<pre><code>async function getProduct(id) {
+  const key = `product:v1:${id}`;
+  const cached = await redis.get(key);
+  if (cached !== null) return JSON.parse(cached);
+
+  const product = await repository.findById(id);
+  if (product !== null) {
+    await redis.set(key, JSON.stringify(product), { EX: 60 });
+  }
+  return product;
+}
+
+async function updateProduct(id, patch) {
+  const product = await repository.update(id, patch);
+  await redis.del(`product:v1:${id}`);
+  return product;
+}</code></pre>
+<p>Cet exemple est illustratif : vérifie la syntaxe de ton client Redis et traite les erreurs de sérialisation, les valeurs absentes et l’indisponibilité du cache. L’invalidation après écriture réduit le risque de lecture périmée, mais ne supprime pas toutes les courses : une lecture lente peut récupérer l’ancienne valeur, puis la réécrire après l’invalidation. Pour les données sensibles ou les invariants financiers, le cache ne doit pas devenir la source d’autorité.</p>
+<h3>Risques de production</h3><ul><li><strong>Clé incomplète :</strong> deux langues, tenants ou niveaux d’autorisation partagent une réponse. Intègre dans la clé chaque dimension qui change le résultat.</li><li><strong>Cache stampede :</strong> une clé populaire expire et toutes les requêtes interrogent la base simultanément. Selon le besoin, étale les expirations, regroupe les lectures concurrentes ou utilise un verrou court avec prudence.</li><li><strong>Cache poisoning :</strong> une entrée non fiable est mise en cache puis servie à d’autres utilisateurs. Valide la donnée et cloisonne les clés.</li><li><strong>Panne Redis :</strong> une stratégie fail-open peut préserver la disponibilité mais surcharger la base ; fail-closed peut être nécessaire pour certains contrôles, mais pas pour toute donnée de confort.</li></ul>
+<p><strong>Mesures :</strong> taux de hit/miss, latence du cache, erreurs, évictions, mémoire consommée et charge de la base. Une optimisation n’est validée qu’en comparant les mêmes scénarios avant/après. Le TTL est un compromis entre fraîcheur, mémoire et coût de recalcul, pas une valeur magique.</p>
+<p><strong>Critère de réussite :</strong> tu peux expliquer la politique d’invalidation, montrer le comportement en panne et prouver qu’une réponse ne traverse pas les frontières d’utilisateurs ou de tenants.</p></section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Ajouter un cache sans mesurer le gain.</li><li>Ne pas définir d’invalidation.</li><li>Omettre le contexte utilisateur dans une clé.</li><li>Choisir un TTL arbitraire.</li><li>Traiter Redis comme source de vérité sans stratégie de persistance.</li></ul></section>
+    <section class="lesson-section"><h2>Exercice guidé</h2><p>Pour une API de produits, propose des clés et TTL distincts pour la fiche produit et le stock. Décris ce qui se passe après un changement de prix et après une vente, puis précise le comportement si Redis devient indisponible.</p><h3>Critères de réussite</h3><p>source de vérité identifiée ; clés, TTL et invalidation justifiés ; aucune fuite entre utilisateurs ; panne et pics de requêtes traités ; métriques de latence, hit rate et mémoire prévues.</p></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Références documentaires de départ pour approfondir les concepts et vérifier les détails propres aux outils utilisés.</p><ul><li><a href="https://redis.io/docs/latest/" target="_blank" rel="noopener noreferrer">Redis — Documentation</a></li><li><a href="https://redis.io/docs/latest/develop/use/patterns/" target="_blank" rel="noopener noreferrer">Redis — Cache patterns</a></li><li><a href="https://aws.amazon.com/caching/best-practices/" target="_blank" rel="noopener noreferrer">AWS — Caching best practices</a></li><li><a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside" target="_blank" rel="noopener noreferrer">Microsoft — Cache-Aside pattern</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching" target="_blank" rel="noopener noreferrer">MDN — HTTP caching</a></li></ul></section>
+    <nav class="lesson-nav"><a class="nav-link" href="taches-asynchrones.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="websockets-sse.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

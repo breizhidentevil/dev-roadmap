@@ -1,0 +1,74 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Autorisations côté serveur
+Domaine documentaire : tutoriel spécialisé
+Références retenues comme points de départ documentaires ; vérifier leur actualité et leur adéquation au projet.
+1. OWASP — Authorization Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html
+2. OWASP — IDOR Prevention Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html
+3. OWASP — Access Control — https://owasp.org/www-community/Access_Control
+4. OWASP — API Security Top 10 — https://owasp.org/API-Security/
+5. NIST — Zero Trust Architecture — https://csrc.nist.gov/pubs/sp/800/207/final
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Empêcher les accès non autorisés en appliquant des politiques vérifiables sur les ressources et les actions.">
+  <title>Autorisations côté serveur — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">5. Sécurité applicative</p>
+    <h1>Autorisations côté serveur</h1>
+    <p class="lead">Vérifier les permissions sur chaque opération sensible.</p>
+    <div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 1 h 45</span></div>
+<section class="lesson-section"><h2>Objectifs pédagogiques</h2><ul><li>Identifier les risques d’accès horizontal et vertical.</li><li>Mettre en place des contrôles d’accès côté serveur, y compris au niveau des objets.</li><li>Écrire des tests négatifs qui détectent les contournements d’autorisation.</li></ul></section>
+<section class="lesson-section"><h2>1. Le serveur est la frontière de confiance</h2><p>Le client contrôle son propre environnement : il peut modifier le HTML, appeler directement une API, changer les paramètres et rejouer des requêtes. Toute décision de sécurité doit donc être prise ou vérifiée par le serveur. Le frontend peut améliorer l’expérience en masquant les actions indisponibles, mais ce n’est pas un mécanisme de sécurité.</p></section>
+<section class="lesson-section"><h2>2. Accès horizontal et vertical</h2><p>Un accès horizontal permet à un utilisateur d’atteindre les données d’un autre utilisateur de niveau similaire, par exemple en remplaçant <code>/api/orders/123</code> par <code>/api/orders/124</code>. Un accès vertical permet d’exécuter une action réservée à un niveau de privilège supérieur, comme appeler directement une route d’administration.</p><p>Ces deux familles doivent figurer dans les scénarios de test. Les identifiants difficiles à deviner ne remplacent pas le contrôle d’accès : un UUID n’est pas une autorisation.</p></section>
+<section class="lesson-section"><h2>3. Politique explicite et centralisée</h2>
+<p>Définis des permissions métier nommées, par exemple <code>project:read</code>, <code>project:update</code> ou <code>user:manage</code>. Associe-les à des rôles si cela simplifie l’administration, puis applique les contraintes liées à la ressource : propriétaire, organisation, état de l’objet ou délégation temporaire.</p>
+<pre><code>function canEditProject(user, project) {
+  if (!user) return false;
+  if (user.permissions.includes("project:edit:any")) return true;
+  return project.organizationId === user.organizationId
+      && project.ownerId === user.id;
+}</code></pre>
+<p>Cette fonction illustre une règle simple. En production, normalise le contexte d’identité après authentification et traite explicitement les privilèges administratifs, les délégations et les limites entre organisations. Garde la règle dans une politique réutilisable et testée, plutôt que de la recopier dans chaque contrôleur.</p>
+</section><section class="lesson-section"><h2>4. Appliquer le contrôle sans fuite de données</h2>
+<p>Filtre les données dans la requête au périmètre autorisé, au lieu de charger toutes les lignes puis de filtrer dans le navigateur. Le contexte de session et l’organisation doivent provenir de l’authentification vérifiée côté serveur, jamais d’un identifiant d’organisation fourni librement par le client.</p>
+<pre><code>const project = await db.project.findFirst({
+  where: {
+    id: projectId,
+    organizationId: session.organizationId
+  }
+});
+
+if (!project || !canEditProject(session.user, project)) {
+  // Ce parcours choisit 404 pour ne pas révéler l’existence
+  // d’une ressource inaccessible.
+  throw new NotFoundError();
+}</code></pre>
+<p>Adapte le code à l’ORM utilisé. Le filtrage par organisation et la politique de permission sont deux contrôles distincts : le premier borne le périmètre, la seconde vérifie le rôle, la propriété et l’action demandée. Pour une ressource visible mais une action interdite, une réponse 403 peut être appropriée ; choisis une règle cohérente et évite de divulguer involontairement l’existence d’objets privés.</p>
+</section><section class="lesson-section"><h2>5. Tests et audit</h2>
+<p>Construis une matrice de tests négatifs, pas seulement un test du chemin autorisé. Les réponses attendues ci-dessous sont des exemples : fixe le contrat exact de ton API et conserve-le dans les tests.</p>
+<table><thead><tr><th>Scénario</th><th>Résultat attendu</th><th>Risque couvert</th></tr></thead><tbody>
+<tr><td>Sans authentification</td><td>401</td><td>Accès anonyme</td></tr>
+<tr><td>Utilisateur autorisé sur sa ressource</td><td>2xx</td><td>Chemin positif</td></tr>
+<tr><td>Autre propriétaire ou autre organisation</td><td>404 si l’existence doit rester privée</td><td>IDOR et fuite d’existence</td></tr>
+<tr><td>Rôle sans permission d’administration</td><td>403 ou 404 selon la politique documentée</td><td>Élévation verticale</td></tr>
+<tr><td>Permission retirée pendant une session</td><td>Refus après la fenêtre de révocation prévue</td><td>Privilèges obsolètes</td></tr>
+</tbody></table>
+<p>Journalise les refus significatifs et les changements de permissions sans enregistrer de secrets. Les logs doivent permettre de comprendre l’action et la ressource concernées tout en minimisant les données personnelles. Les tests de séparation entre organisations doivent utiliser des comptes et données distincts.</p>
+</section><section class="lesson-section"><h2>6. Exercice</h2>
+<p>Sur une API de projets, écris une matrice d’accès pour lecteur, éditeur et administrateur. Implémente un endpoint de lecture qui ne retourne que les projets accessibles à l’utilisateur courant. Ajoute un test où l’utilisateur A remplace l’identifiant de son projet par celui de l’utilisateur B, puis un test d’appel direct à une route d’administration avec un rôle insuffisant. Vérifie le statut, le corps et l’absence de données privées dans la réponse de refus.</p>
+<h3>Critères de réussite</h3><ul><li>Aucune décision de sécurité ne dépend uniquement du frontend.</li><li>Les contrôles couvrent le rôle et la relation avec la ressource.</li><li>Les données d’une autre organisation ne sont jamais retournées.</li><li>Les tests couvrent les refus, les cas limites et les accès privilégiés.</li></ul>
+</section><section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Authorization Cheat Sheet</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — IDOR Prevention Cheat Sheet</a></li><li><a href="https://owasp.org/www-community/Access_Control" target="_blank" rel="noopener noreferrer">OWASP — Access Control</a></li><li><a href="https://owasp.org/API-Security/" target="_blank" rel="noopener noreferrer">OWASP — API Security Top 10</a></li><li><a href="https://csrc.nist.gov/pubs/sp/800/207/final" target="_blank" rel="noopener noreferrer">NIST — Zero Trust Architecture</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je sais reconnaître un accès horizontal ou vertical non autorisé.</label><label><input type="checkbox"> Les requêtes sont limitées au périmètre autorisé.</label><label><input type="checkbox"> Des tests négatifs couvrent les contournements courants.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="gestion-secrets.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="donnees-logs.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

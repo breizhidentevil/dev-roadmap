@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Vérification du code généré
+Domaine documentaire : IA appliquée au développement
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. OWASP — Top 10 for Large Language Model Applications — https://owasp.org/www-project-top-10-for-large-language-model-applications/
+2. GitHub — Responsible use of Copilot code suggestions — https://docs.github.com/en/copilot/responsible-use-of-github-copilot-features/responsible-use-of-github-copilot-code-completion
+3. Google Engineering Practices — Code Review Developer Guide — https://google.github.io/eng-practices/review/
+4. NIST — Secure Software Development Framework — https://csrc.nist.gov/Projects/ssdf
+5. GitHub — About code scanning — https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning
+-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Contrôler exactitude, sécurité, tests, licences et maintenabilité du code produit avec une IA.">
+<title>Vérification du code généré — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">IA appliquée au développement</p>
+<h1>Vérification du code généré</h1>
+<p class="lead">Contrôler exactitude, sécurité, tests, licences et maintenabilité du code produit avec une IA.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un contexte réel et justifier tes décisions en fonction des contraintes et des risques.</p><ul><li>Comprendre les notions essentielles et le problème qu’elles permettent de résoudre.</li><li>Appliquer une méthode concrète et vérifier son résultat.</li><li>Identifier les limites, les compromis et les erreurs fréquentes.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Traiter la génération comme une proposition, pas comme une preuve</h2>
+<p>Un assistant de code peut produire rapidement une fonction plausible, un test ou une migration. La forme convaincante du résultat ne garantit ni sa correction ni sa sécurité. Le code doit respecter le besoin, les contrats existants, les contraintes de performance et les conventions du projet. La responsabilité de l’intégration reste celle de la personne qui livre le changement.</p>
+<p>Commence par reformuler ce que le code doit garantir. Par exemple, « valider un e-mail » est trop vague : faut-il vérifier une syntaxe minimale, accepter les adresses internationales, confirmer l’existence de la boîte ou empêcher les doublons ? Une implémentation ne peut être évaluée sans contrat clair. Identifie les entrées, sorties, effets de bord, erreurs attendues et invariants métier avant de lire le code généré.</p>
+<p>Examine ensuite la différence introduite plutôt que de relire uniquement les lignes nouvelles. Une fonction apparemment locale peut modifier un type partagé, un comportement public, une dépendance ou une requête SQL. Le contexte révèle souvent les hypothèses que le générateur n’a pas pu connaître.</p></section>
+<section class="lesson-section"><h2>2. Une procédure de vérification reproductible</h2>
+<ol><li><strong>Relire le besoin :</strong> écris les comportements attendus et les cas qui doivent être refusés.</li><li><strong>Inspecter chaque ligne :</strong> vérifie les types, les conditions, les conversions, la gestion des erreurs et les effets de bord.</li><li><strong>Exécuter les contrôles :</strong> formatage, lint, compilation, tests unitaires, intégration et tests pertinents du projet.</li><li><strong>Ajouter des tests indépendants :</strong> ne te limite pas aux tests proposés par l’IA, qui peuvent reproduire les mêmes hypothèses erronées que l’implémentation.</li><li><strong>Examiner la sécurité :</strong> authentification, autorisation, validation des entrées, secrets, dépendances et exposition des données.</li><li><strong>Vérifier la maintenabilité :</strong> cohérence avec l’architecture, complexité, duplication, noms et documentation.</li></ol>
+<p>Les tests prouvent seulement que le code satisfait les cas couverts. Ils ne prouvent pas que le comportement est complet. Il faut donc associer tests automatisés, revue humaine et, pour les changements risqués, vérifications ciblées comme l’analyse statique ou un test de charge.</p>
+<pre><code>// Exemple TypeScript : contrat explicite et testable
+// Nécessite une cible JavaScript/TypeScript ES2020 ou plus récente.
+type Discount = {
+  priceCents: number;
+  percentageBps: number; // 100 points de base = 1 %
+};
+
+const BASIS_POINTS = 10_000n;
+
+export function discountedPrice(input: Discount): number {
+  if (!Number.isSafeInteger(input.priceCents) || input.priceCents &lt; 0) {
+    throw new RangeError(&quot;priceCents doit être un entier sûr positif ou nul&quot;);
+  }
+  if (!Number.isInteger(input.percentageBps) ||
+      input.percentageBps &lt; 0 || input.percentageBps &gt; 10_000) {
+    throw new RangeError(&quot;percentageBps doit être un entier entre 0 et 10000&quot;);
+  }
+
+  const price = BigInt(input.priceCents);
+  const factor = BASIS_POINTS - BigInt(input.percentageBps);
+  // Arrondi commercial explicite : les demi-centimes sont arrondis vers le haut.
+  const discountedCents = (price * factor + BASIS_POINTS / 2n) / BASIS_POINTS;
+  return Number(discountedCents);
+}</code></pre>
+<p>Le contrat choisit ici des centimes entiers, une remise entière en points de base et un arrondi des demi-centimes vers le haut. <code>BigInt</code> évite de multiplier directement les montants par des nombres flottants. Cette règle d’arrondi est un choix métier illustratif : elle doit être confirmée, documentée et partagée avec les autres systèmes avant utilisation réelle. Le code nécessite une cible ES2020 ou plus récente.</p></section>
+<section class="lesson-section"><h2>3. Tester les frontières et les hypothèses</h2>
+<p>Pour une fonction numérique, vérifie zéro, les valeurs négatives, les limites, les valeurs extrêmes et les entrées non finies. Pour une API, teste l’absence de champs, les types incorrects, les permissions, les erreurs du service tiers et les requêtes répétées. Pour une migration, teste les données historiques et la possibilité de reprendre après une interruption.</p>
+<p>Les tests générés automatiquement peuvent être utiles pour obtenir un premier squelette. Évalue leur pertinence : un test qui ne contient que des assertions triviales ou qui copie exactement l’algorithme de la fonction apporte peu de confiance. Les tests devraient exprimer le comportement attendu indépendamment de l’implémentation.</p>
+<p>Lorsque la logique a beaucoup de cas, ajoute des tests fondés sur des propriétés ou des invariants. Par exemple, une pagination ne doit pas retourner deux fois le même élément dans des pages successives, et une opération idempotente doit conserver le même effet lorsqu’elle est répétée avec la même clé. Ces propriétés peuvent détecter des défauts que quelques exemples heureux ne révèlent pas.</p></section>
+<section class="lesson-section"><h2>4. Sécurité, dépendances et provenance</h2>
+<p>Inspecte les appels système, les requêtes construites à partir de chaînes, la désérialisation, les permissions et les données journalisées. Un code généré peut contenir une injection SQL, un contrôle d’accès manquant ou un secret fictif ressemblant à une vraie valeur. Utilise des requêtes paramétrées, les mécanismes d’autorisation du projet et un gestionnaire de secrets adapté.</p>
+<p>Si la proposition ajoute une bibliothèque, vérifie sa maintenance, sa licence, sa réputation, ses vulnérabilités connues, sa taille et la nécessité réelle de la dépendance. N’installe pas un paquet simplement parce que le nom proposé semble plausible. Vérifie aussi la provenance et les règles de licence applicables au code utilisé dans ton organisation. Les outils et politiques varient ; l’assistant ne remplace pas cette vérification.</p>
+<p>Ne colle pas des clés d’API, des données clients ou des fragments propriétaires dans un service externe sans autorisation. Même un prompt utilisé pour demander une revue peut contenir des informations sensibles. Réduis le contexte envoyé au strict nécessaire et utilise les environnements approuvés.</p></section>
+<section class="lesson-section"><h2>5. Limites et erreurs fréquentes</h2>
+<ul><li><strong>Faire confiance à la syntaxe :</strong> une fonction bien formatée peut être logiquement fausse.</li><li><strong>Accepter des tests superficiels :</strong> les tests passent, mais ne couvrent pas les règles métier ou les cas négatifs.</li><li><strong>Ignorer le contexte :</strong> le code ne respecte pas les contrats, les conventions ou les versions du projet.</li><li><strong>Ajouter une dépendance inutile :</strong> maintenance, surface d’attaque et complexité augmentent sans valeur suffisante.</li><li><strong>Confondre outil et validation :</strong> un résultat d’analyse automatisée doit être interprété, et un contrôle absent ne prouve pas l’absence de risque.</li></ul>
+<p>Adapte l’intensité de la revue à l’impact du changement. Une fonction d’affichage simple n’exige pas la même démarche qu’un traitement de paiement, une permission d’accès ou une migration destructive. Mais aucun code généré ne doit être fusionné sans comprendre ce qu’il fait.</p></section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Demande à un assistant de générer une fonction qui calcule une remise en centimes avec un pourcentage exprimé en points de base. Écris indépendamment des tests pour 0 %, 100 %, un demi-centime, prix négatif, entier non sûr, remise négative, remise supérieure à 100 % et valeur fractionnaire. Vérifie la règle d’arrondi et explique pourquoi une sortie plausible ou des tests générés par le même assistant ne suffisent pas.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je peux expliquer chaque ligne du code que j’intègre.</li><li>Je définis le contrat avant de juger l’implémentation.</li><li>Je teste les cas limites et les erreurs indépendamment du code généré.</li><li>Je vérifie sécurité, dépendances, licences et données sensibles.</li><li>Je sais adapter la profondeur de revue au risque sans supprimer la revue humaine.</li></ul></section>
+<section class="lesson-section"><h2>163 — Atelier de clôture : vérifier le code généré</h2>
+<p><strong>Objectif :</strong> Établis une chaîne de vérification reproductible avant d’intégrer du code généré.</p>
+<h3>Modèle mental et méthode</h3><p>La vérification combine revue du diff, compilation, tests unitaires et d’intégration, analyse statique, audit des dépendances et tests des cas limites. Un test qui passe prouve seulement le comportement couvert ; il ne garantit pas l’absence de défaut.</p>
+<h3>Exemple guidé</h3><p>Exemple : pour un parseur de date, teste chaîne vide, date invalide, fuseau, changement d’année et format inattendu. Vérifie aussi les exceptions et les effets de bord.</p>
+<h3>Pièges à éviter</h3><p>Pièges : faire écrire les tests par le même prompt sans les relire, réduire les assertions pour faire passer la suite, ignorer licences et provenance.</p>
+<h3>Exercice de synthèse</h3><p>Exercice : audite un extrait généré, ajoute au moins cinq cas limites et explique ce que chaque contrôle détecte.</p>
+<h3>Critères de réussite</h3><p>Réussite : tests pertinents, erreurs reproduites, sécurité et dépendances contrôlées, limites connues.</p></section>
+<section class="lesson-section">
+<h2>Exemple de tests indépendants</h2>
+<p>Ces tests Vitest illustrent les frontières du contrat. Ils supposent que la fonction <code>discountedPrice</code> est importée depuis le module testé ; ils ne sont pas exécutés par la page statique.</p>
+<pre><code>import { describe, expect, it } from "vitest";
+import { discountedPrice } from "./discounted-price";
+
+describe("discountedPrice", () =&gt; {
+  it("conserve le prix sans remise", () =&gt; {
+    expect(discountedPrice({ priceCents: 101, percentageBps: 0 })).toBe(101);
+  });
+
+  it("retourne zéro à 100 %", () =&gt; {
+    expect(discountedPrice({ priceCents: 999, percentageBps: 10_000 })).toBe(0);
+  });
+
+  it("arrondit un demi-centime vers le haut", () =&gt; {
+    expect(discountedPrice({ priceCents: 1, percentageBps: 5_000 })).toBe(1);
+  });
+
+  it("préserve un entier sûr sans remise", () =&gt; {
+    expect(discountedPrice({
+      priceCents: Number.MAX_SAFE_INTEGER,
+      percentageBps: 0
+    })).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
+  it("rejette une remise hors limites", () =&gt; {
+    expect(() =&gt; discountedPrice({ priceCents: 100, percentageBps: 10_001 }))
+      .toThrow(RangeError);
+  });
+
+  it("rejette un prix négatif", () =&gt; {
+    expect(() =&gt; discountedPrice({ priceCents: -1, percentageBps: 0 }))
+      .toThrow(RangeError);
+  });
+});</code></pre>
+<p>Complète la suite avec un prix non entier, un entier supérieur à <code>Number.MAX_SAFE_INTEGER</code>, une remise fractionnaire et <code>NaN</code>. Chaque test doit exprimer une règle du contrat, pas reproduire simplement la formule de l’implémentation.</p>
+</section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les points de la leçon. Vérifie les détails qui dépendent des versions, des outils ou du contexte du projet.</p><ol><li><a href="https://owasp.org/www-project-top-10-for-large-language-model-applications/" target="_blank" rel="noopener noreferrer">OWASP — Top 10 for Large Language Model Applications</a></li>
+<li><a href="https://docs.github.com/en/copilot/responsible-use-of-github-copilot-features/responsible-use-of-github-copilot-code-completion" target="_blank" rel="noopener noreferrer">GitHub — Responsible use of Copilot code suggestions</a></li>
+<li><a href="https://google.github.io/eng-practices/review/" target="_blank" rel="noopener noreferrer">Google Engineering Practices — Code Review Developer Guide</a></li>
+<li><a href="https://csrc.nist.gov/Projects/ssdf" target="_blank" rel="noopener noreferrer">NIST — Secure Software Development Framework</a></li>
+<li><a href="https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning" target="_blank" rel="noopener noreferrer">GitHub — About code scanning</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="assistants-code.html">← Assistants de code</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link" href="limites-securite-ia.html">Limites et sécurité des outils IA →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

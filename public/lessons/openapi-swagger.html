@@ -1,0 +1,88 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Documentation OpenAPI/Swagger
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. OpenAPI Initiative — Specification — https://spec.openapis.org/oas/latest.html
+2. Swagger — Documentation OpenAPI — https://swagger.io/docs/specification/v3_0/about/
+3. Swagger Editor — https://editor.swagger.io/
+4. Stoplight — Spectral — https://docs.stoplight.io/docs/spectral/674b27b261c3c-overview
+5. Microsoft — REST API Guidelines — https://github.com/microsoft/api-guidelines
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Décrire une API HTTP avec un contrat exploitable par les développeurs, les outils et les tests." name="description"/>
+<title>Documentation OpenAPI/Swagger — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">3. Backend</p>
+<h1>Documentation OpenAPI/Swagger</h1>
+<p class="lead">Décrire une API avec un contrat OpenAPI exploitable par les humains et les outils, puis intégrer sa validation au cycle de développement.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 11 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Comprendre le rôle d’une spécification OpenAPI.</li><li>Décrire routes, paramètres, schémas et réponses.</li><li>Documenter authentification, erreurs et exemples.</li><li>Valider le contrat automatiquement et le garder aligné avec le code.</li></ul>
+</section><section class="lesson-section"><h2>Fil conducteur</h2><p>Documente le contrat observé par le client : méthodes, paramètres, schémas, statuts, erreurs, sécurité et exemples. La spécification doit évoluer avec le code, idéalement via des contrôles automatisés.</p></section>
+<section class="lesson-section"><h2>1. OpenAPI et Swagger : distinction</h2>
+<p><strong>OpenAPI</strong> est une spécification décrivant une API HTTP dans un format structuré, généralement YAML ou JSON. <strong>Swagger</strong> désigne notamment des outils capables de visualiser, modifier ou exploiter ce contrat. Le document OpenAPI est la source du contrat ; l’interface graphique n’est qu’une façon de le consulter.</p><p>Une spécification précise ce que les clients peuvent envoyer et recevoir. Elle peut alimenter une documentation interactive, générer des clients, vérifier les réponses ou produire des mocks. Elle ne prouve pas à elle seule que l’implémentation respecte le contrat.</p>
+</section>
+<section class="lesson-section"><h2>2. Structure minimale</h2>
+<pre><code>openapi: 3.1.0
+info:
+  title: API des tâches
+  version: 1.0.0
+paths:
+  /tasks:
+    get:
+      summary: Lister les tâches
+      responses:
+        "200":
+          description: Liste renvoyée
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+components:
+  schemas:
+    Task:
+      type: object
+      required: [id, title, done]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        done: { type: boolean }</code></pre><p>Le document décrit le chemin, l’opération, les réponses et le schéma. Dans un vrai contrat, ajoute les paramètres, les réponses d’erreur, les exemples, les règles d’authentification et les contraintes utiles.</p>
+</section>
+<section class="lesson-section"><h2>3. Décrire précisément les entrées et sorties</h2>
+<p>Utilise <code>parameters</code> pour les paramètres de chemin, de requête et d’en-tête ; <code>requestBody</code> pour le corps ; et <code>responses</code> pour les résultats possibles. Distingue un champ absent d’un champ nullable : ce sont deux comportements différents. Décris les formats, limites, valeurs autorisées et champs obligatoires lorsque ces règles font partie du contrat.</p><p>Documente les réponses d’erreur attendues, par exemple <code>400</code>, <code>401</code>, <code>403</code>, <code>404</code> et <code>500</code>. Des réponses d’erreur absentes de la spécification laissent les clients deviner comment réagir.</p>
+</section>
+<section class="lesson-section"><h2>4. Réutilisation et sécurité</h2>
+<p>Déplace les schémas réutilisables dans <code>components/schemas</code>, les mécanismes de sécurité dans <code>components/securitySchemes</code> et les réponses communes dans <code>components/responses</code>. Les références <code>$ref</code> évitent les duplications et réduisent les divergences entre endpoints.</p><p>Décris l’authentification sans exposer de secret réel. Une clé API d’exemple doit être fictive. La spécification peut documenter les exigences d’accès, mais les autorisations doivent toujours être appliquées par le serveur.</p>
+</section>
+<section class="lesson-section"><h2>5. Validation dans le cycle de développement</h2>
+<ol><li>Versionner la spécification avec le code.</li><li>Valider la syntaxe et les règles de style à chaque pull request.</li><li>Comparer les changements au contrat précédent pour détecter les ruptures.</li><li>Générer ou mettre à jour les clients si le projet le prévoit.</li><li>Tester que l’implémentation correspond aux schémas et statuts documentés.</li></ol><p>Choisis une approche contract-first si le contrat doit être partagé avant l’implémentation. Une approche code-first peut convenir si le framework génère une spécification fiable. Dans les deux cas, évite que le contrat publié diverge de l’API réellement déployée.</p>
+</section>
+
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Décris une API qui crée une tâche avec un titre obligatoire et renvoie <code>201</code>. Prévois aussi les erreurs de validation et d’absence d’authentification, un schéma réutilisable pour une tâche et un exemple de réponse. Vérifie le fichier dans un éditeur OpenAPI.</p><h3>Critères de réussite</h3><ul><li>La spécification est valide et lisible.</li><li>Les paramètres, corps et réponses sont explicitement décrits.</li><li>Les erreurs et l’authentification sont documentées.</li><li>Les schémas réutilisables sont centralisés.</li><li>Une vérification automatique est prévue en CI.</li></ul>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Décrire uniquement les réponses de succès.</li><li>Oublier les contraintes, la nullabilité ou les valeurs d’énumération.</li><li>Copier le même schéma dans plusieurs endpoints au lieu de le réutiliser.</li><li>Considérer une page Swagger comme une preuve de conformité.</li><li>Modifier le code sans régénérer ou valider le contrat.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Références documentaires de départ pour approfondir les concepts et vérifier les détails propres aux outils utilisés.</p><ul>
+<li><a href="https://spec.openapis.org/oas/latest.html" rel="noopener noreferrer" target="_blank">OpenAPI Initiative — Specification</a></li>
+<li><a href="https://swagger.io/docs/specification/v3_0/about/" rel="noopener noreferrer" target="_blank">Swagger — Documentation OpenAPI</a></li>
+<li><a href="https://editor.swagger.io/" rel="noopener noreferrer" target="_blank">Swagger Editor</a></li>
+<li><a href="https://docs.stoplight.io/docs/spectral/674b27b261c3c-overview" rel="noopener noreferrer" target="_blank">Stoplight — Spectral</a></li>
+<li><a href="https://github.com/microsoft/api-guidelines" rel="noopener noreferrer" target="_blank">Microsoft — REST API Guidelines</a></li>
+</ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="versionnement-api.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="middlewares.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html><p><strong>Repère pratique. </strong>Un document OpenAPI décrit les chemins, opérations, paramètres, corps de requête, réponses et composants réutilisables. Utilise `required` pour les propriétés obligatoires et distingue soigneusement propriété absente, valeur `null` et chaîne vide : ces états ne sont pas équivalents.</p><p><strong>Repère pratique. </strong>Décris les réponses d’erreur autant que le succès, y compris les statuts et le schéma du corps. Un exemple doit respecter le schéma déclaré ; sinon, il donne aux consommateurs un contrat trompeur même si le fichier passe une validation syntaxique.</p><p><strong>Repère pratique. </strong>Ajoute au minimum une validation de la spécification en CI et, si possible, une vérification de compatibilité entre versions. La validité du YAML ne prouve pas que l’API implémente le contrat : complète-la par des tests de contrat ou des tests d’intégration.</p>

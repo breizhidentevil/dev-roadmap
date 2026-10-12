@@ -1,0 +1,56 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Authentification et autorisation
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. OWASP — Authentication Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
+2. OWASP — Authorization Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html
+3. NIST — Digital Identity Guidelines — https://pages.nist.gov/800-63-4/
+4. MDN — HTTP authentication — https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication
+5. OWASP — Session Management Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Vérifier qui agit, puis décider précisément ce que cette identité a le droit de faire.">
+  <title>Authentification et autorisation — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">3. Backend</p>
+    <h1>Authentification et autorisation</h1>
+    <p class="lead">Distinguer identité, permissions et contrôle d’accès.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 12 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Distinguer identification, authentification et autorisation.</li><li>Appliquer le moindre privilège et le refus par défaut.</li><li>Protéger identifiants, sessions et accès aux ressources.</li><li>Tester les accès autorisés et interdits.</li></ul></section>
+    <section class="lesson-section"><h2>1. Trois questions distinctes</h2><p>Identification : quel compte est revendiqué ? Authentification : quelle preuve vérifie cette revendication ? Autorisation : cette identité peut-elle effectuer cette action sur cette ressource dans ce contexte ? Être connecté ne donne pas automatiquement accès à toutes les fonctions.</p><p>Un utilisateur peut consulter ses commandes sans pouvoir lire celles d’un autre compte. Cette vérification doit être faite côté serveur à chaque opération pertinente, pas seulement dans l’interface.</p></section>
+    <section class="lesson-section"><h2>2. Authentifier sans inventer sa cryptographie</h2><p>Privilégie les mécanismes éprouvés du framework ou d’un fournisseur d’identité. Pour les mots de passe, stocke un hash adapté avec sel et paramètres de coût appropriés, jamais le texte en clair. Prévois limitation des tentatives, récupération sécurisée et MFA selon le risque.</p><p>Ne construis pas l’identité à partir d’un champ contrôlé par le client comme userId, isAdmin ou role. Les messages d’échec ne doivent pas faciliter inutilement l’énumération des comptes.</p></section>
+    <section class="lesson-section"><h2>3. Autoriser chaque action</h2><p>Une vérification globale « utilisateur connecté » ne remplace pas les contrôles de permission sur chaque ressource. Les règles peuvent dépendre du rôle, de la propriété, de l’état métier, du tenant ou du contexte.</p><p>Charge la ressource et applique une politique explicite avant de renvoyer les données ou de modifier l’état. Selon le besoin, filtre aussi les requêtes de base de données par propriétaire ou tenant pour limiter les erreurs d’accès.</p></section>
+    <section class="lesson-section"><h2>4. Modèles de permissions</h2><p>RBAC associe des permissions à des rôles. ABAC évalue aussi les attributs du sujet, de la ressource et du contexte. Une application simple peut commencer par une politique explicite et testable ; la complexité doit suivre les besoins réels.</p><p>Applique le moindre privilège et le refus par défaut : une route nouvellement ajoutée ne doit pas être accessible simplement parce qu’aucune règle n’a été écrite. Journalise les refus utiles sans stocker de secrets.</p></section>
+    <section class="lesson-section"><h2>5. Sessions, cookies et jetons</h2><p>Les sessions serveur facilitent la révocation centralisée, mais nécessitent un stockage accessible aux instances. Les cookies doivent être configurés selon le contexte, notamment avec HttpOnly, Secure et SameSite.</p><p>Les jetons signés peuvent être adaptés à certains systèmes, mais ne sont pas nécessairement chiffrés et peuvent être volés. Définis expiration, audience, rotation, révocation et stockage. Le choix doit découler des exigences, pas d’une règle « JWT partout ».</p></section>
+    <section class="lesson-section"><h2>6. Étude de cas : empêcher l’accès à une ressource d’un autre compte</h2>
+<p>Un utilisateur connecté appelle <code>GET /api/invoices/123</code>. Le fait que sa session soit valide prouve son identité, pas son droit de lire la facture 123. Une faille fréquente consiste à vérifier seulement le rôle général « utilisateur connecté » puis à faire confiance à l’identifiant fourni dans l’URL.</p>
+<pre><code>async function getInvoice(request, reply) {
+  const actor = request.auth; // établi par un mécanisme serveur fiable
+  const invoice = await invoices.findById(request.params.id);
+  if (!invoice) return reply.code(404).send({ error: "NOT_FOUND" });
+
+  const allowed = await policy.canReadInvoice(actor, invoice);
+  if (!allowed) return reply.code(404).send({ error: "NOT_FOUND" });
+  return reply.send(toPublicInvoice(invoice));
+}</code></pre>
+<p>Le code illustre une frontière de sécurité, pas une politique universelle. Selon les besoins, il peut être préférable de répondre 403 pour une ressource connue et interdite, ou 404 pour réduire la divulgation de son existence. Le choix doit rester cohérent et ne remplace pas la vérification d’autorisation. La fonction <code>toPublicInvoice</code> limite aussi les champs exposés : autoriser la lecture d’une facture ne signifie pas exposer tous les champs internes.</p>
+<h3>Règles à appliquer</h3><ul><li><strong>Refus par défaut :</strong> une action est interdite tant qu’une règle explicite ne l’autorise pas.</li><li><strong>Moindre privilège :</strong> donner uniquement les actions nécessaires, sur les ressources nécessaires.</li><li><strong>Contrôle côté serveur :</strong> masquer un bouton dans l’interface améliore l’expérience, mais n’empêche pas un appel direct.</li><li><strong>Réévaluer le contexte :</strong> propriété, organisation, statut de la ressource et permissions peuvent changer entre deux requêtes.</li><li><strong>Journaliser avec discernement :</strong> enregistrer l’action refusée et un identifiant de corrélation, sans recopier les secrets ou le contenu sensible.</li></ul>
+<p>Les rôles (RBAC) sont pratiques pour des fonctions globales ; les règles fondées sur les attributs ou la relation avec la ressource sont souvent nécessaires pour « propriétaire », « membre de l’équipe » ou « document partagé ». Les combiner est possible, mais une politique trop dispersée devient difficile à tester.</p>
+<p><strong>Matrice de tests minimale :</strong> propriétaire autorisé, autre utilisateur refusé, administrateur selon la règle, ressource inexistante, session absente, permission révoquée et identifiant mal formé. Teste chaque action sensible, pas seulement la page d’accueil.</p>
+<p><strong>Critère de réussite :</strong> un appel direct avec l’identifiant d’un autre utilisateur est refusé par le serveur, et les tests prouvent à la fois les accès attendus et les accès interdits.</p></section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Confondre authentification et autorisation.</li><li>Faire confiance à un rôle transmis par le navigateur.</li><li>Contrôler la route mais pas la ressource.</li><li>Oublier récupération et révocation de compte.</li><li>Inscrire des tokens dans les logs ou URL.</li></ul></section>
+    <section class="lesson-section"><h2>Exercice guidé</h2><p>Pour une application de documents partagés, définis les droits de lecture, création, modification et suppression pour propriétaire, collaborateur et administrateur. Ajoute un test où un utilisateur devine l’identifiant d’un document appartenant à un autre compte.</p><h3>Critères de réussite</h3><p>identité établie côté serveur ; chaque ressource contrôlée ; moindre privilège et refus par défaut ; cycle de vie des sessions prévu ; tests négatifs inter-comptes.</p></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Références documentaires de départ pour approfondir les concepts et vérifier les détails propres aux outils utilisés.</p><ul><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Authentication Cheat Sheet</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Authorization Cheat Sheet</a></li><li><a href="https://pages.nist.gov/800-63-4/" target="_blank" rel="noopener noreferrer">NIST — Digital Identity Guidelines</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication" target="_blank" rel="noopener noreferrer">MDN — HTTP authentication</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Session Management Cheat Sheet</a></li></ul></section>
+    <nav class="lesson-nav"><a class="nav-link" href="websockets-sse.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="sessions-jwt.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

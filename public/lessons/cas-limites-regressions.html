@@ -1,0 +1,78 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Cas limites et tests de régression
+Les références sont des points de départ pertinents ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. ISTQB — Glossary of Testing Terms — https://glossary.istqb.org/
+2. Martin Fowler — Test Pyramid — https://martinfowler.com/articles/practical-test-pyramid.html
+3. Google Testing Blog — Test Sizes — https://testing.googleblog.com/2010/12/test-sizes.html
+4. Vitest — Writing Tests — https://vitest.dev/guide/learn/writing-tests
+5. OWASP — Web Security Testing Guide — https://owasp.org/www-project-web-security-testing-guide/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Concevoir des tests qui révèlent les frontières fragiles et empêchent le retour de bugs déjà corrigés.">
+  <title>Cas limites et tests de régression — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">6. Tests, débogage et qualité</p>
+    <h1>Cas limites et tests de régression</h1>
+    <p class="lead">Concevoir des tests qui révèlent les frontières fragiles et empêchent le retour de bugs déjà corrigés.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Qualité et tests</span></div>
+    <section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Un cas limite est une situation située à la frontière d’une règle ou d’une contrainte : valeur minimale, liste vide, date de changement d’heure, absence d’autorisation ou réponse inattendue d’un service. Un test de régression conserve un scénario qui reproduit un défaut corrigé, afin que le même problème ne réapparaisse pas silencieusement.</p><ul><li>Identifier les frontières d’une règle métier ou d’une API.</li><li>Transformer un bug observé en scénario de test stable.</li><li>Choisir le niveau de test adapté et éviter les doublons peu utiles.</li></ul>
+</section><section class="lesson-section"><h2>1. Raisonner à partir des règles et des frontières</h2>
+<p>Pour une entrée numérique autorisée entre 1 et 100, tester uniquement 50 prouve peu de choses sur les limites. Les valeurs 1, 100, 0 et 101 vérifient directement les frontières. Pour une chaîne, les cas intéressants peuvent être vide, composée d’espaces, à la longueur maximale, avec Unicode ou avec des caractères de contrôle.</p><p>La technique des classes d’équivalence consiste à regrouper les entrées censées être traitées de la même manière. L’analyse des valeurs limites cible ensuite les bords de ces groupes. Ces techniques réduisent les tests redondants, mais ne remplacent pas l’analyse des règles métier et des interactions entre plusieurs champs.</p><p>Exemple : une réservation exige une date future et un nombre de participants entre 1 et 8. Il faut tester séparément la date limite, le nombre minimal et maximal, puis quelques combinaisons où un seul des deux critères est invalide.</p>
+<table><thead><tr><th>Règle</th><th>Cas nominal</th><th>Frontières et cas hostiles</th></tr></thead><tbody>
+<tr><td>Nombre de participants : 1 à 8</td><td>1, 4 ou 8 participants acceptés.</td><td>0, 9, valeur décimale, chaîne, valeur absente.</td></tr>
+<tr><td>Recherche paginée</td><td>Page intermédiaire avec résultats.</td><td>Résultat vide, page négative, page au-delà de la fin, taille maximale, tri égal sur plusieurs lignes.</td></tr>
+<tr><td>Date future</td><td>Date clairement postérieure à l’instant de référence.</td><td>Instant égal, juste avant/après, fuseau différent, changement de jour ou d’heure.</td></tr>
+<tr><td>Accès à une ressource</td><td>Propriétaire autorisé.</td><td>Anonyme, utilisateur connecté non autorisé, identifiant inexistant et ressource supprimée.</td></tr>
+</tbody></table>
+<p>Cette matrice n’est pas une liste exhaustive. Elle sert à rendre visibles les catégories de défauts recherchées. Pour les champs combinés, commence par tester chaque règle seule, puis ajoute les interactions à fort risque ; tester toutes les combinaisons peut coûter cher sans améliorer proportionnellement la détection.</p>
+</section><section class="lesson-section"><h2>2. Construire un test de régression utile</h2>
+<p>Lorsqu’un bug est trouvé, commence par conserver les éléments qui permettent de le reproduire : entrée, état initial, action, résultat observé et résultat attendu. Écris d’abord un test qui échoue à cause du défaut, puis corrige le code. Le test doit passer après la correction.</p><pre><code>it("refuse une réservation à la date du jour", () =&gt; {
+  const today = new Date("2026-10-10T12:00:00Z");
+  const requested = new Date("2026-10-10T00:00:00Z");
+
+  expect(() =&gt; validateBookingDate(requested, today))
+    .toThrow("date_must_be_future");
+});</code></pre><p>Le test est illustratif : la règle exacte et la convention de fuseau horaire doivent être définies par le produit. Ici, l’horloge est injectée dans la fonction pour rendre le résultat déterministe. Éviter l’heure réelle du système rend les tests reproductibles et facilite la vérification des frontières temporelles.</p>
+<p>Pour une règle temporelle, décide si « aujourd’hui » signifie un jour civil dans un fuseau donné ou une durée exacte depuis l’instant présent. Ces règles ne sont pas interchangeables. Fixe l’horloge, explicite le fuseau et teste le passage de minuit ; sinon, un test peut réussir sur le poste du développeur et échouer dans une CI configurée en UTC.</p>
+</section><section class="lesson-section"><h2>3. Distinguer défaut, symptôme et cause</h2>
+<p>Un bug visible dans l’interface peut venir de plusieurs couches : affichage, validation cliente, API, logique métier ou persistance. Le test de régression doit viser le niveau le plus bas capable de reproduire fidèlement la cause, puis des tests à des niveaux supérieurs peuvent vérifier que le parcours complet reste correct.</p><p>Si un arrondi erroné est causé par une fonction de calcul pure, un test unitaire ciblé sera rapide et précis. Si le défaut vient d’une migration SQL ou d’un contrat entre l’API et la base, un test d’intégration sera plus pertinent. Un test E2E peut compléter la couverture si le parcours utilisateur est important, mais il est rarement nécessaire de reproduire chaque détail de la logique métier dans le navigateur.</p>
+</section><section class="lesson-section"><h2>4. Rendre les tests déterministes</h2>
+<p>Un bon test produit le même résultat dans les mêmes conditions. Contrôle explicitement l’heure, l’aléatoire, les données de départ et les réponses des services externes. Évite de dépendre de l’ordre d’exécution ou d’un état partagé entre tests.</p><p>Pour les tests de dates, précise les fuseaux horaires et les formats. Pour les tests de pagination, vérifie la première page, une page intermédiaire, la dernière page et une page au-delà de la fin. Pour les droits d’accès, teste au minimum l’utilisateur autorisé, l’utilisateur authentifié mais non autorisé et l’utilisateur non authentifié.</p><p>Ne transforme pas un test intermittent en succès artificiel par des relances systématiques. Les relances peuvent aider au diagnostic, mais la cause — concurrence, attente fragile, dépendance externe ou fuite d’état — doit être traitée.</p>
+</section><section class="lesson-section"><h2>5. Prioriser les cas à fort risque</h2>
+<p>Le nombre de tests n’est pas un objectif en soi. Priorise les règles critiques, les frontières ayant déjà provoqué des incidents, les entrées contrôlées par les utilisateurs, les opérations financières, les permissions et les transitions d’état. Une matrice simple peut croiser impact d’une erreur et probabilité d’occurrence.</p><p>Documente les cas non couverts lorsqu’ils sont coûteux ou impossibles à automatiser. Les tests exploratoires, la revue de code et les tests automatisés se complètent. La couverture de code indique les lignes exécutées, mais ne garantit pas que les assertions détectent une sortie incorrecte.</p>
+<p>Quand un scénario échoue, réduis-le jusqu’au plus petit cas qui conserve le défaut : moins de données, moins d’étapes, moins de dépendances. Cette réduction rend la cause plus lisible et produit souvent un test de régression plus stable. Le test doit vérifier le résultat erroné qui a été observé, pas seulement une erreur générique qui pourrait être levée pour une autre raison.</p>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Tester seulement le cas moyen et oublier les valeurs aux limites.</li><li>Écrire un test après correction qui ne reproduit pas réellement le bug initial.</li><li>Tester le même scénario coûteux à tous les niveaux sans justification.</li><li>Utiliser la date, le réseau ou l’aléatoire réels sans les contrôler.</li><li>Ajouter des assertions vagues qui acceptent plusieurs résultats incompatibles avec la règle.</li><li>Confondre un taux de couverture élevé avec une suite de tests efficace.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Choisis une fonction de pagination, de remise ou de validation de formulaire. Liste ses règles, puis identifie les classes d’équivalence et les valeurs limites. Ajoute au moins six tests, dont deux cas invalides et un scénario qui reproduit un bug plausible.</p><p>Pour chaque test, écris en une phrase le défaut qu’il détecterait. Si tu ne peux pas expliquer ce que le test protège, vérifie s’il est redondant ou trop vague.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>À partir d’un bug corrigé dans un projet personnel ou d’un scénario fictif, rédige le cas de reproduction, ajoute le test au bon niveau et démontre qu’il échoue avant la correction puis passe après.</p><p><strong>Réussite :</strong> les frontières importantes sont identifiées ; l’état et le temps sont contrôlés ; le test échoue si le bug revient ; les assertions vérifient la règle métier ; la suite reste déterministe ; le choix du niveau de test est justifié. Pour le démontrer, exécute le test avant la correction et constate l’échec, applique la correction, vérifie son succès, puis réintroduis brièvement le défaut pour confirmer que le test le détecte encore.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Ces références permettent d’approfondir les méthodes et de confronter les exemples à la version des outils utilisés dans ton projet.</p>
+      <ol><li><a href="https://glossary.istqb.org/" target="_blank" rel="noopener noreferrer">ISTQB — Glossary of Testing Terms</a></li><li><a href="https://martinfowler.com/articles/practical-test-pyramid.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Test Pyramid</a></li><li><a href="https://testing.googleblog.com/2010/12/test-sizes.html" target="_blank" rel="noopener noreferrer">Google Testing Blog — Test Sizes</a></li><li><a href="https://vitest.dev/guide/learn/writing-tests" target="_blank" rel="noopener noreferrer">Vitest — Writing Tests</a></li><li><a href="https://owasp.org/www-project-web-security-testing-guide/" target="_blank" rel="noopener noreferrer">OWASP — Web Security Testing Guide</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer les concepts et les objectifs de cette compétence.</label>
+      <label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+      <label><input type="checkbox"> Je sais reconnaître les limites et les compromis.</label>
+      <label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="tests-e2e.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="debug-methodique.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

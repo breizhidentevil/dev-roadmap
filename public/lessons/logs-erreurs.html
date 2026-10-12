@@ -1,0 +1,104 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Gestion des erreurs et logs structurés
+Les références sont des points de départ pertinents ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. OWASP — Error Handling Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html
+2. OWASP — Logging Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
+3. Node.js — Errors — https://nodejs.org/api/errors.html
+4. RFC 9457 — Problem Details for HTTP APIs — https://www.rfc-editor.org/rfc/rfc9457.html
+5. OpenTelemetry — Logs — https://opentelemetry.io/docs/specs/otel/logs/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Concevoir des erreurs exploitables pour le diagnostic sans exposer les détails internes ni les données sensibles.">
+  <title>Gestion des erreurs et logs structurés — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">6. Tests, débogage et qualité</p>
+    <h1>Gestion des erreurs et logs structurés</h1>
+    <p class="lead">Concevoir des erreurs exploitables pour le diagnostic sans exposer les détails internes ni les données sensibles.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Qualité et tests</span></div>
+    <section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Une erreur doit être compréhensible par le client quand une action est attendue de lui, et suffisamment détaillée dans les systèmes internes pour aider au diagnostic. Ces deux besoins ne doivent pas être confondus : une réponse publique ne doit pas révéler une pile d’appels, un nom de table ou une clé de configuration.</p><ul><li>Définir une forme d’erreur stable pour une API.</li><li>Distinguer erreur attendue, erreur inattendue et événement à journaliser.</li><li>Relier les événements avec un identifiant de requête tout en protégeant les secrets.</li></ul>
+</section><section class="lesson-section"><h2>1. Classer les erreurs</h2>
+<p>Une erreur de validation (par exemple un champ requis manquant) fait partie des situations attendues et peut être traduite en réponse client précise. Une ressource absente peut devenir un 404. Une absence d’authentification relève généralement de 401, tandis qu’un utilisateur authentifié mais non autorisé relève généralement de 403. Une panne imprévue de base de données doit produire une réponse générique de serveur et un événement interne exploitable.</p><p>La classification doit être explicite dans l’application. Évite de déduire le statut HTTP à partir d’un texte libre ou de renvoyer 200 avec un objet contenant <code>error</code> : cela complique les clients, les métriques et les alertes. Consulte aussi la compétence sur les codes HTTP pour les distinctions précises.</p>
+</section><section class="lesson-section"><h2>2. Définir un contrat d’erreur</h2>
+<p>Un contrat stable aide les clients à traiter les erreurs sans analyser un message destiné aux humains. RFC 9457 définit un format courant appelé Problem Details :</p><pre><code>{
+  "type": "https://api.example.test/problems/validation",
+  "title": "Les données sont invalides",
+  "status": 400,
+  "detail": "Un ou plusieurs champs doivent être corrigés.",
+  "instance": "/api/tasks",
+  "code": "VALIDATION_FAILED",
+  "requestId": "req_7f3a"
+}</code></pre><p>Le domaine et l’identifiant sont illustratifs. N’inclus pas de trace technique, de requête SQL, de token ni de contenu personnel dans <code>detail</code>. Pour les erreurs de validation, ajoute éventuellement une liste de champs en erreur, sans renvoyer des données soumises qui pourraient contenir des secrets. Garde les codes machine stables même si les messages sont traduits.</p>
+</section><section class="lesson-section"><h2>3. Traiter les exceptions au bon endroit</h2>
+<p>Une couche proche de la règle métier peut lever une erreur typée ou retourner un résultat explicite. Une frontière HTTP traduit ensuite les erreurs connues en statuts et formats adaptés. Un gestionnaire centralisé évite de répéter le même traitement dans chaque endpoint.</p><pre><code>try {
+  const task = await taskService.create(input);
+  return response.status(201).json(task);
+} catch (error) {
+  if (error instanceof TaskValidationError) {
+    return response.status(400).json({
+      code: "INVALID_TASK",
+      requestId
+    });
+  }
+
+  logger.error({
+    event: "task_creation_failed",
+    requestId,
+    errorType: error instanceof Error ? error.name : "UnknownError"
+  });
+
+  return response.status(500).json({
+    code: "INTERNAL_ERROR",
+    requestId
+  });
+}</code></pre><p>Exemple de principe à adapter au framework. Le logger doit être structuré et le détail de l’exception, s’il est journalisé, doit être filtré et réservé aux personnes autorisées. Ne laisse pas une exception inconnue être transformée en message détaillé transmis au client.</p>
+</section><section class="lesson-section"><h2>4. Journaliser pour enquêter</h2>
+<p>Un log structuré contient typiquement un horodatage, un niveau, un nom d’événement stable, un identifiant de corrélation et quelques attributs techniques utiles. Par exemple, <code>payment_authorization_failed</code> est plus facile à agréger qu’une phrase différente à chaque exécution.</p><p>Utilise les niveaux selon leur finalité : debug pour les investigations ciblées, info pour les événements opérationnels utiles, warn pour une situation anormale mais récupérable, error pour un échec nécessitant une analyse. La convention doit être cohérente et ne pas faire dépendre les alertes d’une simple préférence de vocabulaire.</p><p>Ne journalise pas les mots de passe, cookies, jetons d’accès, clés d’API, données bancaires ni les corps de requête complets par défaut. Contrôle également les valeurs utilisateur susceptibles d’injecter des retours à la ligne ou de fausser la lecture des logs.</p>
+</section><section class="lesson-section"><h2>5. Corrélation, alertes et bruit</h2>
+<p>Un identifiant de requête permet de relier la réponse HTTP, les logs applicatifs et les appels internes associés. Il doit être généré ou validé par le serveur selon une règle claire ; ne traite pas un identifiant fourni par le client comme une preuve d’identité.</p><p>Une alerte doit correspondre à un signal exploitable : taux d’erreurs qui augmente, échecs répétés d’une dépendance ou saturation. Alerter sur chaque erreur individuelle peut provoquer une fatigue d’alerte et masquer les incidents importants. Ajoute du contexte agrégé, des seuils et une procédure de diagnostic. Définis aussi les droits d’accès et la durée de conservation des journaux.</p>
+</section><section class="lesson-section"><h2>6. Concevoir des événements exploitables et sûrs</h2>
+<p>Un événement de log doit répondre à une question opérationnelle : quel composant a échoué, pendant quelle opération, avec quel résultat et quelle possibilité de reprise ? Préfère un schéma stable à des phrases libres. Les champs utiles comprennent un horodatage UTC, un niveau, un nom d’événement, un service, un identifiant de corrélation et un code d’erreur contrôlé. N’inclus pas de mot de passe, jeton, cookie, contenu de formulaire ou corps complet d’une requête par défaut.</p>
+<pre><code>logger.warn({
+  event: "payment_authorization_failed",
+  requestId,
+  orderId,
+  errorCode: "PROVIDER_TIMEOUT",
+  retryable: true
+}, "Payment authorization failed");</code></pre>
+<p>Ce modèle n’est sûr que si les identifiants sont autorisés dans le système de logs et ne révèlent pas de données personnelles. L’exception technique complète peut être réservée à une destination protégée ; l’API publique reçoit un message stable et non sensible. Pour éviter une tempête de logs, regroupe les erreurs répétées, ajoute des limites d’échantillonnage et alerte sur un taux ou une tendance plutôt que sur chaque occurrence.</p>
+<h3>Contrôles de revue</h3><ul><li>Le niveau correspond-il à l’action attendue (debug, info, warn, error) ?</li><li>Le message permet-il de distinguer panne, rejet métier et annulation normale ?</li><li>Un identifiant de corrélation permet-il de suivre la requête sans recopier des secrets ?</li><li>La rétention, les droits d’accès et la politique de suppression sont-ils définis ?</li><li>Une alerte est-elle liée à un impact observable et à une action de diagnostic ?</li></ul>
+</section>
+<section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Renvoyer au client la stack trace ou le message brut d’une exception.</li><li>Utiliser le texte du message comme code d’erreur contractuel.</li><li>Enregistrer des tokens, cookies ou corps de requêtes complets.</li><li>Journaliser toutes les erreurs au niveau error, sans distinction.</li><li>Créer des alertes sur chaque événement sans agrégation ni seuil.</li><li>Perdre l’identifiant de corrélation entre middleware, service et tâche asynchrone.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Sur une API de tâches, définis les réponses pour trois situations : titre invalide, tâche inexistante et exception inattendue. Crée un format public stable, puis un événement de log distinct pour l’échec inattendu avec un identifiant de requête.</p><p>Vérifie que la réponse publique ne contient ni pile d’appels ni détails internes. Vérifie aussi que les logs n’incluent aucun en-tête Authorization ou corps complet de la requête.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Écris une courte convention d’erreurs pour ton backend : catégories, statuts, codes machine, champs publics, champs de logs, niveaux et politique de corrélation.</p><p><strong>Réussite :</strong> les clients reçoivent un contrat stable ; les erreurs connues sont traduites explicitement ; les exceptions inattendues restent génériques côté client ; les logs structurés permettent l’enquête ; les secrets sont exclus ; les alertes sont exploitables et la rétention est définie.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Ces références permettent d’approfondir les méthodes et de confronter les exemples à la version des outils utilisés dans ton projet.</p>
+      <ol><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Error Handling Cheat Sheet</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Logging Cheat Sheet</a></li><li><a href="https://nodejs.org/api/errors.html" target="_blank" rel="noopener noreferrer">Node.js — Errors</a></li><li><a href="https://www.rfc-editor.org/rfc/rfc9457.html" target="_blank" rel="noopener noreferrer">RFC 9457 — Problem Details for HTTP APIs</a></li><li><a href="https://opentelemetry.io/docs/specs/otel/logs/" target="_blank" rel="noopener noreferrer">OpenTelemetry — Logs</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer les concepts et les objectifs de cette compétence.</label>
+      <label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+      <label><input type="checkbox"> Je sais reconnaître les limites et les compromis.</label>
+      <label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="debug-methodique.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="lint-formatage.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

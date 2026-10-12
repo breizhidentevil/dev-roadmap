@@ -1,0 +1,95 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Tests unitaires
+Les références sont des points de départ pertinents ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. Vitest — Guide — https://vitest.dev/guide/
+2. Jest — Getting Started — https://jestjs.io/docs/getting-started
+3. Martin Fowler — Unit Test — https://martinfowler.com/bliki/UnitTest.html
+4. Google Testing Blog — Test Sizes — https://testing.googleblog.com/2010/12/test-sizes.html
+5. Testing Library — Guiding Principles — https://testing-library.com/docs/guiding-principles/
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Vérifier une unité de comportement isolée avec des tests rapides et ciblés." name="description"/>
+<title>Tests unitaires — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">6. Tests, débogage et qualité</p>
+<h1>Tests unitaires</h1>
+<p class="lead">Vérifier une unité de comportement isolée avec des tests rapides et ciblés.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Qualité et tests</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>À la fin, tu dois pouvoir identifier une unité testable, écrire un test lisible qui vérifie un comportement, choisir des cas nominaux et limites, et comprendre quand un mock aide ou masque un problème.</p><ul><li>Distinguer test unitaire et test d’intégration.</li><li>Structurer un test avec préparation, action et assertions.</li><li>Éviter les tests fragiles liés aux détails d’implémentation.</li></ul>
+</section><section class="lesson-section"><h2>1. Tester un comportement, pas une ligne de code</h2>
+<p>Un test unitaire vérifie une petite unité de comportement de façon suffisamment isolée pour localiser rapidement un échec. L’unité peut être une fonction, un objet ou une règle métier ; il n’existe pas de taille universelle, mais un test doit rester rapide, déterministe et facile à comprendre.</p><p>Un bon test exprime une règle : « une remise ne peut pas rendre le total négatif », plutôt que « la fonction appelle telle méthode privée ». Si l’implémentation change sans changer le contrat observable, le test de comportement devrait généralement continuer à passer.</p>
+</section><section class="lesson-section"><h2>2. Structure Arrange–Act–Assert</h2>
+<p>Un test lisible sépare trois étapes : préparer les données, exécuter l’action, vérifier le résultat.</p><pre><code>import { describe, expect, it } from "vitest";
+
+function totalAfterDiscount(price: number, discount: number) {
+  if (price &lt; 0 || discount &lt; 0 || discount &gt; 1) {
+    throw new Error("invalid_input");
+  }
+  return Math.round(price * (1 - discount) * 100) / 100;
+}
+
+describe("totalAfterDiscount", () =&gt; {
+  it("applique une remise de 10 %", () =&gt; {
+    // Arrange
+    const price = 50;
+    const discount = 0.1;
+
+    // Act
+    const total = totalAfterDiscount(price, discount);
+
+    // Assert
+    expect(total).toBe(45);
+  });
+});</code></pre><p>L’exemple utilise des nombres simples et une règle de validation explicite. Pour des montants financiers réels, préfère généralement une représentation entière en centimes ou une bibliothèque décimale adaptée afin d’éviter les erreurs de flottants binaires.</p>
+</section><section class="lesson-section"><h2>3. Choisir les cas de test</h2>
+<p>Pour chaque règle, pense à :</p><ul><li><strong>cas nominal :</strong> entrée valide et résultat attendu ;</li><li><strong>frontières :</strong> zéro, minimum, maximum et valeurs juste au-delà ;</li><li><strong>entrées invalides :</strong> types ou valeurs interdits ;</li><li><strong>règles combinées :</strong> deux conditions qui interagissent ;</li><li><strong>régression :</strong> cas qui reproduit un bug corrigé.</li></ul><p>Le but n’est pas de multiplier les tests identiques, mais de couvrir les décisions significatives. Les tests basés sur des tables de cas sont utiles lorsqu’une même fonction doit respecter plusieurs combinaisons. Dans Vitest, <code>it.each</code> permet de rendre ces combinaisons visibles sans copier-coller la même structure :</p>
+<pre><code>it.each([
+  { price: -1, discount: 0 },
+  { price: 50, discount: -0.1 },
+  { price: 50, discount: 1.01 },
+])("refuse les entrées invalides : prix=$price, remise=$discount", ({ price, discount }) =&gt; {
+  expect(() =&gt; totalAfterDiscount(price, discount)).toThrow("invalid_input");
+});</code></pre>
+<p>Chaque ligne du tableau doit correspondre à un résultat attendu distinct. Ajoute aussi les cas de prix négatif et de remise négative, car ils exercent des branches de validation différentes. Ne regroupe pas des cas dont l’échec demanderait des diagnostics différents.</p>
+</section><section class="lesson-section"><h2>4. Doubles de test et isolation</h2>
+<p>Un mock, stub ou fake remplace une dépendance pour contrôler son comportement. Cela peut rendre un test rapide et déterministe, par exemple en simulant une horloge ou un service externe. Mais si tu mocks chaque fonction interne, tu peux finir par tester surtout la structure actuelle du code.</p><p>Garde les règles métier pures autant que possible. Injecte les dépendances externes, comme le stockage ou l’horloge, pour pouvoir les remplacer facilement. Ne mocke pas un composant si le vrai composant est simple, stable et nécessaire pour prouver le comportement recherché.</p>
+</section><section class="lesson-section"><h2>5. Fiabilité et lisibilité</h2>
+<p>Un test doit être déterministe : il ne devrait pas dépendre de l’ordre d’exécution, d’un réseau instable ou de l’heure réelle. Nettoie les mocks entre les tests, contrôle l’horloge lorsque c’est nécessaire et évite de partager un état mutable entre plusieurs cas.</p><p>Un échec doit indiquer rapidement ce qui est attendu et ce qui s’est produit. Donne des noms descriptifs aux tests et évite les assertions multiples sans rapport dans un même cas. La couverture de lignes peut signaler des zones peu exercées, mais elle ne mesure pas à elle seule la qualité des assertions.</p>
+<p>Une vérification complémentaire consiste à modifier temporairement une condition ou une valeur de retour pour simuler un défaut (par exemple, remplacer la remise appliquée par zéro). Si tous les tests passent encore, ils n’observent probablement pas le comportement important. Cette démarche manuelle reprend l’idée des tests de mutation : évaluer si la suite détecte des changements incorrects, et pas seulement si elle exécute le code.</p>
+<p>Quand un test échoue, classe d’abord le problème : résultat métier incorrect, donnée de préparation invalide, mock non configuré ou état partagé. Réduis le test à la plus petite entrée qui reproduit le défaut avant de changer les assertions.</p>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Tester uniquement le cas nominal et oublier les frontières.</li><li>Écrire des tests qui vérifient des détails privés plutôt que le contrat.</li><li>Faire des appels réseau réels dans un test supposé unitaire.</li><li>Utiliser des mocks si nombreux que le test ne reflète plus le comportement réel.</li><li>Accepter un test intermittent sans chercher la cause.</li><li>Prendre le pourcentage de couverture pour une preuve de correction.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Écris des tests unitaires pour une fonction qui calcule le prix d’un panier avec une remise comprise entre 0 et 1. Couvre le panier vide, le prix nul, la remise nulle, la remise maximale autorisée, une remise invalide et un montant négatif.</p><p>Fais ensuite évoluer l’implémentation sans modifier le contrat. Si les tests cassent à cause d’un renommage interne alors que le comportement reste correct, révise les assertions.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Choisis une règle métier de ton projet et écris une suite de tests indépendants, rapides et reproductibles. Ajoute au moins un test de frontière et un test d’entrée invalide.</p><p><strong>Réussite :</strong> chaque test possède un nom qui décrit le comportement ; les données sont contrôlées ; les assertions échouent si la règle est violée ; aucun réseau ni service réel n’est requis ; les tests peuvent être lancés plusieurs fois avec le même résultat ; les mocks restent limités aux dépendances nécessaires. Pour le prouver, exécute la suite deux fois, puis introduis volontairement une petite erreur dans la règle et confirme qu’au moins un test échoue avant de restaurer le code.</p>
+</section>
+<section class="lesson-section">
+<h2>Sources à étudier</h2>
+<p>Ces références permettent d’approfondir les choix d’implémentation et de confronter les exemples au framework et à la version utilisés dans ton projet.</p>
+<ol><li><a href="https://vitest.dev/guide/" rel="noopener noreferrer" target="_blank">Vitest — Guide</a></li><li><a href="https://jestjs.io/docs/getting-started" rel="noopener noreferrer" target="_blank">Jest — Getting Started</a></li><li><a href="https://martinfowler.com/bliki/UnitTest.html" rel="noopener noreferrer" target="_blank">Martin Fowler — Unit Test</a></li><li><a href="https://testing.googleblog.com/2010/12/test-sizes.html" rel="noopener noreferrer" target="_blank">Google Testing Blog — Test Sizes</a></li><li><a href="https://testing-library.com/docs/guiding-principles/" rel="noopener noreferrer" target="_blank">Testing Library — Guiding Principles</a></li></ol>
+</section>
+<section class="lesson-section checklist">
+<h2>Validation des acquis</h2>
+<label><input type="checkbox"/> Je peux expliquer le problème traité et les garanties recherchées.</label>
+<label><input type="checkbox"/> Je peux appliquer la méthode sur un cas concret.</label>
+<label><input type="checkbox"/> Je sais identifier les limites et les cas non couverts.</label>
+<label><input type="checkbox"/> Je peux vérifier le résultat avec des critères reproductibles.</label>
+<p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+</section>
+<nav class="lesson-nav"><a class="nav-link" href="upload-fichiers.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="tests-integration.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

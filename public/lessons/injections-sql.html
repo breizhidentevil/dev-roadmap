@@ -1,0 +1,81 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Prévention des injections SQL
+Références proposées comme points d’entrée documentaires ; cela ne signifie pas que chaque source a été intégralement étudiée.
+1. OWASP — SQL Injection Prevention Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
+2. OWASP — Query Parameterization — https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html
+3. PostgreSQL — Value expressions — https://www.postgresql.org/docs/current/sql-expressions.html
+4. node-postgres — Queries — https://node-postgres.com/features/queries
+5. PortSwigger — SQL injection — https://portswigger.net/web-security/sql-injection
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Séparer strictement les données du langage SQL et réduire l’impact des erreurs de sécurité." name="description"/>
+<title>Prévention des injections SQL — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">5. Sécurité applicative</p>
+<h1>Prévention des injections SQL</h1>
+<p class="lead">Séparer strictement les données du langage SQL et réduire l’impact des erreurs de sécurité.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Backend et données</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Expliquer comment une donnée non fiable peut modifier la structure d’une requête SQL.</li><li>Utiliser des requêtes paramétrées et distinguer valeurs et identifiants SQL.</li><li>Réduire l’impact d’une vulnérabilité par les privilèges minimaux et les tests.</li></ul></section>
+<section class="lesson-section"><h2>1. Comprendre l’injection SQL</h2><p>Une injection SQL survient lorsque l’application construit une requête en concaténant du texte contrôlé par l’utilisateur. La donnée peut alors être interprétée comme une partie du langage SQL plutôt que comme une simple valeur. Le problème est une confusion entre code et données, pas seulement la présence de caractères inhabituels.</p><pre><code>// À éviter : concaténation de l’entrée utilisateur
+const sql = "SELECT id FROM users WHERE email = '" + email + "'";</code></pre><p>Une entrée conçue pour fermer la chaîne et ajouter une condition peut modifier la logique de la requête. Selon les droits du compte de base, les conséquences peuvent inclure lecture non autorisée, modification ou suppression de données.</p></section>
+<section class="lesson-section"><h2>2. Paramétrer les valeurs</h2><p>La défense principale est d’utiliser les paramètres fournis par le pilote ou l’ORM. Le SQL est préparé séparément des valeurs, qui sont transmises comme données.</p><pre><code>// Exemple avec node-postgres
+const result = await pool.query(
+  "SELECT id FROM users WHERE email = $1",
+  [email]
+);</code></pre><p>Ne remplace pas ce mécanisme par un échappement manuel improvisé. Les paramètres servent aux valeurs, pas aux noms de table, de colonne ou aux mots-clés. Pour un tri dynamique, associe une entrée utilisateur à une liste blanche d’identifiants SQL autorisés :</p><pre><code>const sortColumns = {
+  recent: "created_at",
+  name: "display_name"
+};
+const column = sortColumns[requestedSort] ?? sortColumns.recent;
+// La valeur de column provient exclusivement de la liste blanche.
+// Les valeurs filtrées restent paramétrées.</code></pre><p>Les noms autorisés doivent être choisis par le code, jamais copiés directement depuis une entrée utilisateur.</p></section>
+<section class="lesson-section"><h2>3. Défense en profondeur</h2><p>Le compte applicatif de base ne doit posséder que les privilèges nécessaires : éviter un compte administrateur partagé avec l’application. Valide les données pour respecter les règles métier, mais ne considère pas cette validation comme un substitut aux paramètres. Les erreurs SQL détaillées ne doivent pas être exposées aux utilisateurs ; journalise les informations utiles côté serveur sans y écrire des secrets.</p><p>Les tests doivent vérifier les chemins de lecture et d’écriture, y compris les filtres, recherches et tris dynamiques. Un ORM n’immunise pas automatiquement le code : les requêtes brutes ou les fragments SQL construits dynamiquement peuvent rester vulnérables.</p></section>
+<section class="lesson-section">
+<h2>Diagnostic d’une requête dynamique</h2>
+<p>La revue doit porter sur <strong>chaque fragment de syntaxe</strong> construit dynamiquement : filtres, recherche, tri, exports, rapports et requêtes brutes de l’ORM. Une valeur paramétrée reste une donnée ; un identifiant SQL doit provenir d’un choix fermé défini par le serveur.</p>
+<pre><code>const sortMap = new Map&lt;string, "created_at" | "display_name"&gt;([
+  ["recent", "created_at"],
+  ["name", "display_name"],
+]);
+
+function resolveSortColumn(requestedSort: string) {
+  return sortMap.get(requestedSort) ?? "created_at";
+}
+
+const sortColumn = resolveSortColumn(requestedSort);
+const rows = await pool.query(
+  `SELECT id, display_name FROM users WHERE tenant_id = $1 ORDER BY ${sortColumn}`,
+  [tenantId]
+);</code></pre>
+<p>Les valeurs interpolées sont ici exclusivement des constantes du code. Une <code>Map</code> évite aussi de confondre une clé autorisée avec une propriété héritée d’un objet JavaScript. Une assertion TypeScript ne valide jamais une entrée à l’exécution : contrôle d’abord le type de la valeur reçue, puis applique la liste blanche. Les valeurs de filtre restent paramétrées.</p>
+<h3>Tests de non-régression</h3>
+<pre><code>expect(resolveSortColumn("recent")).toBe("created_at");
+expect(resolveSortColumn("name")).toBe("display_name");
+expect(resolveSortColumn("toString")).toBe("created_at");
+expect(resolveSortColumn("name DESC; DROP TABLE users")).toBe("created_at");</code></pre>
+<p>Ces tests vérifient le choix de colonne, pas toute la sécurité de la requête. Complète-les par des tests d’intégration sur les filtres paramétrés, les recherches, la pagination, les permissions de tenant et les messages d’erreur génériques.</p>
+<h2>Erreurs fréquentes</h2>
+<ul><li>Échapper manuellement les apostrophes au lieu d’utiliser des paramètres.</li><li>Concaténer une valeur dans une clause <code>WHERE</code> ou <code>LIKE</code>.</li><li>Insérer directement un nom de colonne demandé par le client.</li><li>Penser que la validation de formulaire suffit à sécuriser la requête.</li><li>Exécuter l’application avec un compte SQL disposant de droits excessifs.</li></ul>
+</section>
+<section class="lesson-section"><h2>Exercice</h2><p>Réécris une recherche d’utilisateurs qui filtre par e-mail et autorise un tri par date ou nom. Utilise des paramètres pour les valeurs et une liste blanche pour la colonne de tri. Ajoute une courte stratégie de tests et indique les privilèges nécessaires au compte applicatif.</p><h3>Critères de réussite</h3><ul><li>Aucune entrée utilisateur n’est concaténée comme valeur SQL.</li><li>Le tri dynamique ne peut sélectionner qu’une colonne autorisée.</li><li>Les privilèges du compte applicatif sont limités au nécessaire.</li><li>Les tests couvrent filtres, tris et requêtes brutes éventuelles.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html" rel="noopener noreferrer" target="_blank">OWASP — SQL Injection Prevention Cheat Sheet</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html" rel="noopener noreferrer" target="_blank">OWASP — Query Parameterization</a></li>
+<li><a href="https://www.postgresql.org/docs/current/sql-expressions.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Value expressions</a></li>
+<li><a href="https://node-postgres.com/features/queries" rel="noopener noreferrer" target="_blank">node-postgres — Queries</a></li>
+<li><a href="https://portswigger.net/web-security/sql-injection" rel="noopener noreferrer" target="_blank">PortSwigger — SQL injection</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"/> Je sais reconnaître une concaténation SQL dangereuse.</label><label><input type="checkbox"/> Je sais utiliser les paramètres et une liste blanche pour les identifiants.</label><label><input type="checkbox"/> Je sais appliquer les privilèges minimaux et tester les requêtes.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="nosql-mongodb.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="xss.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

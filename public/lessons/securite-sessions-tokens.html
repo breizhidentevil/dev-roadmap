@@ -1,0 +1,74 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Sécurisation des sessions et tokens
+Les références ci-dessous sont des points de départ documentaires pertinents ; elles n’impliquent pas une lecture exhaustive de chaque page.
+1. OWASP — Session Management Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
+2. OWASP — JSON Web Token Cheat Sheet for Java — https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html
+3. OWASP — Authentication Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
+4. MDN — Set-Cookie — https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+5. IETF — RFC 7519: JSON Web Token (JWT) — https://www.rfc-editor.org/rfc/rfc7519
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Réduire les risques de vol, fuite et réutilisation de credentials.">
+  <title>Sécurisation des sessions et tokens — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">5. Sécurité applicative</p>
+    <h1>Sécurisation des sessions et tokens</h1>
+    <p class="lead">Réduire les risques de vol, fuite et réutilisation de credentials.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Sécurité applicative</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir comparer une session côté serveur et un token autonome, configurer des cookies de session sûrs, gérer expiration et révocation, et identifier les fuites de jetons les plus courantes.</p><ul><li>Comprendre qu’un identifiant de session est un secret porteur d’autorité.</li><li>Choisir un emplacement de stockage cohérent avec le modèle de menace.</li><li>Définir les règles de durée de vie, rotation, invalidation et renouvellement.</li></ul>
+</section><section class="lesson-section"><h2>1. Session et token : deux modèles différents</h2>
+<p>Dans un modèle à session, le navigateur détient un identifiant opaque ; le serveur conserve l’état de la session et peut généralement l’invalider immédiatement. Dans un modèle JWT, le token transporte des claims signés que le destinataire vérifie. La signature garantit l’intégrité, pas la confidentialité : le contenu d’un JWT classique est lisible par celui qui le possède.</p><p>Un JWT n’est pas automatiquement plus sûr ni plus simple. La révocation anticipée demande une stratégie supplémentaire (durée courte, liste de révocation, version de session ou rotation de clés). Pour une application Web classique, une session serveur avec cookie bien configuré est souvent une solution simple et contrôlable.</p>
+</section><section class="lesson-section"><h2>2. Cookies de session</h2>
+<p>Un cookie de session sensible devrait généralement être marqué <code>Secure</code> pour ne circuler qu’en HTTPS, <code>HttpOnly</code> pour empêcher sa lecture directe par JavaScript, et <code>SameSite</code> selon le besoin d’usage cross-site. L’attribut <code>Path</code> limite l’envoi sur certains chemins, mais ne constitue pas une frontière de sécurité forte. Évite l’attribut <code>Domain</code> s’il n’est pas nécessaire, afin de réduire les sous-domaines qui reçoivent le cookie.</p><pre><code>Set-Cookie: session=VALEUR_OPAQUE; Path=/; Secure; HttpOnly; SameSite=Lax</code></pre><p>La valeur affichée est illustrative. Le serveur doit générer un identifiant imprévisible, suffisamment robuste, et ne jamais le construire à partir d’informations personnelles prévisibles.</p>
+</section><section class="lesson-section"><h2>3. Cycle de vie et invalidation</h2>
+<ol><li>Créer une nouvelle session après une authentification réussie.</li><li>Renouveler l’identifiant après une élévation de privilèges ou une connexion, pour prévenir la fixation de session.</li><li>Définir une expiration d’inactivité et une durée de vie absolue adaptées au risque.</li><li>Invalider côté serveur lors de la déconnexion, du changement de mot de passe ou d’un événement de sécurité pertinent.</li><li>Protéger les opérations sensibles avec une nouvelle vérification ou une authentification renforcée si nécessaire.</li></ol><p>Effacer le cookie côté navigateur ne suffit pas si le serveur accepte encore l’identifiant. L’invalidation doit être effective dans le stockage de sessions.</p>
+</section><section class="lesson-section"><h2>4. Stockage des tokens et risques de fuite</h2>
+<p>Un token volé peut être utilisé comme un mot de passe temporaire. Les sources de fuite incluent les journaux, les URL, les captures d’écran, les erreurs de télémétrie, les dépôts Git et le stockage accessible au JavaScript compromis. Évite de placer des tokens dans les paramètres d’URL : ils peuvent se retrouver dans l’historique, les logs de serveurs ou l’en-tête Referer.</p><p><code>localStorage</code> est accessible au JavaScript de la page ; une faille XSS peut donc exposer les tokens qui y sont stockés. Un cookie <code>HttpOnly</code> réduit ce risque d’exfiltration directe, mais n’empêche pas un script malveillant d’émettre des requêtes au nom de l’utilisateur. Il faut donc aussi traiter XSS, CSRF et les permissions serveur.</p>
+</section><section class="lesson-section"><h2>5. JWT : validation rigoureuse</h2>
+<p>Lorsqu’un JWT est utilisé, le serveur doit valider la signature avec une liste d’algorithmes autorisés, ainsi que les claims nécessaires au contexte : émetteur (<code>iss</code>), audience (<code>aud</code>), expiration (<code>exp</code>) et éventuellement sujet (<code>sub</code>). Ne fais jamais confiance aux claims avant validation cryptographique. Ne choisis pas l’algorithme uniquement à partir de l’en-tête non fiable du token.</p><p>Utilise une bibliothèque reconnue, garde les clés hors du code, prévois leur rotation et limite la durée de vie des access tokens. Les refresh tokens méritent une protection accrue, une rotation contrôlée et une détection de réutilisation lorsque le système le permet.</p>
+</section><section class="lesson-section"><h2>Vérifier le cycle de vie complet</h2>
+<p>La sécurité d’une session se joue sur toute sa durée : création après authentification, renouvellement après changement de privilège, expiration, déconnexion et révocation après incident. Régénère l’identifiant de session après connexion ou élévation de privilège afin de réduire le risque de fixation. La déconnexion doit invalider la session côté serveur lorsque le modèle repose sur une session serveur.</p><p>Pour un JWT, vérifier uniquement la signature ne suffit pas. Le serveur doit imposer l’algorithme attendu et valider au minimum l’émetteur, l’audience, l’expiration et les claims nécessaires au contexte. Ne fais pas confiance à des claims de rôle obsolètes si le besoin métier exige une révocation rapide. Les tokens de renouvellement devraient être protégés, rotés et détecter les réutilisations selon le modèle choisi.</p><ul><li>Tester cookie absent, expiré, altéré, mal signé et audience incorrecte.</li><li>Vérifier les attributs <code>Secure</code>, <code>HttpOnly</code> et <code>SameSite</code> sur les cookies concernés.</li><li>Documenter la durée de vie, la révocation, la rotation et la réponse à un token compromis.</li></ul><p>Le stockage dans <code>localStorage</code> expose les tokens aux scripts exécutés dans l’origine ; un cookie HttpOnly réduit l’accès direct depuis JavaScript mais nécessite d’analyser le risque CSRF.</p>
+<h2>6. Renouvellement et protection CSRF</h2>
+<p>Si le système utilise des refresh tokens, traite-les comme des secrets à usage contrôlé. Un modèle courant conserve côté serveur une empreinte du token, associe les renouvellements à une même famille et remplace le token à chaque utilisation réussie. Le remplacement doit être atomique : deux demandes concurrentes ne doivent pas pouvoir consommer le même token sans détection. Si un ancien token réapparaît après rotation, considère cela comme un possible rejeu et révoque la famille concernée selon la politique documentée.</p>
+<ol><li>Valider le token, son expiration et son association au compte/session.</li><li>Marquer l’ancien token comme consommé et enregistrer le nouveau de façon atomique.</li><li>Ne jamais journaliser les valeurs des tokens ; journaliser seulement un identifiant technique non secret et le résultat.</li><li>Définir une réponse au vol ou à la réutilisation : révocation, nouvelle authentification et notification adaptée au risque.</li></ol>
+<p>Si l’authentification repose sur un cookie automatiquement envoyé par le navigateur, <code>SameSite</code> est une défense en profondeur, pas une justification pour ignorer CSRF. Pour les opérations qui modifient l’état, évalue un jeton CSRF et la vérification de l’en-tête <code>Origin</code> (ou une stratégie équivalente adaptée à l’application). Avec un bearer token explicitement ajouté à l’en-tête <code>Authorization</code>, le risque CSRF classique est différent, mais le risque XSS et le vol du token restent présents.</p>
+<p>Exercice : simule deux renouvellements avec le même refresh token. Le premier doit réussir ; le second doit déclencher le comportement anti-rejeu défini, sans créer deux sessions actives. Vérifie aussi qu’une requête de modification cross-site sans preuve CSRF est refusée lorsque le modèle cookie l’exige.</p>
+<h2>Erreurs fréquentes</h2>
+<ul><li>Considérer un JWT signé comme chiffré.</li><li>Oublier la rotation de session après la connexion.</li><li>Confondre expiration du cookie et invalidation côté serveur.</li><li>Stocker un token dans une URL ou le journaliser.</li><li>Accepter un JWT sans vérifier audience, expiration et algorithme.</li><li>Penser que <code>HttpOnly</code> suffit contre toutes les conséquences d’une XSS.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Sur une application de test, inspecte le cookie de session dans les outils développeur. Vérifie ses attributs, sa rotation à la connexion, sa disparition après déconnexion et le refus de réutilisation de l’ancien identifiant. N’utilise jamais un compte ou token de production pour cet exercice.</p><p>Si l’application utilise des JWT, écris une liste de vérifications serveur et teste un token expiré, une audience incorrecte et une signature invalide.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Rédige une courte politique de sessions pour une application contenant des données privées : modèle choisi, attributs cookie, durée d’inactivité, durée absolue, événements d’invalidation et traitement du renouvellement.</p><p><strong>Réussite :</strong> le choix session/JWT est justifié ; les secrets ne sont pas placés dans les URL ni dans les logs ; les identifiants sont imprévisibles et renouvelés au bon moment ; la déconnexion invalide réellement la session ; les tokens sont validés strictement ; les risques CSRF et XSS sont traités séparément.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Utilise ces références pour approfondir les mécanismes, vérifier les détails d’implémentation et comparer les recommandations selon ton environnement.</p>
+      <ol><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Session Management Cheat Sheet</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — JSON Web Token Cheat Sheet for Java</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Authentication Cheat Sheet</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie" target="_blank" rel="noopener noreferrer">MDN — Set-Cookie</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc7519" target="_blank" rel="noopener noreferrer">IETF — RFC 7519: JSON Web Token (JWT)</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer le mécanisme et son objectif de sécurité.</label>
+      <label><input type="checkbox"> Je peux appliquer une configuration adaptée à un cas concret.</label>
+      <label><input type="checkbox"> Je sais distinguer la protection apportée de ce qu’elle ne protège pas.</label>
+      <label><input type="checkbox"> Je peux tester le comportement attendu et documenter les limites.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="rate-limiting.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="https-headers.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

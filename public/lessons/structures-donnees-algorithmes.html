@@ -1,0 +1,149 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Structures de données et algorithmes
+Domaine documentaire : apprentissage ciblé
+Les références ci-dessous sont des ressources de référence à étudier pour approfondir et vérifier les notions. Le tutoriel est une synthèse originale et ne prétend pas reproduire intégralement chaque source.
+1. MDN — Array — https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Array
+2. MDN — Map — https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Map
+3. MDN — Set — https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Set
+4. VisuAlgo — Visualisations d’algorithmes — https://visualgo.net/en
+5. OpenDSA — Structures de données et algorithmes — https://opendsa-server.cs.vt.edu/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Manipuler tableaux, objets, dictionnaires, arbres, graphes, tri et recherche.">
+  <title>Structures de données et algorithmes — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">1. Fondamentaux de la programmation et du Web</p>
+    <h1>Structures de données et algorithmes</h1>
+    <p class="lead">Choisir une représentation adaptée aux opérations attendues et construire des traitements corrects, lisibles et testables.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 5 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Associer une structure de données à un besoin précis.</li><li>Utiliser tableaux, objets, Map, Set, piles et files.</li><li>Décrire la recherche, le tri et le parcours d’une structure.</li><li>Tester les cas limites et comparer les coûts des opérations.</li></ul></section>
+    <section class="lesson-section"><h2>1. La structure découle des opérations</h2>
+    <p>Une structure de données organise les valeurs afin de rendre certaines opérations simples. Avant de choisir, liste les actions dominantes : accéder par indice, rechercher par clé, vérifier l’unicité, ajouter au début, traiter dans l’ordre d’arrivée ou explorer des relations.</p>
+    <table><thead><tr><th>Structure</th><th>Usage courant</th><th>Point de vigilance</th></tr></thead><tbody><tr><td>Tableau</td><td>Liste ordonnée, accès par indice</td><td>Insertion au début coûteuse à grande échelle</td></tr><tr><td>Objet / Map</td><td>Associer une clé à une valeur</td><td>Choisir les clés et gérer l’absence</td></tr><tr><td>Set</td><td>Garantir l’unicité</td><td>Pas d’accès par indice</td></tr><tr><td>Pile</td><td>Dernier entré, premier sorti (LIFO)</td><td>Historique, annulation, parcours</td></tr><tr><td>File</td><td>Premier entré, premier sorti (FIFO)</td><td>Éviter les suppressions répétées en tête d’un grand tableau</td></tr><tr><td>Graphe</td><td>Relations et chemins</td><td>Cycles, sommets inaccessibles</td></tr></tbody></table>
+    </section>
+    <section class="lesson-section"><h2>2. Tableaux, Map et Set</h2>
+    <pre><code>const commandes = [
+      { id: "c1", total: 25 },
+      { id: "c2", total: 40 },
+      { id: "c3", total: 25 }
+    ];
+    
+    const total = commandes.reduce((s, c) => s + c.total, 0);
+    const parId = new Map(commandes.map(c => [c.id, c]));
+    const totauxUniques = new Set(commandes.map(c => c.total));
+    
+    console.log(total); // 90
+    console.log(parId.get("c2")); // { id: "c2", total: 40 }
+    console.log(totauxUniques.size); // 2</code></pre>
+    <p><code>find</code> renvoie le premier élément correspondant, <code>filter</code> construit une nouvelle liste filtrée, <code>map</code> transforme chaque élément et <code>reduce</code> agrège. Choisis la méthode qui exprime l’intention ; n’utilise pas <code>reduce</code> uniquement parce qu’il peut tout faire.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Piles et files</h2>
+    <pre><code>// Pile : historique de navigation simplifié
+    const pile = [];
+    pile.push("/accueil");
+    pile.push("/profil");
+    const retour = pile.pop(); // "/profil"
+    
+    // File : traitement dans l’ordre d’arrivée
+    const file = ["tache-1", "tache-2", "tache-3"];
+    let tete = 0;
+    while (tete &lt; file.length) {
+      traiter(file[tete]);
+      tete += 1;
+    }
+    function traiter(tache) { console.log(tache); }</code></pre>
+    <p>Pour une file volumineuse, avancer un indice évite de décaler tous les éléments à chaque suppression. Dans un vrai service, il faut aussi définir les limites de taille, la gestion des erreurs et le comportement en cas de surcharge.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Recherche et tri</h2>
+    <p>Une recherche linéaire inspecte les éléments un à un. Une recherche binaire peut réduire fortement le nombre de comparaisons, mais exige des données déjà triées et un ordre cohérent.</p>
+    <pre><code>function rechercheBinaire(tab, cible) {
+      let gauche = 0, droite = tab.length - 1;
+      while (gauche &lt;= droite) {
+        const milieu = Math.floor((gauche + droite) / 2);
+        if (tab[milieu] === cible) return milieu;
+        if (tab[milieu] &lt; cible) gauche = milieu + 1;
+        else droite = milieu - 1;
+      }
+      return -1;
+    }
+    console.log(rechercheBinaire([2, 5, 8, 12, 17], 12)); // 3</code></pre>
+    <p>JavaScript permet de trier avec <code>sort</code>, mais pour des nombres il faut fournir un comparateur : <code>nombres.sort((a, b) =&gt; a - b)</code>. Sans comparateur, les valeurs sont comparées comme des chaînes. Vérifie aussi si le tri modifie le tableau original.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Graphes et invariants</h2>
+    <pre><code>const graphe = new Map([
+      ["A", ["B", "C"]],
+      ["B", ["D"]],
+      ["C", ["D"]],
+      ["D", []]
+    ]);
+    
+    function parcoursLargeur(depart) {
+      const visites = new Set([depart]);
+      const file = [depart];
+      for (let i = 0; i &lt; file.length; i++) {
+        const sommet = file[i];
+        console.log(sommet);
+        for (const voisin of graphe.get(sommet) ?? []) {
+          if (!visites.has(voisin)) {
+            visites.add(voisin);
+            file.push(voisin);
+          }
+        }
+      }
+    }</code></pre>
+    <p>Le parcours en largeur explore les voisins par distance croissante dans un graphe non pondéré. Le Set des sommets visités empêche de boucler indéfiniment en présence de cycles. Dans tout algorithme, identifie les invariants : ce qui doit rester vrai à chaque étape.</p>
+    </section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Choisir une structure sans considérer les opérations réellement fréquentes.</li><li>Oublier les tableaux vides, les doublons et les éléments absents.</li><li>Utiliser la recherche binaire sur une liste non triée.</li><li>Muter un tableau partagé sans le signaler.</li><li>Oublier l’ensemble des sommets visités dans un graphe cyclique.</li></ul></section>
+    <section class="lesson-section"><h2>Exercice</h2><p>À partir d’une liste de commandes, calcule le total, regroupe les commandes par client avec une Map, puis repère les clients uniques. Ajoute une recherche par identifiant et teste identifiant absent, liste vide et doublons.</p><h3>Critères de réussite</h3><ul><li>Chaque structure répond à un besoin explicite.</li><li>Les résultats sont corrects sur cas normal et cas limites.</li><li>Les fonctions ont une responsabilité claire.</li><li>Le coût des opérations principales peut être expliqué.</li></ul></section>
+        <section class="lesson-section"><h2>Approfondissement — choisir une structure à partir d’un scénario concret</h2>
+    <p>La bonne structure dépend des opérations dominantes, du volume et des invariants métier. Une liste de commandes doit souvent conserver un ordre, tandis qu’un index par identifiant doit répondre rapidement à des recherches répétées. Il est courant de conserver les deux représentations lorsque les usages le justifient, à condition de maintenir leur cohérence.</p>
+    <pre><code>const commandes = [
+  { id: "c-1", clientId: "u-7", total: 30 },
+  { id: "c-2", clientId: "u-2", total: 45 },
+  { id: "c-3", clientId: "u-7", total: 12 }
+];
+
+const parId = new Map(commandes.map(c =&gt; [c.id, c]));
+const parClient = new Map();
+for (const commande of commandes) {
+  const liste = parClient.get(commande.clientId) ?? [];
+  liste.push(commande);
+  parClient.set(commande.clientId, liste);
+}
+
+console.log(parId.get("c-2")?.total); // 45
+console.log(parClient.get("u-7")?.length); // 2</code></pre>
+    <p>Le tableau reste adapté à l’affichage et au parcours séquentiel ; la <code>Map</code> fournit un index explicite par clé ; la seconde <code>Map</code> regroupe plusieurs commandes par client. Ce sont des vues dérivées : si une commande change de client, il faut mettre à jour les index ou les reconstruire. Construire une <code>Map</code> directement à partir d’entrées avec des identifiants dupliqués conserve une seule valeur par clé, généralement la dernière : vérifie l’unicité avant de choisir cette stratégie.</p>
+    <h3>Invariant et preuve informelle</h3><p>Dans un parcours de graphe en largeur, l’invariant utile est : tout sommet ajouté à la file est déjà marqué comme visité. Marquer au moment de l’ajout évite que deux voisins n’ajoutent le même sommet avant son traitement. Pour un graphe représenté par listes d’adjacence, le coût du parcours est en général <code>O(V + E)</code>, où <code>V</code> désigne le nombre de sommets et <code>E</code> le nombre d’arêtes examinées.</p>
+    <pre><code>function parcoursLargeur(graphe, depart) {
+  const visites = new Set([depart]);
+  const file = [depart];
+  for (let i = 0; i &lt; file.length; i++) {
+    const sommet = file[i];
+    for (const voisin of graphe.get(sommet) ?? []) {
+      if (!visites.has(voisin)) {
+        visites.add(voisin); // avant l'ajout à la file
+        file.push(voisin);
+      }
+    }
+  }
+  return visites;
+}</code></pre>
+    <p>Cette fonction renvoie l’ensemble des sommets atteignables depuis le départ, pas un plus court chemin lui-même. Pour reconstruire un chemin, il faut mémoriser le prédécesseur de chaque sommet découvert. Si le graphe est pondéré, le parcours en largeur ne garantit pas le chemin de coût minimal ; il faut un algorithme adapté aux poids.</p>
+    <h3>Exercice de vérification</h3><p>Construis un index par identifiant et un regroupement par client pour 10 000 commandes. Décide ce qui doit arriver si deux commandes partagent le même identifiant. Ajoute ensuite un graphe avec un cycle et un sommet isolé, puis vérifie quels sommets sont atteignables depuis un départ donné.</p>
+    <h3>Critères de réussite</h3><ul><li>Chaque structure est justifiée par les opérations attendues.</li><li>Les identifiants dupliqués ont un comportement explicite.</li><li>Le parcours termine en présence d’un cycle.</li><li>La complexité annoncée précise ses hypothèses et distingue sommets et arêtes.</li><li>La solution ne confond pas parcours en largeur et plus court chemin pondéré.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" rel="noopener noreferrer">MDN — Array</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Map" target="_blank" rel="noopener noreferrer">MDN — Map</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Set" target="_blank" rel="noopener noreferrer">MDN — Set</a></li><li><a href="https://visualgo.net/en" target="_blank" rel="noopener noreferrer">VisuAlgo — Visualisations d’algorithmes</a></li><li><a href="https://opendsa-server.cs.vt.edu/" target="_blank" rel="noopener noreferrer">OpenDSA — Structures de données et algorithmes</a></li></ul></section>
+    <nav class="lesson-nav"><a class="nav-link" href="javascript-typescript.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="complexite-algorithmique.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Manipulation du DOM en JavaScript
+Les références sont des ressources de référence à consulter pour approfondir les notions. Le tutoriel est une synthèse pédagogique originale.
+1. MDN — Introduction au DOM — https://developer.mozilla.org/fr/docs/Web/API/Document_Object_Model/Introduction
+2. MDN — Scripting DOM — https://developer.mozilla.org/fr/docs/Learn_web_development/Core/Scripting/DOM_scripting
+3. MDN — Document.createElement — https://developer.mozilla.org/fr/docs/Web/API/Document/createElement
+4. MDN — Node.append — https://developer.mozilla.org/fr/docs/Web/API/Element/append
+5. OWASP — XSS Prevention Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Réagir aux événements et mettre à jour l’interface depuis JavaScript.">
+  <title>JavaScript et manipulation du DOM — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">2. Frontend</p>
+    <h1>Manipulation du DOM en JavaScript</h1>
+    <p class="lead">Sélectionner des éléments, construire une interface et synchroniser le DOM avec les actions de l’utilisateur de manière sûre.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 7 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Sélectionner un élément ou une collection du DOM.</li><li>Créer, modifier, déplacer et supprimer des nœuds.</li><li>Mettre à jour les classes et attributs sans mélanger contenu et présentation.</li><li>Afficher du contenu non fiable sans créer de faille XSS.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Sélectionner et vérifier les éléments</h2>
+    <p>Le DOM est l’arbre d’objets qui représente le document chargé. <code>querySelector</code> renvoie le premier élément correspondant ou <code>null</code> ; <code>querySelectorAll</code> renvoie une collection statique des correspondances. Il faut donc traiter le cas où un élément n’existe pas, notamment si le script est partagé entre plusieurs pages.</p><pre><code>const titre = document.querySelector("h1");
+    const cartes = document.querySelectorAll(".carte");
+    
+    if (titre) titre.textContent = "Catalogue";
+    cartes.forEach((carte, index) => {
+      carte.setAttribute("data-position", String(index + 1));
+    });</code></pre><p>Choisis des sélecteurs stables et précis. Si le script s’exécute avant que le HTML concerné soit analysé, déplace le script ou utilise un chargement adapté, par exemple <code>defer</code> sur un script externe.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Créer et insérer des éléments</h2>
+    <p>Pour créer du contenu structuré, utilise les API DOM. Construis les éléments, renseigne leurs propriétés, puis insère-les dans le document. Cette approche rend la structure explicite et évite d’interpréter une chaîne comme du HTML.</p><pre><code>function creerCarte(nom, description) {
+      const article = document.createElement("article");
+      article.className = "carte";
+    
+      const titre = document.createElement("h2");
+      titre.textContent = nom;
+    
+      const texte = document.createElement("p");
+      texte.textContent = description;
+    
+      article.append(titre, texte);
+      return article;
+    }
+    
+    document.querySelector("#catalogue")
+      ?.append(creerCarte("Clavier", "Modèle compact")); </code></pre><p>Pour des listes importantes, prépare les nœuds puis insère-les ensemble avec un fragment ou une opération adaptée. Mesure avant d’optimiser : la lisibilité du code et le volume de données comptent aussi.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Modifier classes, attributs et propriétés</h2>
+    <p>Utilise <code>classList</code> pour activer un état visuel, les propriétés DOM pour les valeurs prévues par l’API et <code>setAttribute</code> pour les attributs lorsqu’il est approprié. Pour un panneau repliable, <code>aria-expanded</code> appartient au bouton de commande, tandis que <code>hidden</code> reflète la visibilité de la cible.</p><pre><code>&lt;button id="toggle-details" type="button"
+        aria-expanded="false" aria-controls="details"&gt;
+  Afficher les détails
+&lt;/button&gt;
+&lt;section id="details" hidden&gt;Contenu des détails…&lt;/section&gt;</code></pre><pre><code>const bouton = document.querySelector("#toggle-details");
+const panneau = document.querySelector("#details");
+
+if (bouton instanceof HTMLButtonElement &&
+    panneau instanceof HTMLElement) {
+  bouton.addEventListener("click", () => {
+    const ouvrir = bouton.getAttribute("aria-expanded") !== "true";
+    bouton.setAttribute("aria-expanded", String(ouvrir));
+    panneau.hidden = !ouvrir;
+  });
+}</code></pre><p>Le bouton pilote le comportement au clavier grâce à son élément natif. L’état accessible et la visibilité sont mis à jour dans le même gestionnaire ; <code>aria-controls</code> identifie la cible mais ne crée pas, à lui seul, l’interaction.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Sécurité du contenu</h2>
+    <p><code>textContent</code> affiche une chaîne comme du texte. <code>innerHTML</code> analyse la chaîne comme du balisage, ce qui peut exécuter du contenu malveillant lorsque des données non fiables sont injectées.</p><pre><code>const commentaire = document.querySelector("#commentaire");
+    const texteUtilisateur = '&lt;img src=x onerror=alert(1)&gt;';
+    
+    // Sûr pour afficher cette chaîne comme du texte :
+    if (commentaire) commentaire.textContent = texteUtilisateur;</code></pre><p>Si l’application doit réellement accepter du HTML riche, utilise une stratégie d’assainissement maintenue et adaptée au contexte. N’essaie pas de sécuriser du HTML avec une série de remplacements maison. La validation côté serveur reste nécessaire pour les données métier.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Rendu et cycle de vie</h2>
+    <p>Un composant qui crée des nœuds doit aussi prévoir leur mise à jour et leur suppression. Évite d’ajouter plusieurs fois les mêmes éléments lorsque le rendu est relancé. Pour les événements, utilise des écouteurs stables ou la délégation lorsque les éléments sont dynamiques ; retire les écouteurs qui ne sont plus utiles si le cycle de vie l’exige.</p><p>Évite les écritures DOM répétées qui forcent inutilement des recalculs de mise en page. Regroupe les lectures de géométrie et les écritures visuelles lorsque la performance est réellement un problème. Mesure le rendu avant d’introduire des optimisations complexes.</p>
+    </section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Oublier qu’un sélecteur peut renvoyer <code>null</code>.</li><li>Utiliser <code>innerHTML</code> pour afficher des saisies utilisateur.</li><li>Confondre attribut HTML et propriété JavaScript.</li><li>Créer des doublons lors de rendus successifs.</li><li>Mettre à jour une classe sans synchroniser l’état accessible correspondant.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Analyse approfondie : événements, formulaires et cycle de vie</h2>
+<p>Les écouteurs d’événements doivent être attachés au bon élément et leur durée de vie doit correspondre à celle de l’interface. Si un composant est monté plusieurs fois et que ses anciens écouteurs restent actifs, une seule action peut déclencher plusieurs traitements.</p>
+<h3>Exemple : soumission d’un formulaire</h3><p>Pour annoncer l’ajout sans déplacer le focus, prévois dès le chargement une région de statut, par exemple <code>&lt;p id="statut" role="status" aria-atomic="true"&gt;&lt;/p&gt;</code>. Elle doit exister avant que le script mette son texte à jour.</p><pre><code>const formulaire = document.querySelector("#ajout-tache");
+const champ = document.querySelector("#titre-tache");
+const liste = document.querySelector("#taches");
+const statut = document.querySelector("#statut");
+
+if (formulaire instanceof HTMLFormElement &&
+    champ instanceof HTMLInputElement && liste) {
+  formulaire.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const titre = champ.value.trim();
+    if (!titre) {
+      champ.focus();
+      return;
+    }
+    const item = document.createElement("li");
+    item.textContent = titre;
+    liste.append(item);
+    if (statut instanceof HTMLElement) {
+      statut.textContent = `Tâche ajoutée : ${titre}`;
+    }
+    formulaire.reset();
+    champ.focus();
+  });
+}</code></pre>
+<p>Le formulaire peut être soumis par Entrée, ce qui rend le gestionnaire <code>submit</code> plus approprié qu’un écouteur exclusivement attaché au clic du bouton. Dans une application réelle, ajoute une gestion explicite des erreurs, des libellés et de l’annonce des mises à jour.</p>
+<h3>Délégation d’événements</h3><p>Pour une liste qui reçoit souvent de nouveaux éléments, un écouteur sur le conteneur peut traiter les clics descendants via <code>event.target</code> et <code>closest()</code>. Vérifie que la cible trouvée appartient bien au conteneur avant d’agir. La délégation réduit le nombre d’écouteurs, mais ne dispense pas de vérifier le type de l’élément et l’action demandée.</p></section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Crée une liste de tâches avec un champ texte, un bouton d’ajout et un bouton de suppression par tâche. Construis les nœuds avec <code>createElement</code>, affiche les valeurs avec <code>textContent</code> et utilise une classe CSS pour représenter les tâches terminées.</p><h3>Critères de réussite</h3><ul><li>Une tâche peut être ajoutée, marquée terminée et supprimée.</li><li>Une saisie ressemblant à du HTML est affichée comme texte.</li><li>Les éléments absents et les saisies vides sont traités.</li><li>Les boutons ont des libellés explicites et sont accessibles au clavier.</li><li>Les opérations répétées ne créent pas de doublons inattendus.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Web/API/Document_Object_Model/Introduction" target="_blank" rel="noopener noreferrer">MDN — Introduction au DOM</a></li><li><a href="https://developer.mozilla.org/fr/docs/Learn_web_development/Core/Scripting/DOM_scripting" target="_blank" rel="noopener noreferrer">MDN — Scripting DOM</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/API/Document/createElement" target="_blank" rel="noopener noreferrer">MDN — Document.createElement</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/API/Element/append" target="_blank" rel="noopener noreferrer">MDN — Node.append</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — XSS Prevention Cheat Sheet</a></li></ul></section>
+        <nav class="lesson-nav"><a class="nav-link" href="responsive-design.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="fetch-apis-navigateur.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

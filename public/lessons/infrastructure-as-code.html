@@ -1,0 +1,71 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Infrastructure as code
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. HashiCorp — What is infrastructure as code? — https://developer.hashicorp.com/terraform/tutorials/aws-get-started/infrastructure-as-code
+2. Terraform — Documentation — https://developer.hashicorp.com/terraform/docs
+3. OpenTofu — Documentation — https://opentofu.org/docs/
+4. AWS — What is infrastructure as code? — https://aws.amazon.com/what-is/iac/
+5. Google Cloud — Infrastructure as code — https://cloud.google.com/docs/terraform
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Décrire, versionner, tester et faire évoluer l’infrastructure avec des outils adaptés.">
+<title>Infrastructure as code — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Parcours Full Stack · Architecture et exploitation</p>
+<h1>Infrastructure as code</h1>
+<p class="lead">L’infrastructure as code (IaC) transforme la configuration des environnements en fichiers révisables et reproductibles. Elle réduit les écarts entre environnements, à condition de maîtriser l’état, les secrets et les changements appliqués.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Après ce tutoriel, vous devez pouvoir expliquer pourquoi l’infrastructure est décrite dans des fichiers, distinguer configuration déclarative et scripts impératifs, lire un plan de changement et sécuriser l’état d’un outil IaC. Les exemples supposent que vous connaissez déjà les notions de serveur, réseau, base de données et environnement de déploiement.</p><ul><li>Décrire une infrastructure attendue plutôt que documenter manuellement une machine.</li><li>Comprendre le cycle initialisation, planification, application et vérification.</li><li>Réduire les dérives de configuration et les changements non relus.</li><li>Repérer les risques liés aux secrets, à l’état et aux suppressions.</li></ul>
+</section>
+<section class="lesson-section"><h2>1. Pourquoi décrire l’infrastructure ?</h2>
+<p>Une application dépend de ressources qui ne sont pas du code applicatif : réseau, règles de pare-feu, service de calcul, stockage, base de données, comptes de service, DNS et certificats. Si elles sont créées à la main, leur configuration dépend de la mémoire des opérateurs et les environnements finissent par diverger.</p><p>L’IaC stocke une description de ces ressources dans des fichiers suivis par Git. Une revue de code permet alors de répondre à des questions concrètes : quelle règle réseau change ? Quelle base sera remplacée ? Le coût risque-t-il d’augmenter ? Le changement est-il réversible ?</p><p>La reproductibilité n’est toutefois pas absolue : les API cloud évoluent, les versions de fournisseurs changent, les quotas varient et certaines ressources contiennent un état externe. Il faut donc épingler les versions utiles, documenter les prérequis et tester les changements dans un environnement adapté.</p>
+</section>
+<section class="lesson-section"><h2>2. Déclaratif ou impératif ?</h2>
+<p>Un script impératif décrit une suite d’actions : créer un réseau, puis créer un serveur, puis modifier un fichier. Une approche déclarative décrit plutôt le résultat voulu : « un réseau de tel type, un serveur attaché à ce réseau et une règle autorisant tel trafic ». L’outil compare cette description à l’état qu’il observe et calcule les opérations nécessaires.</p><p>Le déclaratif rend l’intention plus lisible et permet de détecter une partie des écarts. Il ne dispense pas de comprendre le plan : une modification de type ou de clé peut entraîner le remplacement d’une ressource, et certains changements ne sont pas réversibles.</p><p>Choisissez un outil selon le fournisseur, les compétences de l’équipe, la maturité de l’écosystème, les besoins de tests et les contraintes de licence. Évitez de multiplier les outils IaC pour un même périmètre sans raison opérationnelle claire.</p>
+</section>
+<section class="lesson-section"><h2>3. Cycle de travail sûr</h2>
+<ol><li><strong>Décrire :</strong> créer des fichiers lisibles, des variables explicites et des valeurs par défaut prudentes.</li><li><strong>Formater et valider :</strong> utiliser les commandes de formatage et de validation de l’outil dans la CI.</li><li><strong>Planifier :</strong> générer un plan qui présente les créations, modifications et suppressions prévues.</li><li><strong>Relire :</strong> faire vérifier les changements sensibles, les règles réseau et les remplacements de données.</li><li><strong>Appliquer :</strong> exécuter le plan validé avec des identités limitées aux droits nécessaires.</li><li><strong>Vérifier :</strong> contrôler l’état réel, les journaux de déploiement et le fonctionnement applicatif.</li></ol><p>Exemple conceptuel de workflow Terraform : <code>terraform fmt -check</code>, <code>terraform validate</code>, puis <code>terraform plan</code>. Ces commandes ne remplacent pas la revue métier du plan. N’appliquez pas automatiquement un changement destructeur simplement parce que la commande réussit.</p><pre><code># Exemple de variable typée
+variable "environment" {
+  description = "Environnement ciblé"
+  type        = string
+  validation {
+    condition     = contains(["dev", "staging", "prod"], var.environment)
+    error_message = "Utiliser dev, staging ou prod."
+  }
+}</code></pre><p>La validation réduit les valeurs accidentelles, mais ne garantit pas à elle seule qu’une configuration de production est sûre.</p>
+</section>
+<section class="lesson-section"><h2>4. État, modules et environnements</h2>
+<p>Les outils déclaratifs maintiennent souvent un fichier ou service d’<em>état</em> qui associe les ressources décrites aux ressources réelles. Cet état peut contenir des identifiants sensibles et des attributs confidentiels : il doit être protégé, sauvegardé et accessible uniquement aux personnes ou pipelines autorisés. Pour une équipe, un stockage distant avec verrouillage concurrent est généralement préférable à un fichier local partagé de manière informelle.</p><p>Les modules permettent de réutiliser une abstraction, par exemple un service web avec ses règles réseau. Un bon module expose peu de paramètres, valide les entrées et masque les détails répétitifs sans rendre le comportement opaque. Trop de paramètres génériques transforment un module en mini-langage difficile à comprendre.</p><p>Séparez les environnements selon le risque et le cycle de vie : les ressources de test ne doivent pas pouvoir être supprimées par erreur lors d’une opération de production. Les espaces de travail ne remplacent pas automatiquement une séparation forte des droits, des comptes ou des états.</p>
+</section>
+<section class="lesson-section"><h2>5. Secrets, dérive et pièges</h2>
+<ul><li><strong>Secrets dans Git :</strong> ne mettez pas de mot de passe ou de jeton dans un fichier versionné. Utilisez un gestionnaire de secrets et limitez leur exposition dans les journaux et les plans.</li><li><strong>Application aveugle :</strong> un plan doit être lu, surtout s’il contient des suppressions, des remplacements ou des changements réseau.</li><li><strong>Dérive manuelle :</strong> une modification dans la console peut créer un écart entre la description et la réalité. Détectez-le et décidez si la source de vérité doit être modifiée ou si la ressource doit être réalignée.</li><li><strong>Concurrence :</strong> deux applications simultanées peuvent se contredire si l’état n’est pas verrouillé.</li><li><strong>Dépendance implicite :</strong> exprimez les dépendances nécessaires dans la configuration plutôt que de compter sur l’ordre accidentel des fichiers.</li><li><strong>Destruction trop facile :</strong> protégez les ressources critiques et préparez des sauvegardes avant toute opération destructive.</li></ul><p>L’IaC ne rend pas une infrastructure intrinsèquement sécurisée. Elle rend les changements plus visibles et répétables, y compris les mauvaises décisions.</p>
+</section>
+<section class="lesson-section"><h2>6. Exemple de revue d’un plan IaC en production</h2>
+<p>Un plan annonce le remplacement d’une base de données alors que la demande initiale portait seulement sur l’ajout d’une règle réseau. N’applique pas le plan sous prétexte que la validation syntaxique réussit. Identifie la ressource remplacée, la raison du remplacement, les dépendances et l’impact sur les données avant de poursuivre.</p>
+<ol><li>Vérifie le workspace, le compte/projet et la région ciblés.</li><li>Relis les créations, modifications et destructions, en particulier les ressources avec état.</li><li>Confirme que le plan correspond à la version du code qui sera appliquée et qu’il n’est pas périmé.</li><li>Contrôle les sauvegardes et le chemin de récupération des ressources critiques.</li><li>Fais approuver le changement sensible par une seconde personne, puis applique-le avec une identité à privilèges limités.</li><li>Compare l’état réel après application et consigne l’écart éventuel.</li></ol>
+<p>L’état IaC peut contenir des métadonnées sensibles, voire des valeurs secrètes selon le fournisseur et la ressource. Stocke-le dans un backend distant avec contrôle d’accès, chiffrement et verrouillage si l’outil le prend en charge. Ne le commite pas dans le dépôt par défaut et ne suppose pas qu’un secret reste masqué parce qu’il est déclaré comme sensible : cette propriété peut limiter l’affichage sans empêcher son stockage dans l’état.</p>
+<p>Le drift — différence entre la description versionnée et l’infrastructure réelle — doit être traité explicitement. Détermine si la modification manuelle est légitime : soit elle est réintégrée dans le code, soit elle est annulée par une application contrôlée. Évite qu’une exécution automatique efface sans revue une correction d’urgence.</p>
+</section>
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Imaginez une application de démonstration qui nécessite un réseau privé, un serveur web et une base de données non exposée directement à Internet. Écrivez un plan de conception IaC avant de coder : ressources, variables, dépendances, droits et sorties utiles. Puis relisez le plan comme si vous étiez responsable de la production.</p><ol><li>Quelles ressources doivent être publiques et lesquelles doivent rester privées ?</li><li>Comment différencier développement et production sans copier-coller toute la configuration ?</li><li>Où seront stockés l’état et les secrets ? Qui peut les lire ?</li><li>Quel contrôle empêcherait la suppression accidentelle de la base ?</li><li>Quels tests doivent bloquer une pull request ?</li></ol><p><strong>Critères de réussite :</strong> vous distinguez l’état déclaré de l’état réel, prévoyez un plan relu avant application, ne versionnez aucun secret, protégez l’état partagé et expliquez comment détecter une dérive.</p>
+</section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces références permettent d’approfondir les concepts et de vérifier les détails propres aux outils. Les exemples du tutoriel sont synthétiques ; consultez la documentation officielle avant une mise en production.</p><ol><li><a href="https://developer.hashicorp.com/terraform/tutorials/aws-get-started/infrastructure-as-code" target="_blank" rel="noopener noreferrer">HashiCorp — What is infrastructure as code?</a></li>
+<li><a href="https://developer.hashicorp.com/terraform/docs" target="_blank" rel="noopener noreferrer">Terraform — Documentation</a></li>
+<li><a href="https://opentofu.org/docs/" target="_blank" rel="noopener noreferrer">OpenTofu — Documentation</a></li>
+<li><a href="https://aws.amazon.com/what-is/iac/" target="_blank" rel="noopener noreferrer">AWS — What is infrastructure as code?</a></li>
+<li><a href="https://cloud.google.com/docs/terraform" target="_blank" rel="noopener noreferrer">Google Cloud — Infrastructure as code</a></li></ol></section>
+<nav class="lesson-nav" aria-label="Navigation entre les compétences"><a href="cloud.html">← Compétence précédente</a><a href="kubernetes.html">Compétence suivante →</a></nav>
+</main>
+<footer class="site-footer"><p>Roadmap Full Stack 2026 · Apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

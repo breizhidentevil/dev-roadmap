@@ -1,0 +1,71 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : DNS, HTTPS et certificats
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. Cloudflare Learning Center — DNS — https://www.cloudflare.com/learning/dns/what-is-dns/
+2. Let's Encrypt — How it works — https://letsencrypt.org/how-it-works/
+3. MDN — HTTPS — https://developer.mozilla.org/en-US/docs/Glossary/HTTPS
+4. RFC 8446 — TLS 1.3 — https://www.rfc-editor.org/rfc/rfc8446
+5. Google Chrome — HTTPS — https://web.dev/articles/why-https-matters
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Résolution DNS, enregistrements, certificats TLS, terminaison HTTPS et diagnostic des erreurs de connexion.">
+<title>DNS, HTTPS et certificats — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">7. Environnement, livraison et exploitation</p>
+<h1>DNS, HTTPS et certificats</h1>
+<p class="lead">Comprendre comment un nom de domaine rejoint un service et comment TLS protège la connexion entre client et serveur.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Pour accéder à <code>https://app.exemple.fr</code>, le navigateur doit résoudre le nom, établir une connexion réseau, négocier TLS et vérifier le certificat présenté avant d’échanger les données HTTP chiffrées. DNS, routage, certificat et serveur HTTP sont des couches différentes : une erreur sur l’une peut donner l’impression que « le site ne marche pas », mais la correction dépend de la couche concernée.</p><ul><li>Lire les enregistrements DNS usuels.</li><li>Distinguer résolution du nom, connexion TCP et négociation TLS.</li><li>Comprendre ce que garantit un certificat.</li><li>Diagnostiquer les erreurs d’expiration, de nom et de chaîne de confiance.</li><li>Renouveler les certificats et rediriger correctement HTTP vers HTTPS.</li></ul>
+</section><section class="lesson-section"><h2>1. DNS : du nom à l’adresse</h2>
+<p>DNS associe des noms à des informations, notamment des adresses IP. Les enregistrements courants incluent <code>A</code> pour IPv4, <code>AAAA</code> pour IPv6, <code>CNAME</code> pour un alias et <code>MX</code> pour la messagerie. Un enregistrement <code>TXT</code> sert à publier des informations textuelles, par exemple pour vérifier la propriété d’un domaine.</p><pre><code>dig app.exemple.fr A
+dig app.exemple.fr AAAA
+dig exemple.fr NS
+nslookup app.exemple.fr</code></pre><p>Ces commandes interrogent le résolveur configuré sur la machine. Les réponses peuvent différer temporairement à cause du cache et du TTL. Après une modification DNS, certains utilisateurs peuvent donc obtenir l’ancienne réponse pendant un certain temps. Vérifie aussi les serveurs de noms autoritaires lorsque tu dois distinguer une configuration publiée d’une réponse mise en cache.</p><p>Un nom résolu vers une adresse correcte ne garantit pas que le service écoute sur le bon port, que le pare-feu l’autorise ou que le certificat correspond au nom demandé.</p>
+</section><section class="lesson-section"><h2>2. HTTPS et TLS</h2>
+<p>HTTPS est HTTP transporté dans une connexion TLS. TLS protège la confidentialité et l’intégrité des données en transit et permet au client d’authentifier le serveur à l’aide d’un certificat valide. Il ne garantit pas que l’application elle-même est sûre, ni que le serveur ne conserve pas les données après réception.</p><p>Lors de la négociation, le client et le serveur sélectionnent des paramètres cryptographiques compatibles et établissent des clés de session. Le navigateur vérifie notamment la chaîne de certificats, les dates de validité et la correspondance entre le nom demandé et les noms couverts par le certificat. Une connexion peut échouer si le certificat est expiré, mal installé, émis pour un autre domaine ou incomplet côté serveur.</p><p>Ne conseille pas aux utilisateurs de désactiver la validation des certificats pour « faire fonctionner » le site. Il faut corriger le certificat ou la chaîne de confiance. Ignorer l’avertissement supprime une protection importante contre l’interception.</p>
+</section><section class="lesson-section"><h2>3. Certificats et renouvellement</h2>
+<p>Un certificat lie une identité de serveur à une clé publique, selon une chaîne de confiance. Let's Encrypt permet d’obtenir gratuitement des certificats automatisés, souvent via ACME. Les méthodes de validation courantes prouvent le contrôle du domaine par un challenge HTTP ou DNS. Le mécanisme exact dépend de l’hébergement et du niveau de contrôle disponible.</p><p>Le renouvellement doit être automatisé puis vérifié : la création initiale d’un certificat ne suffit pas. Contrôle périodiquement la date d’expiration et le résultat du renouvellement. Les certificats à courte durée de vie réduisent la période d’exposition en cas de compromission, mais rendent l’automatisation indispensable.</p><pre><code>openssl s_client -connect app.exemple.fr:443 -servername app.exemple.fr
+curl -I https://app.exemple.fr</code></pre><p><code>openssl s_client</code> aide à inspecter la chaîne et la négociation TLS ; <code>-servername</code> envoie le nom SNI attendu. La sortie est technique et doit être interprétée dans son contexte. <code>curl -I</code> teste une réponse HTTP en demandant les en-têtes, mais ne remplace pas les tests applicatifs.</p>
+</section><section class="lesson-section"><h2>4. Reverse proxy et terminaison TLS</h2>
+<p>Dans une architecture courante, un reverse proxy ou un load balancer termine TLS, puis transmet la requête à l’application sur un réseau interne. Il peut gérer les certificats, redirections, compression et routage. Si le segment interne traverse un réseau non fiable, le chiffrement doit aussi être prévu sur ce segment.</p><p>Lorsque le proxy transmet des en-têtes comme <code>X-Forwarded-Proto</code> ou <code>X-Forwarded-For</code>, l’application doit uniquement faire confiance aux valeurs injectées par des proxies connus. Si un client peut fournir lui-même ces en-têtes et que l’application leur fait confiance, il peut fausser l’adresse cliente ou la détection du protocole HTTPS.</p><p>Configure une redirection HTTP vers HTTPS, mais évite les boucles : le proxy doit signaler de manière fiable le protocole externe, et l’application doit être configurée pour comprendre cette information. Une politique HSTS peut imposer HTTPS aux visites futures ; active-la après avoir vérifié le domaine et les sous-domaines concernés, car elle peut compliquer une mauvaise configuration.</p>
+</section><section class="lesson-section"><h2>5. Méthode de diagnostic</h2>
+<p>Procède de la couche la plus basse vers la plus haute :</p><ol><li>Le nom se résout-il vers les adresses attendues ?</li><li>Le port est-il accessible depuis le client concerné ?</li><li>La négociation TLS réussit-elle avec le bon nom SNI ?</li><li>Le certificat est-il valide et sa chaîne complète ?</li><li>Le serveur HTTP répond-il avec le statut attendu ?</li><li>Le parcours applicatif fonctionne-t-il, y compris ses dépendances ?</li></ol><p>Cette séquence évite de modifier simultanément DNS, proxy et application, ce qui rendrait la cause difficile à isoler. Compare un test depuis le serveur et un test depuis l’extérieur : ils ne traversent pas les mêmes composants.</p>
+</section><section class="lesson-section"><h2>6. Cas pratique : isoler une panne DNS ou TLS</h2>
+<p>Supposons que <code>app.exemple.fr</code> fonctionne depuis le réseau de l’entreprise, mais échoue sur un téléphone connecté au réseau mobile. Ne change pas immédiatement les enregistrements : collecte des preuves en séparant résolution, connexion, certificat et réponse HTTP.</p>
+<pre><code># Résolution via le résolveur local
+ dig app.exemple.fr A
+ dig app.exemple.fr AAAA
+# Réponse HTTP et détails de la connexion
+curl -vI https://app.exemple.fr
+# Certificat présenté pour le nom demandé
+openssl s_client -connect app.exemple.fr:443 -servername app.exemple.fr -verify_return_error &lt; /dev/null</code></pre>
+<p>Compare les adresses IPv4 et IPv6, le TTL, le certificat servi par le proxy et les réponses HTTP. Si l’enregistrement AAAA pointe vers un serveur qui ne sert pas correctement le site, certains clients privilégieront IPv6 et échoueront alors que d’autres réussiront en IPv4. Si le certificat est valide mais que le navigateur signale un nom incorrect, vérifie le nom réellement demandé et le certificat présenté par le bon virtual host/SNI.</p>
+<p>Consigne pour chaque essai : date, réseau d’origine, commande, résultat attendu, résultat observé et couche suspectée. Une modification ne doit être retenue que si elle explique les observations et qu’un test après correction confirme la résolution.</p>
+</section>
+<section class="lesson-section"><h2>Erreurs fréquentes et compromis</h2>
+<ul><li><strong>Modifier DNS pour corriger un certificat :</strong> vérifie d’abord le nom couvert et la configuration TLS.</li><li><strong>Oublier IPv6 :</strong> une entrée AAAA erronée peut toucher certains clients seulement.</li><li><strong>Laisser expirer le certificat :</strong> automatise renouvellement et alertes.</li><li><strong>Faire confiance à tous les en-têtes proxy :</strong> limite la confiance aux proxies maîtrisés.</li><li><strong>Activer HSTS sans vérification :</strong> déploie la politique progressivement et en connaissance de cause.</li><li><strong>Penser que HTTPS protège contre tous les bugs :</strong> il protège le transport, pas les règles métier ou les accès.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Pour un domaine de test ou un service local, dessine le trajet navigateur → DNS → proxy → application. Utilise <code>dig</code> et <code>curl -I</code> pour collecter des preuves et indique ce que chaque commande permet — et ne permet pas — de conclure.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Écris un runbook pour un certificat expiré et un domaine qui résout vers une mauvaise adresse. Pour chaque incident, donne les commandes de vérification, les résultats attendus et la correction appropriée.</p><ul><li>Les enregistrements DNS sont distingués et vérifiables.</li><li>La résolution est séparée du routage et du service HTTP.</li><li>Les critères de validation du certificat sont compris.</li><li>Le renouvellement est automatisé et surveillé.</li><li>Les en-têtes transmis par le proxy ne sont pas considérés fiables sans contrôle.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Utilise ces références pour approfondir les notions et vérifier les détails liés aux versions de tes outils.</p><ol><li><a href="https://www.cloudflare.com/learning/dns/what-is-dns/" target="_blank" rel="noopener noreferrer">Cloudflare Learning Center — DNS</a></li><li><a href="https://letsencrypt.org/how-it-works/" target="_blank" rel="noopener noreferrer">Let&#x27;s Encrypt — How it works</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Glossary/HTTPS" target="_blank" rel="noopener noreferrer">MDN — HTTPS</a></li><li><a href="https://www.rfc-editor.org/rfc/rfc8446" target="_blank" rel="noopener noreferrer">RFC 8446 — TLS 1.3</a></li><li><a href="https://web.dev/articles/why-https-matters" target="_blank" rel="noopener noreferrer">Google Chrome — HTTPS</a></li></ol></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2>
+<label><input type="checkbox"> Je peux expliquer les concepts essentiels avec mes propres mots.</label>
+<label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+<label><input type="checkbox"> Je sais diagnostiquer les erreurs et expliquer les compromis.</label>
+<label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+<p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p></section>
+<nav class="lesson-nav"><a class="nav-link" href="deploiement-base.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="sauvegardes-migrations-prod.html">Compétence suivante →</a></nav>
+</main><footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body></html>

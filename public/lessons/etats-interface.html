@@ -1,0 +1,150 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : États de chargement, erreur et vide
+Domaine documentaire : react
+Ces références sont des points de départ ciblés pour approfondir le sujet ; cette liste ne prétend pas que chaque page liée a été lue intégralement.
+1. React — Synchroniser avec des effets — https://react.dev/learn/synchronizing-with-effects
+2. React — Choisir la structure de l’état — https://react.dev/learn/choosing-the-state-structure
+3. React — Gérer les erreurs de rendu avec les Error Boundaries — https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary
+4. MDN — Fetch API — https://developer.mozilla.org/fr/docs/Web/API/Fetch_API/Using_Fetch
+5. W3C WAI — Notifications et changements de statut — https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Concevoir des états d’interface explicites pour les requêtes asynchrones et les opérations métier.">
+  <title>États de chargement, erreur et vide — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">14. UX, accessibilité et qualité produit</p>
+    <h1>États de chargement, erreur et vide</h1>
+    <p class="lead">Rendre les interfaces fiables et compréhensibles pendant les attentes, les échecs et l’absence de données.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Lecture et mise en pratique</span></div>
+    <section class="lesson-section">
+<h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu sauras modéliser les états d’une interface asynchrone, différencier absence de données et échec technique, éviter les états contradictoires et rendre les mises à jour perceptibles. Tu pourras concevoir un chargement initial, un rafraîchissement, une liste vide, une erreur récupérable et une confirmation de succès.</p>
+<p>Prérequis : notions de JavaScript asynchrone, HTTP et composants React. Les principes valent aussi pour Vue, Angular ou une interface sans framework.</p>
+</section><section class="lesson-section">
+<h2>1. Pourquoi expliciter les états ?</h2>
+<p>Une requête réseau n’est ni instantanée ni garantie. Elle peut être lente, échouer, renvoyer zéro résultat ou réussir avec des données partielles. Si l’interface ne distingue pas ces cas, l’utilisateur peut interpréter un écran blanc comme une panne, croire qu’une liste vide signifie qu’il n’a aucun droit ou répéter une action déjà envoyée.</p>
+<p>Commence par inventorier les états d’une tâche, pas seulement les écrans habituels. Pour une liste de commandes, on peut distinguer : initialisation, chargement initial, données disponibles, aucun élément, erreur de chargement, actualisation en cours et actualisation échouée avec données précédentes conservées. Pour une sauvegarde, ajoute l’enregistrement en cours, succès confirmé et échec avec possibilité de réessayer.</p>
+<p>Chaque état doit avoir une signification unique. Si `loading` et `error` peuvent être vrais en même temps sans règle claire, la structure autorise des combinaisons incohérentes. Une modélisation explicite rend les cas possibles visibles dans le code et facilite les tests.</p>
+</section><section class="lesson-section">
+<h2>2. Représenter les états</h2>
+<p>Pour un petit composant, un état discriminé peut suffire. Au lieu de plusieurs booléens indépendants, utilise une union dont chaque variante contient uniquement les données pertinentes :</p>
+<pre><code class="language-ts">type ListState&lt;T&gt; =
+  | { status: &quot;loading&quot; }
+  | { status: &quot;success&quot;; items: T[] }
+  | { status: &quot;error&quot;; message: string };</code></pre>
+<p>Ce modèle empêche d’avoir un statut `success` sans liste ou un statut `error` sans information associée. L’état vide n’a pas nécessairement besoin d’une variante technique distincte : une réussite avec `items.length === 0` peut représenter « aucune donnée ». Il faut toutefois que l’interface distingue clairement le résultat vide de l’absence de requête.</p>
+<p>Quand l’application doit conserver les anciennes données pendant une actualisation, modélise cette situation explicitement. Par exemple, conserve `items` et ajoute un indicateur `refreshing`, avec un champ d’erreur de rafraîchissement séparé. N’efface pas automatiquement une liste déjà utile parce qu’une nouvelle requête échoue.</p>
+<p>Évite de stocker des valeurs qui peuvent être calculées à partir d’autres états. Si `isEmpty` est simplement `status === &quot;success&quot; &amp;&amp; items.length === 0`, le conserver séparément crée une source de désynchronisation. Le bon modèle dépend du comportement voulu, mais doit limiter les combinaisons impossibles.</p>
+</section><section class="lesson-section">
+<h2>3. Charger des données et gérer les échecs</h2>
+<p>Avec `fetch`, une réponse HTTP 404 ou 500 ne rejette pas automatiquement la promesse. Il faut vérifier `response.ok`. Il faut également distinguer une erreur réseau, une réponse HTTP non réussie et une réponse dont le contenu n’est pas conforme au contrat attendu. Chaque cas peut nécessiter un message différent, même si le détail technique reste dans les logs.</p>
+<pre><code class="language-ts">async function loadOrders(): Promise&lt;Order[]&gt; {
+  const response = await fetch(&quot;/api/orders&quot;);
+  if (!response.ok) {
+    throw new Error(`Échec HTTP : ${response.status}`);
+  }
+  return response.json() as Promise&lt;Order[]&gt;;
+}</code></pre>
+<p>Le type `Order[]` dans cet exemple n’effectue pas une validation à l’exécution : une réponse externe peut être mal formée. Pour des données importantes, valide le JSON avec un schéma ou une fonction dédiée. Ne montre jamais directement à l’utilisateur une trace de pile, un message de base de données ou une réponse interne sensible.</p>
+<p>Dans React, une requête déclenchée par un effet doit tenir compte du démontage du composant et du changement de paramètres. Un `AbortController` peut annuler une requête devenue inutile. Sans cela, une réponse ancienne peut remplacer les données d’une recherche plus récente. Les bibliothèques de requêtes apportent cache, déduplication, annulation ou revalidation, mais elles ne dispensent pas de décider quels états présenter.</p>
+</section><section class="lesson-section">
+<h2>4. Messages utiles et accessibles</h2>
+<p>Un indicateur de chargement doit être proportionné à l’attente. Pour une action quasi immédiate, changer le libellé du bouton peut suffire ; pour une page qui prend plusieurs secondes, un squelette ou une progression peut rassurer. Ne montre pas une progression chiffrée si tu ne peux pas l’estimer honnêtement.</p>
+<p>Un état vide doit aider à comprendre pourquoi il n’y a rien et, si possible, proposer une prochaine action. « Aucune commande pour le moment » est plus informatif qu’un espace vide. Si les filtres excluent tous les résultats, propose de les réinitialiser. Si la liste est réellement nouvelle, un bouton « Créer une commande » peut être pertinent. Ne confonds pas « aucun résultat » avec « erreur de chargement ».</p>
+<p>Un message d’erreur doit indiquer ce qui a échoué, ce qui reste intact et comment reprendre. Pour une sauvegarde, précise si les modifications ont été enregistrées ou non. Si le résultat est incertain parce que la connexion a été coupée après l’envoi, ne prétends pas que l’opération a échoué : le serveur peut l’avoir exécutée. Une vérification de statut ou une clé d’idempotence peut être nécessaire.</p>
+<p>Les changements de statut doivent aussi être accessibles. Les lecteurs d’écran ne perçoivent pas forcément un changement visuel. Utilise des régions de statut ou des alertes adaptées, sans annoncer chaque mise à jour répétitive. Place les erreurs de formulaire près des champs et relie-les programmatiquement aux champs concernés.</p>
+</section><section class="lesson-section">
+<h2>5. Exemple React : états d’une liste</h2>
+<p>Le rendu doit traiter toutes les branches et ne pas laisser un chargement infini silencieux :</p>
+<pre><code class="language-tsx">function OrdersPanel({ state }: { state: ListState&lt;Order&gt; }) {
+  if (state.status === &quot;loading&quot;) {
+    return &lt;p role=&quot;status&quot;&gt;Chargement des commandes…&lt;/p&gt;;
+  }
+
+  if (state.status === &quot;error&quot;) {
+    return (
+      &lt;section&gt;
+        &lt;p role=&quot;alert&quot;&gt;Les commandes n’ont pas pu être chargées.&lt;/p&gt;
+        &lt;button onClick={retry}&gt;Réessayer&lt;/button&gt;
+      &lt;/section&gt;
+    );
+  }
+
+  if (state.items.length === 0) {
+    return &lt;p&gt;Aucune commande pour le moment.&lt;/p&gt;;
+  }
+
+  return &lt;OrderList items={state.items} /&gt;;
+}</code></pre>
+<p>Cet exemple suppose que `retry` existe dans le contexte du composant et que le statut est maintenu par une couche de données. Il illustre la présentation, pas toute la logique réseau. En production, pense à éviter les doubles soumissions, à désactiver temporairement les actions incompatibles et à préserver la navigation au clavier.</p>
+<p>Évite de remplacer toute la page par un écran de chargement à chaque mise à jour. Si les données précédentes sont encore valides, un indicateur discret peut préserver la continuité. Le choix dépend de la criticité : une donnée financière doit clairement indiquer sa fraîcheur, tandis qu’une petite liste de suggestions peut tolérer une actualisation moins visible.</p>
+</section><section class="lesson-section">
+<h2>Pièges, limites et compromis</h2>
+<ul><li>Ne traite pas les statuts HTTP d’erreur comme des rejets automatiques de `fetch`.</li><li>Ne transforme pas une liste vide en erreur et ne présente pas une erreur comme une absence de résultats.</li><li>Ne suppose pas qu’un timeout prouve que le serveur n’a pas effectué l’opération.</li><li>Évite les booléens indépendants qui permettent des états contradictoires.</li><li>Une animation de chargement ne remplace pas un délai, un timeout ou une stratégie de reprise.</li><li>Les Error Boundaries React concernent principalement les erreurs de rendu qu’elles interceptent ; elles ne capturent pas automatiquement toute erreur asynchrone ou tout gestionnaire d’événement.</li><li>Une annonce accessible doit être utile et non envahissante ; trop d’annonces rendent l’application pénible.</li></ul>
+</section><section class="lesson-section">
+<h2>Exercice</h2>
+<p>Crée un composant de liste de tâches qui charge les données depuis une fonction simulée. Fais varier le délai et provoque trois situations : réussite avec résultats, réussite sans résultats et erreur. Ajoute un bouton de nouvelle tentative, puis simule une actualisation qui conserve les anciennes données. Vérifie que les messages restent cohérents, que l’utilisateur ne peut pas déclencher plusieurs opérations incompatibles et que les statuts importants sont perceptibles au clavier et avec un lecteur d’écran.</p>
+</section><section class="lesson-section">
+<h2>Critères de réussite</h2>
+<ul class="checklist"><li>Les états de chargement, réussite, vide et erreur sont distingués.</li><li>Une réponse HTTP non réussie est traitée explicitement.</li><li>Les données externes sont validées lorsqu’elles influencent des opérations importantes.</li><li>Une erreur explique la reprise possible sans divulguer de détails internes.</li><li>Une requête obsolète ne remplace pas une réponse plus récente.</li><li>Les messages de statut sont perceptibles visuellement et par les technologies d’assistance.</li></ul>
+</section>
+    <section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — seconde passe</h2>
+<h3>Objectifs opérationnels</h3>
+<ul>
+  <li>Décrire les états d’une opération asynchrone sans combinaisons contradictoires.</li>
+  <li>Distinguer une liste vide valide d’un échec de chargement et d’une actualisation en cours.</li>
+  <li>Éviter qu’une réponse ancienne remplace le résultat d’une requête plus récente.</li>
+</ul>
+<h3>Explications et méthode</h3>
+<p>Une interface de données est une petite machine à états. Au minimum, elle distingue l’état initial, le chargement, le succès avec données, le succès sans résultat et l’échec. Une actualisation peut conserver les données précédentes tout en signalant discrètement qu’une requête est en cours.</p>
+<p>Un modèle explicite réduit les états impossibles. Plusieurs booléens indépendants comme isLoading, hasError et isEmpty peuvent devenir vrais simultanément. Une union discriminée ou un reducer permet de décider quels champs existent dans chaque état.</p>
+<p>Les requêtes peuvent se terminer dans un ordre différent de leur lancement. Lors d’un changement de filtre, annuler la requête précédente si possible ou ignorer sa réponse évite d’afficher des données périmées. Avec fetch, vérifier response.ok : une réponse HTTP 404 ou 500 ne rejette pas automatiquement la promesse.</p>
+
+<h3>Exemple commenté</h3>
+<pre><code>type ViewState&lt;T&gt; =
+  | { status: &quot;loading&quot; }
+  | { status: &quot;success&quot;; items: T[] }
+  | { status: &quot;error&quot;; message: string };
+
+function messageFor&lt;T&gt;(state: ViewState&lt;T&gt;): string {
+  switch (state.status) {
+    case &quot;loading&quot;: return &quot;Chargement…&quot;;
+    case &quot;success&quot;: return state.items.length === 0
+      ? &quot;Aucun résultat pour ces critères.&quot;
+      : `${state.items.length} résultat(s)`;
+    case &quot;error&quot;: return state.message;
+  }
+}</code></pre>
+<h3>Pièges à éviter</h3>
+<ul>
+  <li>Afficher « aucun résultat » avant que la requête ait réussi : l’utilisateur peut croire que ses données ont disparu.</li>
+  <li>Remplacer une liste utile par un écran vide lors d’une actualisation alors qu’un indicateur discret suffirait.</li>
+  <li>Afficher directement le détail brut d’une exception ou supposer qu’une requête HTTP non-2xx est une promesse rejetée.</li>
+</ul>
+<h3>Exercice d’application</h3>
+<p>Construis une liste de produits avec chargement initial, résultat vide, résultat non vide, erreur récupérable et actualisation. Change rapidement deux filtres successifs et simule une réponse lente pour vérifier que la première réponse ne remplace pas la seconde.</p>
+<h3>Critères de réussite</h3>
+<ul>
+  <li>Chaque état possède un rendu compréhensible et aucun état contradictoire n’est possible.</li>
+  <li>Le succès vide est différent de l’erreur ; l’erreur propose une action adaptée.</li>
+  <li>Une réponse obsolète est ignorée ou annulée et les messages de statut sont annoncés sans être excessivement bavards.</li>
+</ul>
+</section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Les ressources suivantes sont des points de départ ciblés pour vérifier les notions et poursuivre l’apprentissage. Les versions et recommandations peuvent évoluer ; consulte les pages officielles à jour.</p><ol><li><a href="https://react.dev/learn/synchronizing-with-effects" target="_blank" rel="noopener noreferrer">React — Synchroniser avec des effets</a></li><li><a href="https://react.dev/learn/choosing-the-state-structure" target="_blank" rel="noopener noreferrer">React — Choisir la structure de l’état</a></li><li><a href="https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary" target="_blank" rel="noopener noreferrer">React — Gérer les erreurs de rendu avec les Error Boundaries</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/API/Fetch_API/Using_Fetch" target="_blank" rel="noopener noreferrer">MDN — Fetch API</a></li><li><a href="https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html" target="_blank" rel="noopener noreferrer">W3C WAI — Notifications et changements de statut</a></li></ol></section>
+    <nav class="lesson-nav" aria-label="Navigation entre les leçons">
+      <a href="ergonomie-interface.html">← Précédent : Ergonomie et conception d’interface</a>
+      <a href="navigation-clavier-lecteurs.html">Suivant : Navigation clavier et lecteurs d’écran →</a>
+    </nav>
+  </main>
+</body>
+</html>

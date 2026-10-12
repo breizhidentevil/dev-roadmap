@@ -1,0 +1,70 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Sauvegardes et migrations en production
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. PostgreSQL — Backup and Restore — https://www.postgresql.org/docs/current/backup.html
+2. PostgreSQL — Continuous Archiving and Point-in-Time Recovery — https://www.postgresql.org/docs/current/continuous-archiving.html
+3. AWS Well-Architected — Reliability Pillar — https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/welcome.html
+4. Martin Fowler — Evolutionary Database Design — https://martinfowler.com/articles/evodb.html
+5. Google Cloud — Database migration — https://cloud.google.com/architecture/database-migration
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Stratégies de sauvegarde, restauration testée, objectifs de reprise et migrations compatibles avec un service actif.">
+<title>Sauvegardes et migrations en production — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">7. Environnement, livraison et exploitation</p>
+<h1>Sauvegardes et migrations en production</h1>
+<p class="lead">Protéger les données contre la perte et faire évoluer le schéma en production sans supposer qu’une sauvegarde ou un rollback suffit.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Une sauvegarde est utile uniquement si elle permet de récupérer les données et le service dans un délai acceptable. Une migration de schéma, elle, modifie la structure ou les données d’une base. En production, ces sujets sont liés : une migration défectueuse peut nécessiter une restauration, et une restauration peut supprimer des écritures réalisées depuis la sauvegarde.</p><ul><li>Choisir une stratégie de sauvegarde adaptée au risque.</li><li>Comprendre RPO et RTO.</li><li>Tester la restauration et documenter les étapes.</li><li>Déployer des migrations compatibles avec les versions applicatives en circulation.</li><li>Prévoir les verrous, le temps d’exécution et les effets sur le trafic.</li></ul>
+</section><section class="lesson-section"><h2>1. RPO, RTO et périmètre de récupération</h2>
+<p>Le <strong>RPO</strong> (Recovery Point Objective) représente la perte de données maximale acceptable, exprimée en durée. Un RPO de 15 minutes signifie qu’en cas de sinistre, l’objectif est de perdre au plus environ 15 minutes d’écritures. Le <strong>RTO</strong> (Recovery Time Objective) est le délai cible pour rétablir le service.</p><p>Ces objectifs doivent venir des besoins métier, pas uniquement des capacités techniques. Un site de contenu peut tolérer une restauration plus lente qu’un système de commandes. Clarifie également ce qu’il faut restaurer : base, fichiers téléversés, configuration, clés nécessaires au déchiffrement et artefacts applicatifs. Une sauvegarde de la base seule ne récupère pas les fichiers stockés ailleurs.</p><p>Les sauvegardes doivent être protégées contre les mêmes risques que la production : accès excessifs, suppression accidentelle, chiffrement malveillant ou panne de la même région. Une copie indépendante, des permissions séparées et une rétention adaptée réduisent ces risques.</p>
+</section><section class="lesson-section"><h2>2. Types de sauvegarde et vérification</h2>
+<p>Une sauvegarde logique exporte des objets et données dans un format restaurable ; une sauvegarde physique copie les fichiers ou blocs de la base selon une méthode cohérente. L’archivage continu des journaux peut permettre une récupération à un instant précis, si la base et la chaîne d’archives sont configurées correctement.</p><p>Le choix dépend de la taille, du RPO, du RTO, du coût et de la version du moteur. Les sauvegardes complètes sont simples à raisonner, mais peuvent coûter cher en stockage et en temps. Les sauvegardes incrémentales ou l’archivage continu réduisent certains délais, mais augmentent la complexité de restauration.</p><pre><code># Shell POSIX : arrêt au premier échec et fichier privé
+set -eu
+umask 077
+: "${SOURCE_DATABASE_URL:?Définir la source à sauvegarder}"
+: "${RESTORE_DATABASE_URL:?Définir la cible de restauration isolée}"
+
+pg_dump --format=custom --file=app.dump "$SOURCE_DATABASE_URL"
+test -s app.dump
+pg_restore --list app.dump &gt; /dev/null
+pg_restore --exit-on-error --dbname="$RESTORE_DATABASE_URL" app.dump</code></pre><p>Les variables de connexion sont fournies par l’environnement sécurisé ; ne les affiche pas et n’active pas la trace shell (<code>set -x</code>). <code>RESTORE_DATABASE_URL</code> doit viser une base vide sur une instance isolée ou un environnement jetable, pas simplement un autre nom de base sur le serveur de production. Vérifie l’identité de la cible avant l’exercice : comparer les chaînes de connexion ne suffit pas à prouver qu’elles désignent des serveurs distincts. <code>pg_restore --list</code> vérifie que l’archive est lisible, mais ne prouve pas que la restauration est exploitable. Après restauration, contrôle les tables, les contraintes, des invariants métier et un parcours applicatif représentatif.</p>
+</section><section class="lesson-section"><h2>3. Répéter la restauration</h2>
+<p>Un exercice de restauration doit mesurer le temps réel et vérifier que les données sont exploitables. Note la version de l’outil, l’emplacement de la sauvegarde, les identifiants nécessaires, les dépendances et les étapes de validation. Répète l’exercice à une fréquence cohérente avec le risque et après les changements importants de la chaîne de sauvegarde.</p><p>Si une récupération à un instant précis est requise, vérifie les journaux archivés et la procédure pour choisir l’instant cible. Les horloges, la rétention et l’intégrité des archives comptent. Une sauvegarde chiffrée n’est pas restaurable si la clé correspondante a été perdue ; la gestion des clés fait donc partie du plan de reprise.</p><p>Une restauration n’est pas terminée lorsque le processus de copie se termine. Vérifie la cohérence référentielle, les données métier critiques, la capacité de l’application à démarrer et les tâches différées qui pourraient rejouer des opérations.</p>
+</section><section class="lesson-section"><h2>4. Migrations compatibles avec un service actif</h2>
+<p>Une migration qui supprime immédiatement une colonne peut casser les anciennes instances encore actives. Une stratégie fréquente suit plusieurs étapes :</p><ol><li><strong>Expand :</strong> ajouter la nouvelle structure sans casser l’ancienne.</li><li><strong>Compatibilité :</strong> déployer un code qui lit ou écrit de manière compatible avec les deux formes.</li><li><strong>Backfill :</strong> copier ou transformer les données par lots, avec suivi de progression.</li><li><strong>Bascule :</strong> vérifier les données puis faire utiliser la nouvelle structure.</li><li><strong>Contract :</strong> supprimer l’ancienne structure lors d’une livraison ultérieure.</li></ol><p>Le backfill doit être conçu pour reprendre après interruption et éviter de verrouiller toute la table. Une migration de grande ampleur peut saturer les I/O, augmenter la réplication ou bloquer des requêtes. Mesure le temps d’exécution et teste avec un volume représentatif.</p><p>Les migrations doivent être versionnées, exécutées dans un ordre déterministe et observables. Une migration déjà appliquée ne doit pas être relancée aveuglément. Les scripts de correction de données doivent pouvoir être contrôlés et, lorsque c’est possible, exécutés par lots idempotents.</p>
+</section><section class="lesson-section"><h2>5. Plan de changement et de retour arrière</h2>
+<p>Avant une migration risquée, définis les préconditions, la durée estimée, les métriques à surveiller, le responsable, le plan de communication et le seuil d’arrêt. Vérifie la sauvegarde, mais ne traite pas celle-ci comme l’unique stratégie de rollback : la restauration peut coûter du temps et effacer les écritures ultérieures.</p><p>Il est souvent plus sûr de rendre le code compatible avec les deux schémas puis de revenir à l’ancienne version applicative si besoin. Certaines migrations de données sont irréversibles sans sauvegarde ; indique clairement ce risque. Prévois également une procédure d’arrêt ou de reprise du backfill sans laisser les données dans un état ambigu.</p>
+</section><section class="lesson-section"><h2>6. Concevoir un exercice de restauration réaliste</h2>
+<p>Une sauvegarde n’est une garantie que si l’équipe sait la restaurer dans un délai acceptable. Définis deux objectifs distincts : le <strong>RPO</strong> indique la perte maximale de données acceptable, tandis que le <strong>RTO</strong> indique le délai cible pour rétablir le service. Ils doivent être négociés avec le métier, pas choisis uniquement selon les possibilités de l’outil.</p>
+<ol><li>Choisis un instant de restauration et une sauvegarde représentative.</li><li>Restaure dans un environnement isolé, sans écraser la production.</li><li>Vérifie les journaux de restauration, la cohérence référentielle et des parcours métier significatifs.</li><li>Mesure le temps réel et la quantité de données perdues.</li><li>Documente les écarts, corrige la procédure et répète l’exercice.</li></ol>
+<p>Pour une migration de schéma, utilise une stratégie expand–migrate–contract : ajoute d’abord les structures compatibles avec l’ancienne version, déploie le code qui sait lire/écrire selon la transition, migre les données par lots contrôlés, puis supprime l’ancien schéma seulement quand plus aucune version active ne l’utilise. Une migration qui réussit techniquement peut encore être incorrecte si les données transformées violent un invariant métier.</p>
+<p>Prévois une décision explicite d’arrêt : taux d’erreur supérieur au seuil, retard de réplication, durée de verrouillage excessive ou divergence des contrôles. Le plan de retour arrière doit préciser ce qui est réversible et ce qui exige une restauration ou une correction compensatoire.</p>
+</section>
+<section class="lesson-section"><h2>Erreurs fréquentes et compromis</h2>
+<ul><li><strong>Confondre sauvegarde et restauration testée :</strong> exécute des exercices de reprise.</li><li><strong>Conserver les copies au même endroit :</strong> sépare les domaines de panne et les permissions.</li><li><strong>Oublier les fichiers ou clés :</strong> sauvegarde tous les éléments nécessaires au service.</li><li><strong>Supprimer une colonne immédiatement :</strong> utilise une migration en plusieurs phases.</li><li><strong>Exécuter un backfill massif en une transaction :</strong> évalue verrous, journalisation et reprise.</li><li><strong>Revenir au code précédent en pensant annuler la base :</strong> distingue code, schéma et données.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Réalise une sauvegarde logique d’une base de test, restaure-la dans une base isolée puis vérifie les tables et quelques invariants. Chronomètre l’opération et note les étapes manuelles restantes.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Écris un plan de migration qui ajoute un champ obligatoire à une table utilisée en continu. Décris l’expansion, le backfill, la validation, la bascule et le retrait de l’ancien schéma.</p><ul><li>RPO et RTO sont définis pour un besoin explicite.</li><li>La restauration est testée dans un environnement isolé.</li><li>Les données, fichiers et clés nécessaires sont identifiés.</li><li>La migration est compatible avec les versions applicatives qui coexistent.</li><li>Le backfill peut être surveillé et repris.</li><li>Le rollback explique les limites sur les données et le schéma.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Utilise ces références pour approfondir les notions et vérifier les détails liés aux versions de tes outils.</p><ol><li><a href="https://www.postgresql.org/docs/current/backup.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Backup and Restore</a></li><li><a href="https://www.postgresql.org/docs/current/continuous-archiving.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Continuous Archiving and Point-in-Time Recovery</a></li><li><a href="https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/welcome.html" target="_blank" rel="noopener noreferrer">AWS Well-Architected — Reliability Pillar</a></li><li><a href="https://martinfowler.com/articles/evodb.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Evolutionary Database Design</a></li><li><a href="https://cloud.google.com/architecture/database-migration" target="_blank" rel="noopener noreferrer">Google Cloud — Database migration</a></li></ol></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2>
+<label><input type="checkbox"> Je peux expliquer les concepts essentiels avec mes propres mots.</label>
+<label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+<label><input type="checkbox"> Je sais diagnostiquer les erreurs et expliquer les compromis.</label>
+<label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+<p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p></section>
+<nav class="lesson-nav"><a class="nav-link" href="dns-https-certificats.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="observabilite.html">Compétence suivante →</a></nav>
+</main><footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body></html>

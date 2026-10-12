@@ -1,0 +1,79 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Lire la documentation officielle
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. MDN — How to write and structure web documentation — https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Howto/Documenting_web_technology
+2. TypeScript — Handbook — https://www.typescriptlang.org/docs/handbook/intro.html
+3. React — Learn React — https://react.dev/learn
+4. Node.js — Documentation — https://nodejs.org/docs/latest/api/
+5. Python Packaging — Python Packaging User Guide — https://packaging.python.org/en/latest/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Trouver, vérifier et appliquer les informations de documentation technique.">
+<title>Lire la documentation officielle — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Parcours Full Stack · Pratique et qualité</p>
+<h1>Lire la documentation officielle</h1>
+<p class="lead">Lire la documentation est une compétence active : il faut identifier la version, isoler la question, distinguer un exemple minimal d’une recommandation de production et vérifier le comportement dans son propre contexte.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>La documentation officielle décrit les API, les concepts, les options et les contraintes d’un outil. Elle peut toutefois être organisée par tâches, concepts, références et tutoriels, et les pages peuvent correspondre à des versions différentes. Votre objectif est de trouver la réponse fiable et de la vérifier, pas de lire tout le site de façon linéaire.</p><ul><li>Formuler une question technique précise avant la recherche.</li><li>Vérifier la version de l’outil et la compatibilité de l’exemple.</li><li>Distinguer guide, référence d’API, tutoriel et notes de migration.</li><li>Tester l’exemple minimal et conserver la source de la décision.</li></ul>
+</section>
+<section class="lesson-section"><h2>1. Transformer un problème en question de recherche</h2>
+<p>« React ne marche pas » est trop large. « Dans React 19, pourquoi cette mise à jour d’état ne déclenche-t-elle pas le rendu attendu lorsque je modifie un objet existant ? » permet de cibler les règles d’état et d’immuabilité. Notez le message d’erreur, la version, le comportement attendu et le plus petit exemple qui reproduit le problème.</p><p>Commencez par la documentation du projet ou de la bibliothèque, puis cherchez le concept concerné. Les moteurs de recherche peuvent retrouver une page utile rapidement, mais le premier résultat peut viser une ancienne version ou une réponse de forum obsolète. Ouvrez la source officielle et vérifiez le contexte.</p><p>Pour une erreur de compilation, lisez le message entier et repérez le symbole, le type attendu et le type reçu. Pour une option de configuration, cherchez sa définition, sa valeur par défaut, son effet et ses interactions avec les options voisines.</p>
+</section>
+<section class="lesson-section"><h2>2. Comprendre la structure des docs</h2>
+<p>Les tutoriels montrent un chemin guidé, souvent simplifié. Les guides conceptuels expliquent les modèles mentaux et les compromis. La référence d’API précise les paramètres, types, valeurs de retour et exceptions. Les notes de version et guides de migration décrivent les changements entre versions.</p><p>Ne prenez pas un tutoriel comme preuve que chaque choix est adapté à votre application. Il peut omettre l’authentification, les erreurs réseau, les limites de débit ou les contraintes de production. À l’inverse, une référence d’API peut décrire précisément une méthode sans expliquer quand l’utiliser.</p><p>Vérifiez les prérequis, les versions minimales, les avertissements, les sections « limitations » et les exemples d’erreurs. Les pages de sécurité ou de migration méritent une lecture attentive avant une mise à jour majeure.</p>
+</section>
+<section class="lesson-section"><h2>3. Lire et tester un exemple</h2>
+<p>Réduisez l’exemple à un programme minimal : créez un petit fichier, installez uniquement les dépendances nécessaires et exécutez le code avec la version attendue. Ensuite, modifiez une variable à la fois pour comprendre le comportement. Si l’exemple est incomplet, identifiez explicitement les imports, la configuration ou le contexte supposés.</p><pre><code>// Exemple de démarche, pas une API universelle
+// 1. Lire la version de la bibliothèque.
+// 2. Copier le plus petit exemple officiel.
+// 3. Lancer avec la commande documentée.
+// 4. Modifier un seul paramètre.
+// 5. Comparer le résultat à la description.</code></pre><p>Quand le code échoue, vérifiez d’abord la version, les noms d’options et les dépendances. Ne recopiez pas une correction trouvée ailleurs sans comprendre pourquoi elle fonctionne et si elle s’applique à votre version.</p><p>Les exemples de documentation peuvent être simplifiés pour enseigner une idée. Avant de les réutiliser en production, ajoutez les validations, la gestion des erreurs, les limites et les contrôles de sécurité nécessaires.</p>
+</section>
+<section class="lesson-section"><h2>4. Évaluer la fiabilité et l’actualité</h2>
+<p>Privilégiez la documentation maintenue par le projet, puis les guides reconnus et les discussions de communauté lorsque la documentation ne couvre pas votre cas. Vérifiez la date ou la version indiquée, l’état de maintenance de la bibliothèque et les éventuels avertissements de dépréciation.</p><p>Une réponse ancienne peut rester correcte pour un concept stable, mais être fausse pour une API qui évolue vite. Comparez les signatures, les types et les notes de migration avec votre version réelle. Si plusieurs sources se contredisent, cherchez un exemple minimal reproductible ou un test officiel.</p><p>La documentation ne répond pas toujours à la question architecturale. Elle explique ce que l’outil fait, pas nécessairement si votre projet devrait l’utiliser. Complétez la lecture par les contraintes du projet : coût, sécurité, compatibilité, maintenance et expérience de l’équipe.</p>
+</section>
+<section class="lesson-section"><h2>5. Pièges fréquents et notes réutilisables</h2>
+<p>Conservez la question, la réponse, le lien, la version et un petit exemple validé. Évitez de copier de longues pages dans vos notes ; résumez les points utiles avec vos propres mots et gardez le lien vers la source. Une note utile indique aussi ce qui n’a pas été vérifié.</p><ul><li>Ne confondez pas documentation officielle et garantie d’adéquation à votre contexte.</li><li>Ne mélangez pas les versions d’un même framework.</li><li>Ne supposez pas qu’un exemple court gère tous les cas d’erreur.</li><li>Ne modifiez pas plusieurs paramètres simultanément lors d’une expérience.</li><li>Ne laissez pas une ancienne note remplacer une vérification lors d’une mise à jour majeure.</li></ul><p>La documentation devient plus facile à utiliser avec la pratique : les termes exacts, les sections de référence et les conventions de version deviennent familiers.</p>
+</section>
+<section class="lesson-section"><h2>6. Vérifier une réponse lorsque la documentation est ambiguë</h2>
+<p>Une page peut être exacte tout en ne répondant pas à votre environnement : elle peut viser la dernière version, une option expérimentale ou une configuration différente de celle du projet. Avant d’appliquer une réponse, faites correspondre trois éléments : la version réellement installée, la page qui décrit cette version et le contexte d’exécution. Pour un projet JavaScript, <code>npm ls nom-du-paquet</code> aide à identifier la version résolue ; consultez aussi le fichier de verrouillage et les notes de version. Ne déduisez pas la version utilisée de la seule dépendance déclarée dans <code>package.json</code>.</p>
+<p>Si deux pages semblent se contredire, vérifiez d’abord si l’une est une référence « latest » et l’autre une version précise. Cherchez ensuite les notes de migration, les avertissements de dépréciation et les conditions qui entourent l’exemple. Si l’incertitude persiste, réduisez le problème à un exemple reproductible et formulez une observation que l’on peut réfuter. Un résultat obtenu une seule fois dans un environnement local ne prouve pas que le comportement est garanti par l’API.</p>
+<table><thead><tr><th>Élément à consigner</th><th>Question de contrôle</th></tr></thead><tbody>
+<tr><td>Contexte</td><td>Quelle version, quel runtime et quelle configuration sont réellement utilisés ?</td></tr>
+<tr><td>Contrat attendu</td><td>La page décrit-elle un comportement garanti, un exemple ou une recommandation ?</td></tr>
+<tr><td>Preuve</td><td>Quel test minimal distingue le comportement attendu d’une hypothèse ?</td></tr>
+<tr><td>Limite</td><td>Qu’est-ce qui reste inconnu ou dépend d’une autre version ?</td></tr>
+</tbody></table>
+<p>Une note technique réutilisable peut suivre ce modèle :</p>
+<pre><code>Question : comment le client gère-t-il un délai dépassé ?
+Environnement : paquet, version résolue, runtime.
+Source : URL de la référence correspondant à cette version.
+Test : commande ou cas minimal, résultat observé.
+Conclusion : comportement confirmé et limites non vérifiées.</code></pre>
+<p>Cette méthode évite de transformer une supposition en règle d’équipe. Lorsqu’une mise à jour change la version résolue, reprenez les vérifications qui touchent les API utilisées plutôt que de supposer que vos anciennes notes restent valides.</p>
+</section>
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Vous devez configurer un appel HTTP avec timeout dans une bibliothèque que vous utilisez. Sans commencer par un moteur de recherche général, identifiez la documentation officielle et la version installée.</p><ol><li>Quelle page décrit le concept et quelle page décrit l’API exacte ?</li><li>Quelle est la valeur par défaut du timeout, si elle existe ?</li><li>Quelles exceptions ou erreurs peuvent être renvoyées ?</li><li>Créez un exemple minimal et vérifiez le comportement sur une requête lente.</li><li>Rédigez une note de trois phrases avec le lien, la version et les limites observées.</li></ol><p><strong>Critères de réussite :</strong> vous utilisez une source liée à la bonne version, distinguez tutoriel et référence, vérifiez l’exemple par exécution et documentez ce qui est confirmé plutôt que ce qui est supposé.</p>
+</section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces références permettent d’approfondir les notions et de vérifier les détails propres aux outils. Les exemples du tutoriel sont synthétiques ; vérifiez la version et le contexte avant une application en production.</p><ol><li><a href="https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Howto/Documenting_web_technology" target="_blank" rel="noopener noreferrer">MDN — How to write and structure web documentation</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/intro.html" target="_blank" rel="noopener noreferrer">TypeScript — Handbook</a></li>
+<li><a href="https://react.dev/learn" target="_blank" rel="noopener noreferrer">React — Learn React</a></li>
+<li><a href="https://nodejs.org/docs/latest/api/" target="_blank" rel="noopener noreferrer">Node.js — Documentation</a></li>
+<li><a href="https://packaging.python.org/en/latest/" target="_blank" rel="noopener noreferrer">Python Packaging — Python Packaging User Guide</a></li></ol></section>
+<nav class="lesson-nav" aria-label="Navigation entre les compétences"><a href="projets-complets.html">← Compétence précédente</a><a href="open-source.html">Compétence suivante →</a></nav>
+</main>
+<footer class="site-footer"><p>Roadmap Full Stack 2026 · Apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Architecture événementielle
+Domaine documentaire : architecture
+Références consultées pour vérifier l’existence et l’adéquation générale des ressources. Elles servent de base de travail, pas de classement absolu des cinq meilleures ressources.
+1. Martin Fowler — Articles et patterns d’architecture — https://martinfowler.com/
+2. Microsoft — Architecture Center — https://learn.microsoft.com/en-us/azure/architecture/
+3. AWS — Well-Architected Framework — https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html
+4. Refactoring Guru — Design Patterns — https://refactoring.guru/design-patterns
+5. The Twelve-Factor App — https://12factor.net/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Découpler des composants par événements et messages.">
+  <title>Architecture événementielle — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">23. Spécialisations avancées</p>
+    <h1>Architecture événementielle</h1>
+    <p class="lead">Découpler des composants par événements et messages.</p>
+<div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire à avancé</span><span>Durée indicative : 3 h</span></div>
+<section class="lesson-section"><h2>Objectifs</h2><ul><li>Différencier événement, commande et message.</li><li>Découpler producteurs et consommateurs sans perdre le contrôle des flux.</li><li>Comprendre livraison, idempotence, ordre et cohérence éventuelle.</li></ul></section>
+<section class="lesson-section"><h2>1. Les concepts fondamentaux</h2><p>Une commande demande qu’une action soit exécutée (« créer une commande »). Un événement annonce un fait déjà survenu (« commande créée »). Un message est le terme générique qui transporte une information entre composants. Cette distinction aide à définir les responsabilités : le producteur d’un événement affirme un fait et les consommateurs décident de leurs réactions.</p><p>Dans une architecture événementielle, les composants communiquent en publiant des événements sur un canal, un courtier ou un journal. Les consommateurs peuvent être ajoutés sans modifier directement le producteur, ce qui favorise le découplage. Le découplage n’est toutefois pas gratuit : le parcours d’exécution devient indirect, et il faut gérer la livraison, les erreurs et l’observabilité.</p></section>
+<section class="lesson-section"><h2>2. Flux direct, courtier et journal</h2><p>Un appel HTTP direct convient quand l’appelant doit connaître immédiatement le résultat. Une file de messages répartit généralement les tâches entre consommateurs, tandis qu’un mécanisme de publication/abonnement permet à plusieurs groupes d’intérêt de recevoir le même événement. Un journal durable conserve un historique ordonné selon certaines partitions et permet parfois de relire les événements.</p><table><thead><tr><th>Modèle</th><th>Avantage</th><th>Coût</th></tr></thead><tbody><tr><td>Appel synchrone</td><td>Flux simple et réponse immédiate</td><td>Couplage temporel et propagation des pannes</td></tr><tr><td>File de travail</td><td>Absorption des pics et reprise</td><td>Gestion des retries et files d’échec</td></tr><tr><td>Pub/sub</td><td>Plusieurs consommateurs indépendants</td><td>Contrats d’événements et cohérence à coordonner</td></tr><tr><td>Journal d’événements</td><td>Historique rejouable et traitement par position</td><td>Partitionnement, rétention et exploitation plus complexes</td></tr></tbody></table></section>
+<section class="lesson-section"><h2>3. Concevoir un événement</h2><p>Un événement utile est stable, versionné et autonome autant que nécessaire. Il contient un type, un identifiant, une date, une version de schéma, l’identifiant de corrélation et les données métier indispensables. Évitez d’y inclure secrets, données personnelles inutiles ou objets internes complets.</p><pre><code>{
+  "eventId": "evt_01J...",
+  "type": "order.created",
+  "schemaVersion": 1,
+  "occurredAt": "2026-10-10T10:30:00Z",
+  "correlationId": "checkout_42",
+  "data": {
+    "orderId": "ord_123",
+    "customerId": "cus_456",
+    "totalMinorUnits": 2599,
+    "currency": "EUR"
+  }
+}</code></pre><p>Les montants en unités monétaires mineures évitent les erreurs classiques de virgule flottante. Les consommateurs doivent gérer les champs inconnus selon le contrat et ne pas supposer que l’événement contient toutes les données de la ressource courante.</p></section>
+<section class="lesson-section"><h2>4. Livraison et idempotence</h2><p>Une livraison « au moins une fois » peut produire des doublons : le consommateur effectue son travail mais tombe avant d’accuser réception. Une livraison « au plus une fois » peut perdre un message. Une garantie « exactement une fois » est souvent limitée à un périmètre technique précis et ne garantit pas automatiquement l’effet unique sur une base externe ou une API tierce.</p><p>La défense courante est un consommateur idempotent. Il enregistre l’identifiant d’événement traité et l’effet métier dans une transaction lorsque c’est possible. Une contrainte d’unicité peut empêcher le traitement double. Pour les appels externes, utilisez les mécanismes d’idempotence proposés par le service ou une table d’état dédiée.</p><pre><code>BEGIN;
+INSERT INTO processed_events(event_id)
+VALUES ('evt_123')
+ON CONFLICT DO NOTHING
+RETURNING event_id;
+-- Le code applicatif vérifie si une ligne a été retournée.
+-- Aucune ligne : événement déjà traité ; ne pas refaire l'effet.
+-- Une ligne : appliquer l'effet métier local dans cette transaction.
+COMMIT;
+-- Accuser réception du message seulement après le commit.</code></pre><p>La contrainte unique sur <code>event_id</code> arbitre les consommateurs concurrents. L’enregistrement de déduplication et l’effet métier local doivent être dans la même transaction : sinon, un arrêt entre les deux peut perdre l’effet ou le répéter. Si le traitement doit appeler un service externe, la transaction SQL ne peut pas rendre cet appel atomique ; utilise alors une clé d’idempotence côté service externe ou une seconde outbox.</p></section>
+<section class="lesson-section"><h2>5. Transaction outbox</h2><p>Un problème classique survient quand le service écrit une commande en base puis publie un événement. Si la base valide mais que le courtier est indisponible, l’état métier change sans événement. La transaction outbox consiste à écrire l’état métier et une ligne d’outbox dans la même transaction ; un processus distinct publie ensuite cette ligne et la marque comme traitée.</p>
+<pre><code>CREATE TABLE outbox (
+  event_id UUID PRIMARY KEY,
+  aggregate_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  occurred_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  published_at TIMESTAMPTZ
+);
+
+BEGIN;
+-- INSERT/UPDATE de la commande métier ici.
+INSERT INTO outbox (event_id, aggregate_id, event_type, payload)
+VALUES ('00000000-0000-4000-8000-000000000123', 'ord_123',
+        'order.confirmed', '{"orderId":"ord_123"}'::jsonb);
+COMMIT;</code></pre>
+<p>Le relais lit les lignes non publiées, envoie l’événement au courtier puis renseigne <code>published_at</code> après l’accusé de réception. Si le courtier a accepté le message mais que le relais s’arrête avant la mise à jour SQL, il peut le republier : c’est attendu, et le consommateur doit rester idempotent. L’outbox rend atomiques l’écriture métier et l’intention de publier, pas la livraison de bout en bout.</p></section>
+<section class="lesson-section"><h2>6. Ordre, retries et files d’échec</h2><p>L’ordre global est coûteux et rarement garanti dans un système distribué. Si l’ordre compte, définissez la clé de partition ou la séquence métier concernée. Les retries doivent distinguer erreurs temporaires et erreurs permanentes, appliquer un délai progressif et avoir une limite. Après épuisement, placez le message dans une file d’échec consultable avec une procédure de reprise.</p><ul><li>Définissez un délai maximal de traitement et une politique de retry.</li><li>Rendez visibles les messages en attente et les plus anciens.</li><li>Prévoyez le rejeu contrôlé et documentez ses effets.</li><li>Ne laissez pas une erreur poison bloquer indéfiniment toute une partition.</li></ul></section>
+<section class="lesson-section"><h2>7. Observabilité et sécurité</h2><p>Propager un identifiant de corrélation entre API, producteur, courtier et consommateur permet de reconstruire un parcours. Mesurez le débit, la latence de bout en bout, la taille des files, les erreurs, les retries et l’âge du message le plus ancien. Un service qui accepte les messages mais ne les traite plus doit déclencher une alerte.</p><p>Authentifiez les producteurs et consommateurs, limitez leurs droits aux canaux nécessaires, chiffrez les flux et protégez les données en transit et au repos. Les messages doivent être validés et traités comme des entrées non fiables, même lorsqu’ils viennent d’un système interne.</p></section>
+<section class="lesson-section"><h2>8. Exercice</h2><p>Une commande validée doit déclencher un e-mail, une mise à jour analytique et une réservation de stock. Dessinez les événements, les responsabilités des consommateurs, la stratégie outbox, les garanties de livraison, la déduplication, les retries et les alertes. Déterminez ce qui doit être synchrone pour informer l’utilisateur et ce qui peut être asynchrone.</p><h3>Critères de réussite</h3><ul><li>Commande et événement sont distingués.</li><li>Les doublons et erreurs temporaires sont gérés.</li><li>Le modèle de cohérence est documenté.</li><li>Le flux peut être observé, rejoué et dépanné.</li></ul></section>
+<section class="lesson-section"><h2>168 — Atelier de clôture : architecture événementielle</h2>
+<p><strong>Objectif :</strong> Détermine quand un événement métier est utile et comment garantir sa publication et son traitement.</p>
+<h3>Modèle mental et méthode</h3><p>Un événement décrit un fait passé et stable (« commande confirmée »), tandis qu’une commande demande une action. Prévois version du schéma, identifiant unique, clé de partition, politique de rétention, idempotence des consommateurs et gestion des messages invalides. Le pattern outbox évite de valider la base sans publier l’événement correspondant.</p>
+<h3>Exemple guidé</h3><p>Exemple : la transaction écrit la commande et un enregistrement outbox ; un relais publie ensuite l’événement. Le consommateur mémorise l’identifiant traité pour ignorer un doublon.</p>
+<h3>Pièges à éviter</h3><p>Pièges : publier avant le commit, supposer l’ordre global, changer un schéma sans compatibilité, ignorer les files de quarantaine et le rejeu.</p>
+<h3>Exercice de synthèse</h3><p>Exercice : dessine un flux commande confirmée vers facturation et notification ; indique garanties, doublons, évolution du schéma et procédure de rejeu.</p>
+<h3>Critères de réussite</h3><p>Réussite : commande et événement distingués, publication fiable, consommateurs idempotents, erreurs et observabilité prévues.</p></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://microservices.io/patterns/data/transactional-outbox.html">microservices.io — Transactional Outbox</a></li><li><a href="https://microservices.io/patterns/communication-style/idempotent-consumer.html">microservices.io — Idempotent Consumer</a></li><li><a href="https://www.enterpriseintegrationpatterns.com/">Enterprise Integration Patterns</a></li><li><a href="https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/event-driven">Microsoft — Event-driven architecture style</a></li><li><a href="https://kafka.apache.org/documentation/">Apache Kafka — Documentation</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je distingue commande, événement et message.</label><label><input type="checkbox"> Je sais expliquer doublons, idempotence et outbox.</label><label><input type="checkbox"> Je sais concevoir retries, files d’échec et métriques.</label></section>
+    <nav class="lesson-nav"><a class="nav-link" href="systemes-distribues.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="applications-temps-reel.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

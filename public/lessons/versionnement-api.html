@@ -1,0 +1,67 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Versionnement d’API
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. Microsoft — REST API Guidelines — https://github.com/microsoft/api-guidelines
+2. Google Cloud — API design guide — https://cloud.google.com/apis/design
+3. Zalando — RESTful API Guidelines — https://opensource.zalando.com/restful-api-guidelines/
+4. Stripe — API upgrades — https://docs.stripe.com/upgrades
+5. RFC 9110 — HTTP Semantics — https://www.rfc-editor.org/rfc/rfc9110.html
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Faire évoluer un contrat d’API sans casser inutilement les applications clientes." name="description"/>
+<title>Versionnement d’API — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">3. Backend</p>
+<h1>Versionnement d’API</h1>
+<p class="lead">Faire évoluer une API en protégeant les consommateurs existants grâce à des changements compatibles, une dépréciation mesurée et des contrats vérifiés.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 11 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Distinguer évolution compatible et changement cassant.</li><li>Choisir une stratégie de versionnement adaptée au contexte.</li><li>Organiser la dépréciation et le retrait d’une version.</li><li>Tester la compatibilité des clients et des contrats.</li></ul>
+</section><section class="lesson-section"><h2>Fil conducteur</h2><p>Avant de créer une nouvelle version, détermine si le changement est réellement incompatible. Prépare ensuite la migration des consommateurs, l’observation de l’usage et une procédure de retrait explicite.</p></section>
+<section class="lesson-section"><h2>1. Ce que signifie versionner une API</h2>
+<p>Une API est un contrat : chemins, méthodes, paramètres, formats, statuts et sémantique métier. Versionner ne consiste pas seulement à modifier une URL. Il faut gérer les changements du contrat dans le temps et préserver les clients qui n’ont pas encore migré.</p><p>Une évolution est généralement compatible lorsqu’un client existant continue de fonctionner sans modification. Ajouter un champ facultatif à une réponse est souvent compatible ; rendre un champ obligatoire, supprimer une propriété ou changer la signification d’un champ peut casser les intégrations.</p>
+</section>
+<section class="lesson-section"><h2>2. Les stratégies courantes</h2>
+<ul><li><strong>Version dans le chemin :</strong> <code>/api/v1/orders</code>, puis <code>/api/v2/orders</code>. Facile à repérer, router et documenter.</li><li><strong>En-tête de version :</strong> la version est transmise dans un en-tête dédié. L’URL reste stable, mais les outils et caches doivent gérer ce choix correctement.</li><li><strong>Version par média type :</strong> la représentation demandée précise la version. C’est flexible mais moins visible dans une URL.</li></ul><p>Aucune stratégie n’est universellement supérieure. Pour une API publique, la lisibilité opérationnelle et la facilité de migration comptent autant que l’élégance théorique.</p>
+</section>
+<section class="lesson-section"><h2>3. Évoluer sans nouvelle version majeure</h2>
+<p>Privilégie les ajouts facultatifs et les changements qui ne modifient pas le sens des données existantes. Évite de supposer que tous les clients ignorent les champs inconnus : certains désérialiseurs stricts peuvent échouer. Pour les énumérations, l’ajout d’une nouvelle valeur peut aussi casser un client qui ne prévoit que les valeurs connues.</p><pre><code>// Réponse existante
+{ "id": "ord_123", "status": "paid" }
+
+// Évolution additive
+{ "id": "ord_123", "status": "paid", "createdAt": "2026-10-10T10:00:00Z" }</code></pre><p>Documente les champs, leur nullabilité, les valeurs possibles et les garanties de stabilité. Teste la sérialisation et les clients représentatifs avant la mise en production.</p>
+</section>
+<section class="lesson-section"><h2>4. Dépréciation et retrait</h2>
+<ol><li>Identifier les consommateurs et les usages réels de l’ancienne version.</li><li>Publier une date de dépréciation et une date de fin de support compréhensibles.</li><li>Fournir une documentation de migration avec exemples avant/après.</li><li>Mesurer les appels encore effectués sur l’ancienne version.</li><li>Prévenir les consommateurs connus et vérifier les dépendances critiques avant retrait.</li></ol><p>Une annonce seule ne suffit pas : sans visibilité sur les usages, une version obsolète peut continuer d’être appelée par un service oublié.</p>
+</section>
+<section class="lesson-section"><h2>5. Contrats, tests et gouvernance</h2>
+<p>Maintiens une spécification par version supportée et automatise les tests de contrat. Une comparaison OpenAPI peut signaler la suppression d’une propriété, le changement de type ou l’ajout d’un paramètre obligatoire. Les tests ne remplacent pas la discussion de compatibilité sémantique : une réponse peut respecter le schéma tout en changeant de sens.</p><p>Définis une politique claire : durée de support, délai de préavis, critères de changement majeur, responsable de validation et procédure d’urgence. Les exceptions doivent être explicites.</p>
+</section>
+
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Une API de commandes expose <code>GET /api/v1/orders</code> avec les champs <code>id</code>, <code>status</code> et <code>total</code>. On souhaite ajouter la devise, renommer <code>total</code> en <code>amount</code>, puis supprimer une valeur de statut. Classe chaque changement en compatible, potentiellement risqué ou cassant et propose un plan de migration.</p><h3>Critères de réussite</h3><ul><li>Chaque changement est évalué du point de vue du client.</li><li>Les changements cassants ont une stratégie de transition.</li><li>La dépréciation s’appuie sur des métriques et une communication.</li><li>Les contrats et tests sont versionnés et exécutés en CI.</li></ul>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Créer une nouvelle version pour chaque petit ajout.</li><li>Modifier le sens d’un champ sans changer le contrat.</li><li>Supprimer une version sans mesurer son usage.</li><li>Confondre version de l’API et version de l’application serveur.</li><li>Publier une migration sans expliquer les changements concrets.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Références documentaires de départ pour approfondir les concepts et vérifier les détails propres aux outils utilisés.</p><ul>
+<li><a href="https://github.com/microsoft/api-guidelines" rel="noopener noreferrer" target="_blank">Microsoft — REST API Guidelines</a></li>
+<li><a href="https://cloud.google.com/apis/design" rel="noopener noreferrer" target="_blank">Google Cloud — API design guide</a></li>
+<li><a href="https://opensource.zalando.com/restful-api-guidelines/" rel="noopener noreferrer" target="_blank">Zalando — RESTful API Guidelines</a></li>
+<li><a href="https://docs.stripe.com/upgrades" rel="noopener noreferrer" target="_blank">Stripe — API upgrades</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110.html" rel="noopener noreferrer" target="_blank">RFC 9110 — HTTP Semantics</a></li>
+</ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="codes-http.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="openapi-swagger.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html><p><strong>Repère pratique. </strong>Le versionnement par chemin (`/v1`) est visible et simple à router ; les en-têtes ou types de média peuvent séparer la représentation sans changer l’URL mais sont moins visibles lors du diagnostic. Choisis une stratégie cohérente avec la documentation, le cache et les outils de l’équipe.</p><p><strong>Repère pratique. </strong>Ajouter un champ optionnel est souvent compatible, mais un consommateur strict peut échouer sur un champ inattendu ou une valeur d’énumération nouvelle. Teste le comportement réel des clients et documente les règles d’extensibilité du contrat.</p><p><strong>Repère pratique. </strong>Une dépréciation doit indiquer ce qui change, à quelle date, quelle alternative utiliser et comment obtenir de l’aide. Mesure l’usage des anciennes routes sans enregistrer de données sensibles ; ne retire pas une version uniquement parce que la date annoncée est passée si des consommateurs critiques restent actifs sans plan de migration.</p>

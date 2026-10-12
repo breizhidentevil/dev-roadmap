@@ -1,0 +1,96 @@
+ <!-- SOURCES DOCUMENTAIRES
+- PostgreSQL — Backup and Restore: https://www.postgresql.org/docs/current/backup.html
+- MySQL — Backup and Recovery: https://dev.mysql.com/doc/refman/8.4/en/backup-and-recovery.html
+- AWS — Disaster recovery objectives: https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/disaster-recovery.html
+- CISA — Secure Our World / Ransomware guidance: https://www.cisa.gov/stopransomware
+- NIST SP 800-34 — Contingency Planning: https://csrc.nist.gov/pubs/sp/800/34/r1/upd1/final
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Définir une stratégie de sauvegarde exploitable, mesurer les objectifs de reprise et vérifier régulièrement que les données peuvent être restaurées.">
+<title>Sauvegarde et restauration — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Sauvegarde et restauration</h1>
+<p class="lead">Définir une stratégie de sauvegarde exploitable, mesurer les objectifs de reprise et vérifier régulièrement que les données peuvent être restaurées.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Une sauvegarde n’est utile que si elle est récupérable au moment où l’application en a besoin. Une stratégie sérieuse définit les données à protéger, les pertes acceptables, le délai de remise en service, les responsabilités et les tests de restauration. À la fin, vous saurez distinguer les objectifs de reprise, comparer les grandes familles de sauvegardes et élaborer un exercice de restauration vérifiable. Il faut connaître les données de votre application et les bases de l’exploitation d’un service.</p>
+<h2>2. RPO et RTO</h2>
+<p>Le <strong>Recovery Point Objective</strong> (RPO) définit la perte de données maximale acceptable, exprimée comme un intervalle de temps. Un RPO de quinze minutes signifie qu’en cas d’incident, l’organisation accepte au plus quinze minutes de données perdues. Le <strong>Recovery Time Objective</strong> (RTO) définit le délai cible pour rétablir un service utilisable. Ce sont des objectifs métier à négocier, pas des garanties automatiques fournies par un outil.</p>
+<p>Un RPO très faible peut nécessiter une réplication continue ou l’archivage des journaux de transactions. Un RTO court suppose que les procédures, accès, clés, environnements et personnes nécessaires soient disponibles. Une copie de plusieurs téraoctets peut exister mais prendre des heures à transférer, restaurer et vérifier. Mesurez donc la durée réelle de récupération, et pas seulement le temps de création de la sauvegarde.</p>
+<h2>3. Types de sauvegardes</h2>
+<p>Une sauvegarde logique exporte les données sous une forme portable, par exemple des instructions SQL ou des fichiers d’export. Elle peut être sélective et pratique pour migrer certaines tables, mais la restauration peut être lente pour de très grands volumes. Une sauvegarde physique copie les fichiers de données selon les exigences du moteur et peut être plus adaptée à une récupération complète, mais elle dépend davantage de la version, du format et de la configuration.</p>
+<p>Une sauvegarde complète capture l’ensemble prévu à un instant donné. Les sauvegardes incrémentales ne conservent que les changements depuis un point de référence défini par l’outil ; les différentielles capturent les changements depuis une sauvegarde complète de référence. Elles réduisent parfois le volume de stockage, mais peuvent augmenter la complexité de restauration. Le sens précis des termes et les possibilités disponibles varient selon le produit.</p>
+<p>Pour une base transactionnelle, les journaux de transactions peuvent permettre une récupération à un instant précis, sous réserve d’une chaîne continue et d’une procédure correctement configurée. Une sauvegarde de fichiers copiée pendant que la base écrit peut être incohérente si le mécanisme ne garantit pas une capture cohérente. Utilisez les méthodes officiellement prises en charge par le moteur.</p>
+<h2>4. Une copie n’est pas une stratégie</h2>
+<p>Une sauvegarde conservée uniquement sur le même serveur peut disparaître avec le serveur. Une sauvegarde accessible avec les mêmes identifiants administratifs que la production peut être supprimée ou chiffrée par un attaquant. Il faut séparer les domaines de panne, limiter les droits de suppression et protéger les secrets qui servent à chiffrer ou restaurer les archives.</p>
+<p>La règle dite 3-2-1 est un repère pratique : disposer de plusieurs copies, sur au moins deux types de supports ou environnements, dont une copie hors site. Elle ne remplace pas l’analyse des risques. Selon le contexte, une copie immuable, hors ligne ou protégée par des comptes séparés peut être nécessaire. Définissez également la durée de rétention, les exigences légales et les procédures d’effacement.</p>
+<h2>5. Exemple de politique</h2>
+<p>Une application de gestion peut effectuer des sauvegardes complètes régulières, conserver des journaux de transactions pour limiter la perte possible, répliquer une copie dans un environnement séparé et garder une version protégée contre l’effacement. Les fréquences et durées doivent découler du RPO, du RTO, du volume de données, des coûts et de la capacité de restauration. Cet exemple n’est pas une recette universelle : une application statique et une plateforme financière n’ont pas les mêmes besoins.</p>
+<p>Documentez au minimum : le périmètre des données, le calendrier, la destination, le chiffrement, la rétention, les personnes autorisées, les alertes en cas d’échec, la procédure de restauration et le propriétaire de chaque étape. Les sauvegardes qui échouent silencieusement pendant plusieurs jours ne satisfont plus la politique affichée.</p>
+<h2>6. Restaurer dans un environnement isolé</h2>
+<p>Un test de restauration doit vérifier plus que l’existence d’un fichier. Récupérez une sauvegarde dans un environnement isolé, restaurez la base, appliquez les journaux nécessaires, puis vérifiez la cohérence et le fonctionnement applicatif. Contrôlez les contraintes, les comptes, les migrations de schéma, les fichiers associés et les dépendances externes.</p>
+<p>Ne restaurez pas une archive inconnue directement sur la production. Une restauration peut écraser les données actuelles, introduire une version incompatible ou réactiver des secrets compromis. L’environnement de test doit reproduire les étapes essentielles sans exposer inutilement les données personnelles. Utilisez des données masquées lorsque cela convient et limitez les accès.</p>
+<h2>7. Restaurer un point dans le temps</h2>
+<p>Après une suppression accidentelle, la dernière sauvegarde complète peut contenir un état trop ancien ou déjà corrompu. La récupération à un point dans le temps utilise une sauvegarde de base puis rejoue les journaux jusqu’à un instant choisi, si la configuration le permet. La sélection de l’instant exige de comprendre quand l’incident a commencé et de vérifier le résultat avant de remplacer la production.</p>
+<p>Une approche plus sûre peut consister à restaurer dans une instance temporaire, extraire les données nécessaires et les réinjecter après validation. Cela évite parfois de perdre les transactions légitimes effectuées après l’instant restauré. Le choix dépend de l’ampleur de la corruption, de la cohérence métier et du temps disponible.</p>
+<h2>8. Mesures et exercices</h2>
+<p>Suivez les échecs de sauvegarde, l’âge de la dernière copie valide, le volume, le temps de transfert et la durée de restauration. Définissez une alerte lorsque le RPO risque d’être dépassé. Testez les scénarios les plus dangereux : perte du serveur, corruption logique, suppression accidentelle, indisponibilité des identifiants et perte d’une région ou d’un fournisseur.</p>
+<p>Un exercice réussi doit inclure une personne qui n’a pas écrit la procédure initiale, ou au moins un runbook assez clair pour être suivi par un autre membre de l’équipe. Notez les durées observées, les étapes ambiguës et les dépendances manquantes. Une procédure corrigée après chaque exercice est plus utile qu’un document jamais testé.</p>
+<h2>9. Erreurs fréquentes</h2>
+<ul>
+<li>Considérer un message « sauvegarde terminée » comme une preuve de restaurabilité.</li>
+<li>Garder toutes les copies sous les mêmes identifiants ou dans le même domaine de panne.</li>
+<li>Ne pas protéger les clés de chiffrement et les identifiants de restauration.</li>
+<li>Oublier les fichiers, secrets, schémas ou dépendances qui accompagnent la base.</li>
+<li>Ne pas mesurer le RTO réel ou tester les restaurations à grande échelle.</li>
+<li>Restaurer directement sur la production sans valider l’état récupéré.</li>
+</ul>
+<h2>10. Exercice et critères de réussite</h2>
+<p>Écrivez un plan de reprise pour une application avec une base relationnelle. Choisissez un RPO et un RTO justifiés, définissez le calendrier de sauvegarde et la rétention, identifiez les protections contre la suppression malveillante et rédigez une procédure de restauration isolée. Effectuez un test chronométré et consignez les contrôles qui prouvent que l’application est utilisable.</p>
+<ul class="checklist">
+<li>Je sais expliquer RPO et RTO en termes métier.</li>
+<li>Je distingue sauvegarde logique, physique et journaux de transactions.</li>
+<li>Je protège les copies contre une panne commune et une suppression malveillante.</li>
+<li>Je sais restaurer dans un environnement isolé et valider le résultat.</li>
+<li>Je mesure les durées réelles et améliore la procédure après les tests.</li>
+</ul>
+    <section class="lesson-workshop">
+<h2>Atelier approfondi — Prouver qu’une restauration est possible</h2>
+<h3>Objectifs opérationnels</h3>
+<ul><li>Traduire les besoins métier en objectifs RPO et RTO mesurables.</li><li>Choisir une chaîne de sauvegarde cohérente avec les données et les dépendances de l’application.</li><li>Exécuter un test de restauration isolé et recueillir des preuves de réussite.</li></ul>
+<h3>Explications et exemple guidé</h3>
+<p>Le RPO définit la perte de données maximale acceptable, mesurée dans le temps ; le RTO fixe le délai maximal de remise en service. Ce sont deux exigences distinctes : une base peut être restaurée rapidement tout en perdant plusieurs heures de transactions, ou être presque à jour mais nécessiter trop longtemps pour être remise en service. Les objectifs doivent être validés avec les responsables métier, pas choisis uniquement par l’équipe technique.</p>
+<p>Exemple : pour un service de commandes, le métier accepte au plus quinze minutes de données perdues et exige un retour en service en deux heures. Une sauvegarde complète nocturne seule ne suffit pas à garantir le RPO. Il faut envisager une sauvegarde cohérente complétée par l’archivage continu des journaux de transactions, puis mesurer le temps réel de restauration, de vérification et de remise en ligne.</p>
+<pre><code>Objectif : RPO ≤ 15 min ; RTO ≤ 2 h
+Preuves : dernier point restaurable, durée de restauration,
+          contrôles d’intégrité, test d’un parcours de commande</code></pre>
+<p>La sauvegarde doit couvrir l’ensemble nécessaire à la reprise : données, objets stockés, configuration, clés de chiffrement et procédures d’accès, selon l’architecture. Les copies doivent être protégées contre la suppression et le chiffrement par un compte compromis. Un test utile restaure dans un environnement isolé, vérifie les contraintes et les volumes attendus, puis exécute des contrôles applicatifs. Le statut « sauvegarde réussie » ne prouve pas que le fichier est restaurable.</p>
+<h3>Pièges et limites</h3>
+<ul><li>Confondre fréquence de sauvegarde et RPO réellement garanti : les échecs de jobs et délais de réplication comptent aussi.</li><li>Restaurer uniquement la base en oubliant les fichiers, secrets, certificats ou paramètres nécessaires au démarrage.</li><li>Tester seulement la présence des fichiers, sans lancer une restauration complète ni vérifier les données.</li><li>Conserver toutes les copies avec les mêmes identifiants et dans le même domaine de suppression que la production.</li></ul>
+<h3>Exercice</h3>
+<p>Rédige un runbook pour une application avec base relationnelle et stockage de pièces jointes. Fixe un RPO et un RTO justifiés, décris les sauvegardes, l’ordre de restauration, les contrôles d’intégrité, la décision de bascule et la procédure de retour. Simule ensuite un test sur un environnement jetable et chronomètre chaque étape.</p>
+<h3>Critères de réussite</h3>
+<ul><li>Les RPO/RTO sont définis en termes métier et mesurables.</li><li>Les dépendances nécessaires à la reprise sont inventoriées.</li><li>La restauration a été testée dans un environnement isolé avec des contrôles applicatifs.</li><li>Le runbook indique les responsabilités, les points d’arrêt et les preuves à conserver.</li></ul>
+</section>
+    
+
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://www.postgresql.org/docs/current/backup.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Backup and Restore</a></li>
+<li><a href="https://dev.mysql.com/doc/refman/8.4/en/backup-and-recovery.html" target="_blank" rel="noopener noreferrer">MySQL — Backup and Recovery</a></li>
+<li><a href="https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/disaster-recovery.html" target="_blank" rel="noopener noreferrer">AWS — Disaster recovery objectives</a></li>
+<li><a href="https://www.cisa.gov/stopransomware" target="_blank" rel="noopener noreferrer">CISA — Secure Our World / Ransomware guidance</a></li>
+<li><a href="https://csrc.nist.gov/pubs/sp/800/34/r1/upd1/final" target="_blank" rel="noopener noreferrer">NIST SP 800-34 — Contingency Planning</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="plans-execution-sql.html">← Précédent : Plans d’exécution SQL</a><a rel="next" href="migrations-sans-interruption.html">Suivant : Migrations sans interruption →</a></nav>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

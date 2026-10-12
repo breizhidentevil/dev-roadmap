@@ -1,0 +1,86 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Linting et formatage du code
+Les références sont des points de départ pertinents ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. ESLint — Getting Started — https://eslint.org/docs/latest/use/getting-started
+2. Prettier — Why Prettier? — https://prettier.io/docs/en/why-prettier
+3. TypeScript — TSConfig Reference — https://www.typescriptlang.org/tsconfig/
+4. typescript-eslint — Getting Started — https://typescript-eslint.io/getting-started/
+5. EditorConfig — https://editorconfig.org/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Automatiser les vérifications de style et les règles statiques pour réduire les erreurs évitables et faciliter les revues.">
+  <title>Linting et formatage du code — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">6. Tests, débogage et qualité</p>
+    <h1>Linting et formatage du code</h1>
+    <p class="lead">Automatiser les vérifications de style et les règles statiques pour réduire les erreurs évitables et faciliter les revues.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Qualité et tests</span></div>
+    <section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Le formatage impose une présentation cohérente du code ; le linting détecte des motifs suspects ou des règles de qualité ; le compilateur TypeScript vérifie un ensemble de contraintes de types. Ces outils se complètent, mais aucun ne prouve à lui seul que le programme est correct.</p><ul><li>Configurer des règles partagées et compréhensibles.</li><li>Différencier formatage, lint, vérification de types et tests.</li><li>Automatiser les contrôles localement et dans l’intégration continue.</li></ul>
+</section><section class="lesson-section"><h2>1. Quatre contrôles différents</h2>
+<ul><li><strong>Formatage :</strong> espaces, retours à la ligne, guillemets et mise en forme uniforme. Prettier est conçu pour limiter les débats de style.</li><li><strong>Linting :</strong> détecte des constructions risquées, des variables inutilisées, des dépendances incorrectes dans certains hooks ou des règles propres au projet.</li><li><strong>Vérification de types :</strong> TypeScript contrôle la cohérence statique des types, selon la configuration et les déclarations disponibles.</li><li><strong>Tests :</strong> vérifient le comportement observable à l’exécution.</li></ul><p>Un projet peut donc être bien formaté et échouer au lint, compiler sans erreur de type et pourtant contenir un bug métier. La chaîne de qualité doit exécuter chaque contrôle utile sans présenter l’un comme un substitut des autres.</p>
+</section><section class="lesson-section"><h2>2. Installer et définir des commandes reproductibles</h2>
+<p>Installe les outils dans le projet et verrouille leurs versions dans le gestionnaire de paquets. Cela évite qu’un développeur et la CI appliquent des règles différentes. Exemple de scripts dans <code>package.json</code> :</p><pre><code>{
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test"
+  }
+}</code></pre><p>Les commandes exactes dépendent de la structure et des outils du dépôt. Il peut être nécessaire d’exclure les fichiers générés, les répertoires de build et certains fichiers de configuration. N’exclus pas un dossier simplement parce que les contrôles y trouvent des problèmes sans comprendre la raison.</p>
+</section><section class="lesson-section"><h2>3. Configurer sans multiplier les règles contradictoires</h2>
+<p>Choisis un formateur principal et un ensemble limité de règles de lint. Les règles de formatage détaillées sont rarement utiles dans ESLint lorsque Prettier s’en charge déjà. Une configuration trop stricte, mal expliquée ou pleine d’exceptions sera contournée plutôt qu’adoptée.</p><p>Dans un projet TypeScript, active une configuration adaptée au langage et aux fichiers réellement analysés. Les règles qui nécessitent des informations de type peuvent être plus coûteuses ; réserve-les aux zones où elles apportent une vraie valeur et mesure le temps d’exécution.</p><p>Ajoute un fichier EditorConfig pour harmoniser des paramètres simples comme la fin de ligne et l’indentation, si l’équipe utilise des éditeurs différents. Documente les commandes dans le README pour qu’un nouveau contributeur puisse lancer les contrôles sans deviner.</p>
+</section><section class="lesson-section"><h2>4. Exécuter les contrôles au bon moment</h2>
+<p>Un flux courant consiste à lancer le formatage à la demande ou à la sauvegarde, puis lint, vérification de types et tests avant la fusion. Un hook Git peut empêcher certains commits mal formatés, mais il ne remplace pas la CI : il peut être contourné et ne garantit pas que le contrôle sera exécuté sur la bonne version du code.</p><p>La CI doit reproduire les mêmes commandes avec un environnement verrouillé. Pour un grand monorepo, il est possible de limiter certains contrôles aux fichiers modifiés, mais la vérification finale doit aussi couvrir les interactions entre modules et les configurations globales pertinentes.</p>
+</section><section class="lesson-section"><h2>5. Gérer les exceptions et la dette</h2>
+<p>Une désactivation locale de règle peut être légitime si elle est étroite, justifiée et temporaire. Préfère une désactivation sur une ligne à une désactivation globale du fichier ou du projet. Un commentaire peut expliquer pourquoi le code ne peut pas suivre la règle sans perdre une propriété nécessaire.</p><p>Lorsqu’un ancien projet adopte le linting, évite de corriger automatiquement des milliers de fichiers sans isoler le changement de comportement. Procède par étapes : établir une base, corriger les règles critiques, automatiser les fichiers modifiés, puis réduire progressivement la dette. Les modifications purement formatées sont plus faciles à relire si elles restent séparées des changements métier.</p>
+</section><section class="lesson-section"><h2>6. Rendre la qualité reproductible en local et en CI</h2>
+<p>Les mêmes commandes doivent produire les mêmes résultats sur le poste d’un développeur et dans l’intégration continue. Verrouille les versions dans le fichier de lock, documente le runtime et privilégie les scripts du dépôt plutôt que des commandes globales dont la version peut varier.</p>
+<pre><code>{
+  "scripts": {
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run format:check && npm run typecheck"
+  }
+}</code></pre>
+<p>Exemple indicatif à adapter aux outils réellement installés : un projet JavaScript sans TypeScript n’a pas besoin du script <code>typecheck</code>. Dans la CI, exécute le contrôle en lecture seule et fais échouer le pipeline si le dépôt n’est pas conforme ; ne lance pas automatiquement le formatage pour masquer une différence. Un hook pré-commit accélère le retour, mais ne remplace jamais la CI, car il peut être contourné.</p>
+<p>Lors de l’introduction d’une règle sur un dépôt ancien, sépare le code modifié du stock historique : fixe une ligne de base, corrige progressivement les fichiers touchés et évite de mêler des milliers de changements de formatage à une modification fonctionnelle.</p>
+</section>
+<section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Confondre formatage, linting, types et tests.</li><li>Installer des versions flottantes ou laisser la CI utiliser une configuration différente.</li><li>Faire exécuter simultanément à ESLint et Prettier des règles contradictoires.</li><li>Désactiver une règle globalement pour contourner quelques cas difficiles.</li><li>Ne pas exclure les fichiers générés, ou exclure des dossiers entiers sans justification.</li><li>Compter uniquement sur les hooks locaux au lieu de contrôler le résultat dans la CI.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Sur un petit projet TypeScript, ajoute les scripts <code>format:check</code>, <code>lint</code>, <code>typecheck</code> et <code>test</code>. Introduis volontairement une variable inutilisée, une erreur de type et un formatage incorrect, puis observe quel contrôle détecte chaque problème.</p><p>Configure ensuite la CI pour exécuter les mêmes commandes. Vérifie que l’échec d’un contrôle empêche la validation du pipeline et que les consignes sont documentées pour un nouveau contributeur.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Propose une configuration minimale pour un dépôt React et TypeScript, avec exclusions explicites, scripts et étape CI. Explique pourquoi chaque contrôle est présent et quelles limites il conserve.</p><p><strong>Réussite :</strong> les commandes fonctionnent sur une installation propre ; les versions sont reproductibles ; formatage, lint, types et tests sont distingués ; les fichiers générés sont gérés explicitement ; la CI exécute les contrôles ; les exceptions locales restent rares et justifiées.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Ces références permettent d’approfondir les méthodes et de confronter les exemples à la version des outils utilisés dans ton projet.</p>
+      <ol><li><a href="https://eslint.org/docs/latest/use/getting-started" target="_blank" rel="noopener noreferrer">ESLint — Getting Started</a></li><li><a href="https://prettier.io/docs/en/why-prettier" target="_blank" rel="noopener noreferrer">Prettier — Why Prettier?</a></li><li><a href="https://www.typescriptlang.org/tsconfig/" target="_blank" rel="noopener noreferrer">TypeScript — TSConfig Reference</a></li><li><a href="https://typescript-eslint.io/getting-started/" target="_blank" rel="noopener noreferrer">typescript-eslint — Getting Started</a></li><li><a href="https://editorconfig.org/" target="_blank" rel="noopener noreferrer">EditorConfig</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer les concepts et les objectifs de cette compétence.</label>
+      <label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+      <label><input type="checkbox"> Je sais reconnaître les limites et les compromis.</label>
+      <label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="logs-erreurs.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="refactoring.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

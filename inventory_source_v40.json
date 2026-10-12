@@ -1,0 +1,724 @@
+{
+  "archive": "Roadmap_Full_Stack_2026_V40.zip",
+  "file_count": 178,
+  "html_count": 175,
+  "extensions": {
+    ".md": 2,
+    ".css": 1,
+    ".html": 175
+  },
+  "files": [
+    {
+      "path": "roadmap_fullstack_2026/PROGRESSION_TUTORIELS.md",
+      "size_bytes": 216665
+    },
+    {
+      "path": "roadmap_fullstack_2026/README.md",
+      "size_bytes": 52410
+    },
+    {
+      "path": "roadmap_fullstack_2026/index.html",
+      "size_bytes": 60229
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/accessibilite.html",
+      "size_bytes": 15802
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/api-erreurs-coherentes.html",
+      "size_bytes": 14218
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/api-evolutives.html",
+      "size_bytes": 15449
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/api-pagination-filtrage.html",
+      "size_bytes": 14137
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/api-rest.html",
+      "size_bytes": 14175
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/applications-temps-reel.html",
+      "size_bytes": 11855
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/architecture-evenementielle.html",
+      "size_bytes": 13206
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/architecture-hexagonale.html",
+      "size_bytes": 13754
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/architecture-modulaire.html",
+      "size_bytes": 10964
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/architecture-ordinateur.html",
+      "size_bytes": 12911
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/assistants-code.html",
+      "size_bytes": 9539
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/authentification-autorisation.html",
+      "size_bytes": 10286
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/autorisations-serveur.html",
+      "size_bytes": 9257
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/branches-conflits-git.html",
+      "size_bytes": 11119
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/cache-compromis.html",
+      "size_bytes": 11073
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/cache-http-cdn.html",
+      "size_bytes": 15492
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/cas-limites-regressions.html",
+      "size_bytes": 12876
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/choix-techniques.html",
+      "size_bytes": 12477
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/ci-cd.html",
+      "size_bytes": 13485
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/cles-relations.html",
+      "size_bytes": 8895
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/cloud.html",
+      "size_bytes": 14438
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/codes-http.html",
+      "size_bytes": 11366
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/complexite-algorithmique.html",
+      "size_bytes": 12131
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/conception-exploitation.html",
+      "size_bytes": 14005
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/concurrence-mises-a-jour.html",
+      "size_bytes": 14346
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/contraste-semantique-aria.html",
+      "size_bytes": 16423
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/contrats-api-validation.html",
+      "size_bytes": 13108
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/core-web-vitals.html",
+      "size_bytes": 17387
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/correlation-logs.html",
+      "size_bytes": 13151
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/cors.html",
+      "size_bytes": 13558
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/csrf.html",
+      "size_bytes": 10117
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/css-fondamentaux.html",
+      "size_bytes": 10480
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/cycle-requete-reponse.html",
+      "size_bytes": 9666
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/debug-frontend.html",
+      "size_bytes": 7863
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/debug-methodique.html",
+      "size_bytes": 11963
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/decoupage-composants.html",
+      "size_bytes": 16092
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/decoupage-taches-estimation.html",
+      "size_bytes": 13485
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/deploiement-base.html",
+      "size_bytes": 14057
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/design-patterns.html",
+      "size_bytes": 12812
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/dns-https-certificats.html",
+      "size_bytes": 13074
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/dns-tls-proxy.html",
+      "size_bytes": 9666
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/docker.html",
+      "size_bytes": 12311
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/documentation-decisions.html",
+      "size_bytes": 14693
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/documentation-officielle.html",
+      "size_bytes": 12536
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/donnees-distantes-frontend.html",
+      "size_bytes": 16348
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/donnees-logs.html",
+      "size_bytes": 12341
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/environnement-config.html",
+      "size_bytes": 12706
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/environnements-dev-test-prod.html",
+      "size_bytes": 13653
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/ergonomie-interface.html",
+      "size_bytes": 17331
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/etats-interface.html",
+      "size_bytes": 16839
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/fetch-apis-navigateur.html",
+      "size_bytes": 12097
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/flexbox-grid.html",
+      "size_bytes": 9921
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/framework-backend.html",
+      "size_bytes": 9474
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/frontieres-modules.html",
+      "size_bytes": 13095
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/gestion-etat.html",
+      "size_bytes": 7333
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/gestion-secrets.html",
+      "size_bytes": 12539
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/git.html",
+      "size_bytes": 10621
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/goulots-etranglement.html",
+      "size_bytes": 13286
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/graphql.html",
+      "size_bytes": 13178
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/hachage-mots-de-passe.html",
+      "size_bytes": 11569
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/html-semantique.html",
+      "size_bytes": 10707
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/http.html",
+      "size_bytes": 12317
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/https-headers.html",
+      "size_bytes": 12512
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/idempotence-api.html",
+      "size_bytes": 15460
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/index-performances.html",
+      "size_bytes": 7244
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/infrastructure-as-code.html",
+      "size_bytes": 13112
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/injection-dependances.html",
+      "size_bytes": 17090
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/injections-sql.html",
+      "size_bytes": 9364
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/isolation-transactions-verrous.html",
+      "size_bytes": 15461
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/issues-tickets-acceptation.html",
+      "size_bytes": 15110
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/javascript-avance.html",
+      "size_bytes": 13458
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/javascript-dom.html",
+      "size_bytes": 11999
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/javascript-typescript.html",
+      "size_bytes": 12549
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/jointures-agregations.html",
+      "size_bytes": 8203
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/journalisation-incidents.html",
+      "size_bytes": 13944
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/kubernetes.html",
+      "size_bytes": 13117
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/lecture-code.html",
+      "size_bytes": 11823
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/licences-publication-packages.html",
+      "size_bytes": 15584
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/limites-securite-ia.html",
+      "size_bytes": 15078
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/lint-formatage.html",
+      "size_bytes": 11791
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/linux-terminal.html",
+      "size_bytes": 10672
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/logique-metier-validation.html",
+      "size_bytes": 9668
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/logs-erreurs.html",
+      "size_bytes": 12660
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/metriques-alertes.html",
+      "size_bytes": 13679
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/middlewares.html",
+      "size_bytes": 10685
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/migrations-livraison.html",
+      "size_bytes": 15355
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/migrations-sans-interruption.html",
+      "size_bytes": 15827
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/migrations.html",
+      "size_bytes": 9100
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/modele-menace.html",
+      "size_bytes": 14170
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/modelisation-donnees.html",
+      "size_bytes": 9173
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/modules-responsabilites.html",
+      "size_bytes": 9765
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/monolithe-microservices.html",
+      "size_bytes": 13487
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/navigateur-dom-devtools.html",
+      "size_bytes": 9578
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/navigation-clavier-lecteurs.html",
+      "size_bytes": 16952
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/nextjs.html",
+      "size_bytes": 8340
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/nodejs-typescript.html",
+      "size_bytes": 9732
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/normalisation.html",
+      "size_bytes": 9487
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/nosql-mongodb.html",
+      "size_bytes": 7786
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/oauth-oidc.html",
+      "size_bytes": 11545
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/observabilite.html",
+      "size_bytes": 13870
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/open-source.html",
+      "size_bytes": 12843
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/openapi-swagger.html",
+      "size_bytes": 9342
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/outils-frontend.html",
+      "size_bytes": 7368
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/performance-frontend.html",
+      "size_bytes": 8717
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/plans-execution-sql.html",
+      "size_bytes": 13998
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/pooling-n-plus-un.html",
+      "size_bytes": 8328
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/postgresql.html",
+      "size_bytes": 8627
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/priorisation-produit.html",
+      "size_bytes": 12398
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/processus-threads-memoire.html",
+      "size_bytes": 10248
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/profilage-application.html",
+      "size_bytes": 13290
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/projet-1-site-frontend.html",
+      "size_bytes": 14512
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/projet-2-api-base-donnees.html",
+      "size_bytes": 20679
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/projet-3-application-fullstack.html",
+      "size_bytes": 17526
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/projet-4-production.html",
+      "size_bytes": 22564
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/projet-5-application-professionnelle.html",
+      "size_bytes": 23077
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/projets-complets.html",
+      "size_bytes": 13010
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/pull-requests-revue-code.html",
+      "size_bytes": 15018
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/rate-limiting.html",
+      "size_bytes": 12105
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/rbac-abac-controle-acces.html",
+      "size_bytes": 17747
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/react-composants.html",
+      "size_bytes": 8649
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/react-evenements-formulaires.html",
+      "size_bytes": 7579
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/react-hooks.html",
+      "size_bytes": 7317
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/recherche-moteurs.html",
+      "size_bytes": 13593
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/recherche-textuelle-pagination.html",
+      "size_bytes": 15311
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/recueil-besoin-specifications.html",
+      "size_bytes": 13354
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/redis-cache.html",
+      "size_bytes": 9781
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/refactoring.html",
+      "size_bytes": 13213
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/reseaux-tcp-ip.html",
+      "size_bytes": 9468
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/responsive-design.html",
+      "size_bytes": 10427
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/rollback-deploiement.html",
+      "size_bytes": 11904
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/rotation-secrets-chiffrement.html",
+      "size_bytes": 17532
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/routage-frontend.html",
+      "size_bytes": 16735
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/sauvegardes-migrations-prod.html",
+      "size_bytes": 14532
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/scalabilite.html",
+      "size_bytes": 13432
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/securite-api-abus.html",
+      "size_bytes": 15935
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/securite-dependances.html",
+      "size_bytes": 15406
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/securite-sessions-tokens.html",
+      "size_bytes": 13863
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/semver-changelogs.html",
+      "size_bytes": 14474
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/separation-responsabilites.html",
+      "size_bytes": 13540
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/sessions-jwt.html",
+      "size_bytes": 11986
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/specialisation.html",
+      "size_bytes": 12563
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/sql.html",
+      "size_bytes": 11483
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/ssr-csr-hydratation.html",
+      "size_bytes": 16563
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/strategie-sauvegarde-restauration.html",
+      "size_bytes": 15059
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/structures-donnees-algorithmes.html",
+      "size_bytes": 12881
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/systeme-exploitation-fichiers.html",
+      "size_bytes": 10375
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/systemes-distribues.html",
+      "size_bytes": 14934
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/taches-asynchrones.html",
+      "size_bytes": 12896
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/tailwind-composants.html",
+      "size_bytes": 8336
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/terminal-shell-bash.html",
+      "size_bytes": 12678
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/tests-charge.html",
+      "size_bytes": 14763
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/tests-e2e.html",
+      "size_bytes": 11255
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/tests-frontend.html",
+      "size_bytes": 9908
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/tests-integration.html",
+      "size_bytes": 13200
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/tests-unitaires.html",
+      "size_bytes": 11042
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/timeouts-retries-annulation.html",
+      "size_bytes": 14653
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/traces-distribuees.html",
+      "size_bytes": 13321
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/transactions-metier.html",
+      "size_bytes": 15694
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/transactions.html",
+      "size_bytes": 9591
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/typescript-generiques.html",
+      "size_bytes": 11841
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/typescript-modules-tsconfig.html",
+      "size_bytes": 14224
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/typescript-react.html",
+      "size_bytes": 7158
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/typescript-types-conditionnels-mappes.html",
+      "size_bytes": 12639
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/typescript-unions-intersections.html",
+      "size_bytes": 12048
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/typescript-unknown-never.html",
+      "size_bytes": 12560
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/typescript-utilitaires.html",
+      "size_bytes": 11765
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/upload-fichiers.html",
+      "size_bytes": 13721
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/usage-ia.html",
+      "size_bytes": 11492
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/validation-schema.html",
+      "size_bytes": 11474
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/verification-code-ia.html",
+      "size_bytes": 15708
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/versionnement-api.html",
+      "size_bytes": 9238
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/webhooks.html",
+      "size_bytes": 15560
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/websockets-sse.html",
+      "size_bytes": 9769
+    },
+    {
+      "path": "roadmap_fullstack_2026/lessons/xss.html",
+      "size_bytes": 10633
+    },
+    {
+      "path": "roadmap_fullstack_2026/style.css",
+      "size_bytes": 9374
+    }
+  ]
+}

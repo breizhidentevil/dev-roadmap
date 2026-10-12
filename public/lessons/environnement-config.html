@@ -1,0 +1,98 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Variables d’environnement et configuration
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. The Twelve-Factor App — Config — https://12factor.net/config
+2. Node.js — Environment variables — https://nodejs.org/api/environment_variables.html
+3. OWASP — Secrets Management Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+4. Docker Docs — Environment variables — https://docs.docker.com/compose/how-tos/environment-variables/
+5. Vite — Env Variables and Modes — https://vite.dev/guide/env-and-mode.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Configuration par environnement, validation au démarrage et protection des secrets.">
+<title>Variables d’environnement et configuration — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">7. Environnement, livraison et exploitation</p>
+<h1>Variables d’environnement et configuration</h1>
+<p class="lead">Séparer la configuration du code, valider les paramètres au démarrage et protéger les valeurs sensibles.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>La configuration regroupe les valeurs qui changent selon le contexte : port HTTP, URL de base de données, niveau de logs, timeout ou service tiers. Le code définit le comportement ; la configuration en règle les paramètres. Cela permet de promouvoir le même artefact entre développement, test et production sans modifier le code.</p><ul><li>Distinguer configuration, valeur par défaut et secret.</li><li>Valider types et contraintes plutôt que faire confiance aux chaînes brutes.</li><li>Protéger les secrets dans Git, les logs et le bundle frontend.</li><li>Créer une configuration distincte pour les tests.</li></ul>
+</section><section class="lesson-section"><h2>1. Centraliser la lecture</h2>
+<p>Évite de lire <code>process.env</code> dans tous les modules. Un point de configuration unique permet de vérifier les paramètres au démarrage et d’exposer des valeurs déjà typées au reste de l’application. Les variables d’environnement sont des chaînes : nombres et booléens doivent être parsés explicitement.</p><pre><code>function required(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`Variable requise absente : ${name}`);
+  return value;
+}
+function positiveInteger(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} doit être un entier positif`);
+  }
+  return value;
+}
+export const config = {
+  port: positiveInteger("PORT", 3000),
+  databaseUrl: required("DATABASE_URL"),
+};</code></pre><p>Les messages d’erreur indiquent le nom du paramètre, pas sa valeur secrète. Les erreurs de configuration doivent apparaître avant l’acceptation de requêtes, pas au milieu d’une transaction métier.</p>
+</section><section class="lesson-section"><h2>2. Valeurs par défaut et validation</h2>
+<p>Un défaut est raisonnable pour un port local ou un niveau de logs ; il peut être dangereux pour une connexion obligatoire ou une option de sécurité. Classe les paramètres : obligatoires, optionnels avec défaut sûr et secrets injectés par un gestionnaire dédié. Documente aussi les unités : <code>TIMEOUT_MS=5000</code> est moins ambigu qu’un paramètre <code>TIMEOUT=5</code>.</p><p>Attention au booléen JavaScript : <code>Boolean("false")</code> vaut <code>true</code>, car toute chaîne non vide est truthy. Parse une liste explicite de valeurs autorisées et rejette le reste. De même, une conversion numérique peut produire <code>NaN</code> : vérifie la plage, l’entier et les limites acceptables.</p>
+</section><section class="lesson-section"><h2>3. Environnements et fichiers locaux</h2>
+<p>Les environnements peuvent utiliser des URLs, bases de données et intégrations différentes, mais devraient partager le même code. Un fichier <code>.env.example</code> peut documenter les noms de variables avec des valeurs factices ; le vrai fichier local doit être ignoré par Git.</p><pre><code># .env.example — exemple, pas de secret réel
+PORT=3000
+DATABASE_URL=postgres://user:password@localhost:5432/app
+LOG_LEVEL=debug</code></pre><p>Si un secret a déjà été commité, l’ajout au <code>.gitignore</code> ne le retire pas de l’historique : révoque-le et remplace-le. Les tests doivent pointer vers des ressources isolées, jamais accidentellement vers la base de production. Vérifie les paramètres qui sélectionnent une ressource destructive.</p>
+</section><section class="lesson-section"><h2>4. Backend et frontend</h2>
+<p>Une variable disponible côté serveur n’est pas nécessairement sûre si elle est injectée dans le JavaScript envoyé au navigateur. Tout ce qui entre dans le bundle frontend est public. Avec Vite, le préfixe <code>VITE_</code> rend les variables accessibles au code client : il ne transforme pas une clé secrète en donnée protégée.</p><p>Une clé nécessaire uniquement au serveur doit rester côté serveur et être utilisée via une API contrôlée. Ne journalise pas l’objet de configuration complet : les chaînes de connexion, jetons et mots de passe peuvent être exposés dans les logs ou systèmes d’observabilité.</p>
+</section><section class="lesson-section"><h2>5. Valider au démarrage</h2>
+<p>Un schéma typé explicite les contraintes. Avec une bibliothèque comme Zod, la validation peut vérifier l’environnement avant que l’application commence à servir le trafic.</p><pre><code>import { z } from "zod";
+const EnvSchema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]),
+  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  DATABASE_URL: z.string().url(),
+});
+const parsed = EnvSchema.safeParse(process.env);
+if (!parsed.success) {
+  throw new Error("Configuration invalide : vérifier les variables d’environnement");
+}
+export const config = parsed.data;</code></pre><p>Le schéma doit refléter le protocole réellement attendu : une URL générique valide n’assure pas que l’hôte ou le protocole convienne. N’ignore pas une variable invalide si l’application ne peut pas fonctionner sans elle.</p>
+</section><section class="lesson-section"><h2>Erreurs fréquentes et compromis</h2>
+<ul><li><strong>Committer un secret :</strong> ignore le fichier local et révoque tout secret déjà exposé.</li><li><strong>Exposer une clé frontend :</strong> toute valeur du bundle doit être considérée comme publique.</li><li><strong>Convertir implicitement :</strong> parse et valide chaque type.</li><li><strong>Multiplier les sources de vérité :</strong> documente clairement la priorité des fichiers, variables et paramètres de plateforme.</li><li><strong>Défaut permissif en production :</strong> fais échouer le démarrage si une configuration critique manque.</li></ul><p>Un fichier local est pratique en développement ; en production, un gestionnaire de secrets facilite l’accès, la rotation et l’audit. Le choix dépend de la plateforme, mais le principe de non-exposition est constant.</p>
+</section><section class="lesson-section"><h2>Contrat de configuration et diagnostic</h2>
+<p>Une configuration fiable se traite comme une entrée externe : elle doit être documentée, validée et refusée si elle est incohérente. Pour chaque variable, définis son propriétaire, son type, son caractère obligatoire, sa valeur par défaut éventuelle et si elle contient un secret.</p>
+<table><thead><tr><th>Variable</th><th>Règle</th><th>Échec à éviter</th></tr></thead><tbody><tr><td><code>PORT</code></td><td>Entier dans la plage autorisée</td><td>Chaîne vide ou port invalide</td></tr><tr><td><code>DATABASE_URL</code></td><td>URL requise, protocole et hôte valides</td><td>Démarrage réussi puis panne à la première requête</td></tr><tr><td><code>LOG_LEVEL</code></td><td>Valeur dans une liste fermée</td><td>Faute de frappe silencieusement ignorée</td></tr><tr><td><code>PUBLIC_API_BASE</code></td><td>Valeur exposable au navigateur</td><td>Injection d’un secret dans le bundle client</td></tr></tbody></table>
+<p>Un défaut acceptable est explicite et sûr ; un secret ou une URL de production ne doit généralement pas recevoir une valeur de secours silencieuse. Valide la configuration une seule fois au démarrage, puis transmets un objet typé aux composants concernés au lieu de relire <code>process.env</code> partout.</p>
+<pre><code>const port = Number(process.env.PORT ?? 3000);
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+  throw new Error("PORT doit être un entier entre 1 et 65535");
+}
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL est obligatoire");
+}</code></pre>
+<p>Pour diagnostiquer une différence entre local, CI et production, compare les noms et règles des variables, jamais les valeurs secrètes en clair. Vérifie aussi les règles propres au framework : certaines variables préfixées sont incorporées au JavaScript envoyé au navigateur et deviennent publiques.</p>
+</section>
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Centralise <code>PORT</code>, <code>DATABASE_URL</code> et <code>LOG_LEVEL</code>. Définis un défaut seulement pour le port et le niveau de logs. Fais échouer le démarrage si l’URL manque ou si le port est invalide, puis teste plusieurs configurations.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Ajoute un environnement de test séparé, un fichier <code>.env.example</code> sans secrets et une liste documentée des variables. Inspecte le bundle frontend pour vérifier qu’aucune clé privée n’est exposée.</p><ul><li>La configuration est lue depuis un point central.</li><li>Types et contraintes sont validés au démarrage.</li><li>Les paramètres obligatoires manquants produisent une erreur claire.</li><li>Les secrets ne sont ni commités ni envoyés au navigateur.</li><li>Développement, tests et production utilisent des configurations distinctes.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Utilise ces références pour approfondir les notions et vérifier les détails liés aux versions de tes outils.</p><ol><li><a href="https://12factor.net/config" target="_blank" rel="noopener noreferrer">The Twelve-Factor App — Config</a></li><li><a href="https://nodejs.org/api/environment_variables.html" target="_blank" rel="noopener noreferrer">Node.js — Environment variables</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Secrets Management Cheat Sheet</a></li><li><a href="https://docs.docker.com/compose/how-tos/environment-variables/" target="_blank" rel="noopener noreferrer">Docker Docs — Environment variables</a></li><li><a href="https://vite.dev/guide/env-and-mode.html" target="_blank" rel="noopener noreferrer">Vite — Env Variables and Modes</a></li></ol></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2>
+<label><input type="checkbox"> Je peux expliquer les concepts essentiels avec mes propres mots.</label>
+<label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+<label><input type="checkbox"> Je sais diagnostiquer les erreurs et expliquer les compromis.</label>
+<label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+<p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p></section>
+<nav class="lesson-nav"><a class="nav-link" href="linux-terminal.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="docker.html">Compétence suivante →</a></nav>
+</main><footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body></html>

@@ -1,0 +1,93 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : SQL
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. PostgreSQL — SQL Tutorial — https://www.postgresql.org/docs/current/tutorial.html
+2. PostgreSQL — SELECT — https://www.postgresql.org/docs/current/sql-select.html
+3. PostgreSQL — Data Manipulation — https://www.postgresql.org/docs/current/dml.html
+4. OWASP — SQL Injection Prevention — https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
+5. Use The Index, Luke — SQL Performance — https://use-the-index-luke.com/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Interroger et modifier des données relationnelles avec des requêtes lisibles et sûres.">
+  <title>SQL — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">4. Bases de données et modélisation</p>
+    <h1>SQL</h1>
+    <p class="lead">Lire et écrire des requêtes pour interroger et modifier des données.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 13 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Lire une requête SELECT et comprendre son ordre logique.</li><li>Filtrer, trier, joindre et agréger des données.</li><li>Modifier les données avec INSERT, UPDATE et DELETE.</li><li>Utiliser des paramètres plutôt que concaténer des valeurs dans le SQL.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. SQL et modèle relationnel</h2>
+    <p>SQL est un langage déclaratif : tu décris les résultats attendus, et le moteur choisit un plan d’exécution. Une base relationnelle organise les données en tables, colonnes et lignes, avec des types et des contraintes. Une clé identifie une ligne ; les relations relient les tables.</p><p>Une requête lisible explicite les colonnes, les conditions et les relations. Évite <code>SELECT *</code> dans les traitements applicatifs durables : l’ajout d’une colonne peut modifier le volume de données transférées et surprendre le code consommateur.</p>
+    </section>
+    <section class="lesson-section"><h2>2. SELECT, WHERE et ORDER BY</h2>
+    <pre><code>SELECT id, title, priority
+FROM tasks
+WHERE done = false
+  AND priority IN ('high', 'normal')
+ORDER BY priority, id
+LIMIT 20;</code></pre><p><code>WHERE</code> filtre les lignes avant l’agrégation. <code>ORDER BY</code> définit l’ordre de présentation ; sans tri explicite, l’ordre n’est pas garanti. Une pagination stable doit employer un ordre déterministe, idéalement avec une clé unique comme dernier critère.</p><p>Attention à <code>NULL</code> : il signifie une valeur absente ou inconnue. On utilise <code>IS NULL</code> et <code>IS NOT NULL</code>, pas <code>= NULL</code>.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Jointures et agrégations</h2>
+    <pre><code>SELECT u.id, u.email, COUNT(t.id) AS task_count
+FROM users AS u
+LEFT JOIN tasks AS t ON t.user_id = u.id
+GROUP BY u.id, u.email
+HAVING COUNT(t.id) >= 3;</code></pre><p>Une jointure combine les lignes selon une condition. <code>LEFT JOIN</code> conserve aussi les utilisateurs sans tâche, contrairement à <code>INNER JOIN</code>. <code>GROUP BY</code> forme des groupes et les fonctions comme <code>COUNT</code>, <code>SUM</code> ou <code>AVG</code> les résument ; <code>HAVING</code> filtre les groupes après agrégation.</p><p>Une jointure plusieurs-à-plusieurs peut multiplier les lignes. Vérifie la cardinalité avant de calculer des totaux afin de ne pas compter deux fois une même valeur.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Écrire et modifier des données</h2>
+    <pre><code>INSERT INTO tasks (title, done)
+VALUES ('Réviser SQL', false);
+
+UPDATE tasks
+SET done = true
+WHERE id = 42;
+
+DELETE FROM tasks
+WHERE id = 42;</code></pre><p>Avant un <code>UPDATE</code> ou un <code>DELETE</code>, vérifie la condition <code>WHERE</code> et estime le nombre de lignes touchées. Sans condition, toutes les lignes peuvent être modifiées ou supprimées. Pour une opération critique, utilise une transaction et contrôle le résultat avant validation.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Sécurité et performances</h2>
+    <p>Ne construis pas une requête en concaténant une entrée utilisateur. Les requêtes paramétrées séparent le code SQL des valeurs et constituent la défense de base contre l’injection SQL. Les noms de colonnes ou mots-clés dynamiques ne peuvent pas toujours être passés comme paramètres : utilise alors une liste blanche de choix autorisés.</p><p>Mesure avant d’optimiser. Consulte le plan avec les outils du moteur, observe le nombre de lignes lues et renvoyées, puis évalue les index, les filtres et les jointures. Un index accélère certaines lectures mais consomme de l’espace et rend les écritures plus coûteuses.</p>
+    </section>
+    <section class="lesson-section"><h2>6. Étude de cas : une requête correcte, sûre et déterministe</h2>
+<p>Considérons une liste paginée de tâches appartenant à un utilisateur. La requête doit filtrer par propriétaire, trier de manière stable et limiter le nombre de lignes. Les valeurs venant du client sont des paramètres ; les noms de colonnes ou le sens de tri ne peuvent généralement pas être liés comme de simples valeurs et doivent provenir d’une liste blanche.</p>
+<pre><code>SELECT id, title, priority, created_at
+FROM tasks
+WHERE owner_id = $1
+  AND done = false
+ORDER BY created_at DESC, id DESC
+LIMIT $2;</code></pre>
+<p>Les marqueurs de paramètres dépendent du pilote : <code>$1</code> est courant avec PostgreSQL, tandis que d’autres drivers utilisent <code>?</code> ou une syntaxe nommée. L’idée essentielle est que le moteur reçoit les valeurs séparément de la structure SQL. Ne construis pas la clause <code>WHERE</code> par concaténation de texte utilisateur.</p>
+<h3>Raisonner sur le résultat</h3><ul><li><strong>Filtrage :</strong> la condition de propriétaire doit venir de l’identité authentifiée côté serveur, pas d’un <code>owner_id</code> librement choisi par le client.</li><li><strong>Ordre stable :</strong> trier uniquement par une date non unique peut produire des doublons ou des omissions entre pages ; ajouter une clé unique comme dernier critère rend l’ordre déterministe.</li><li><strong>NULL :</strong> les valeurs inconnues ne se comparent pas comme les valeurs ordinaires. Utilise <code>IS NULL</code> et comprends la position des valeurs nulles dans le tri du moteur.</li><li><strong>Jointure :</strong> un <code>LEFT JOIN</code> conserve les lignes de gauche sans correspondance ; déplacer une condition de la table jointe de <code>ON</code> vers <code>WHERE</code> peut éliminer ces lignes et changer le résultat.</li><li><strong>Agrégation :</strong> distingue les filtres de lignes (<code>WHERE</code>) des filtres appliqués aux groupes (<code>HAVING</code>).</li></ul>
+<p><strong>Transactions :</strong> lorsque plusieurs écritures forment une seule opération métier, utilise une transaction et définis ce qui doit être annulé si une étape échoue. Une transaction ne rend pas automatiquement toutes les courses impossibles : selon le niveau d’isolation et les contraintes, il peut rester nécessaire de verrouiller, de vérifier un état ou de gérer une violation de contrainte.</p>
+<p><strong>Diagnostic de performance :</strong> commence par mesurer la durée et le volume, puis examine le plan d’exécution avec les outils du moteur. Un index peut accélérer certaines lectures mais ralentir les écritures et consommer de l’espace. N’ajoute pas d’index uniquement parce qu’une colonne figure dans une requête ; vérifie la sélectivité, l’ordre des colonnes d’un index composite et les plans réels sur des données représentatives.</p>
+<p><strong>Exercice :</strong> écris une requête de pagination, teste les identifiants en double dans le tri, vérifie que les données d’un autre propriétaire ne sortent jamais, puis transforme une requête vulnérable par concaténation en requête paramétrée. Compare le résultat et le plan avant/après un index candidat.</p>
+<p><strong>Critère de réussite :</strong> la requête retourne les bonnes lignes dans un ordre reproductible, protège les frontières d’accès, traite correctement NULL et agrégations, et les choix de performance reposent sur une mesure.</p></section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Oublier une condition dans UPDATE ou DELETE.</li><li>Supposer que les résultats arrivent dans un ordre naturel.</li><li>Comparer à NULL avec l’opérateur égal.</li><li>Concaténer des entrées utilisateur dans une requête.</li><li>Ajouter des index sans mesurer leur utilité ni leur coût.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Avec deux tables <code>users(id, email)</code> et <code>tasks(id, user_id, title, done)</code>, écris une requête qui liste les utilisateurs et le nombre de tâches terminées, y compris ceux qui n’en ont aucune. Ensuite, ajoute une tâche avec des paramètres et explique pourquoi le paramétrage protège la requête.</p><h3>Critères de réussite</h3><ul><li>La jointure conserve les utilisateurs sans tâche.</li><li>L’agrégation compte uniquement les tâches terminées.</li><li>La requête ne dépend pas d’un ordre implicite.</li><li>Les valeurs externes sont paramétrées.</li><li>Les modifications de données sont contrôlées.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><p>Références documentaires de départ pour approfondir les concepts et vérifier les détails selon le moteur et les outils utilisés.</p><ul>
+      <li><a href="https://www.postgresql.org/docs/current/tutorial.html" target="_blank" rel="noopener noreferrer">PostgreSQL — SQL Tutorial</a></li>
+      <li><a href="https://www.postgresql.org/docs/current/sql-select.html" target="_blank" rel="noopener noreferrer">PostgreSQL — SELECT</a></li>
+      <li><a href="https://www.postgresql.org/docs/current/dml.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Data Manipulation</a></li>
+      <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — SQL Injection Prevention</a></li>
+      <li><a href="https://use-the-index-luke.com/" target="_blank" rel="noopener noreferrer">Use The Index, Luke — SQL Performance</a></li>
+    </ul></section>
+    <nav class="lesson-nav"><a class="nav-link" href="hachage-mots-de-passe.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="postgresql.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

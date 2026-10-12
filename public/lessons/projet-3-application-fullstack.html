@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spécification du projet pratique Full Stack : interface React, API, authentification, tests et livraison.">
+  <title>Projet 3 — Application Full Stack — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a>
+  <span class="topbar-note">Parcours d’apprentissage</span>
+</header>
+<main class="lesson">
+  <p class="eyebrow">Projets pratiques et validation des acquis</p>
+  <h1>Projet 3 — Application Full Stack</h1>
+  <p class="lead">Relier une interface React à une API persistante pour livrer un parcours utilisateur complet, avec états explicites, authentification, contrôle d’accès et tests de bout en bout.</p>
+
+  <section class="lesson-section">
+    <h2>1. Contexte, objectif et prérequis</h2>
+    <p>Construire une application de gestion de tâches personnelles. Un utilisateur peut créer un compte, se connecter, gérer ses tâches et retrouver ses données après une nouvelle session. Le frontend ne doit pas se substituer aux contrôles du serveur : toute règle d’accès aux données privées est appliquée et testée côté API.</p>
+    <p>Le résultat attendu est une tranche verticale complète : une action dans l’interface déclenche une requête, l’API authentifie et autorise l’utilisateur, la base persiste le changement, puis l’interface reflète le résultat ou présente une erreur compréhensible. Ce projet réunit les acquis du site frontend et de l’API, sans prétendre remplacer un audit de sécurité ou une exploitation de production.</p>
+    <h3>Prérequis</h3>
+    <ul>
+      <li>Composants React, props, état, formulaires, effets et gestion de dépendances.</li>
+      <li>TypeScript, promesses, HTTP/JSON et lecture des erreurs réseau.</li>
+      <li>Contrat REST, validation des entrées et persistance relationnelle.</li>
+      <li>Notions de tests unitaires et d’intégration ; l’authentification peut être révisée avant l’implémentation.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>2. Périmètre fonctionnel</h2>
+    <h3>Inclus dans la première version</h3>
+    <ul>
+      <li>Inscription et connexion avec validation côté serveur, messages génériques en cas d’échec et déconnexion.</li>
+      <li>Affichage de la liste des tâches du compte connecté, création, consultation, modification et suppression.</li>
+      <li>États d’interface distincts : chargement initial, chargement d’action, réussite, erreur, liste vide et session expirée.</li>
+      <li>Formulaires accessibles avec labels, erreurs associées aux champs et prévention des doubles soumissions.</li>
+      <li>API typée et documentée, persistance SQL et isolation des données entre comptes.</li>
+      <li>Tests automatisés des règles d’accès et des principaux parcours utilisateur, plus une procédure de démonstration locale.</li>
+    </ul>
+    <h3>Hors périmètre initial</h3>
+    <ul>
+      <li>Connexion sociale, MFA, partage de tâches entre utilisateurs, pièces jointes et notifications.</li>
+      <li>Application mobile native, architecture microservices, paiement et déploiement multi-région.</li>
+    </ul>
+    <p class="note">N’ajoutez pas une fonction simplement parce qu’elle est courante dans un produit professionnel. Chaque extension doit répondre à un besoin identifié et inclure ses exigences de sécurité, de test et de maintenance.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>3. Contrat entre le frontend et l’API</h2>
+    <p>Définir le contrat avant de coupler les composants à des réponses supposées. Les noms ci-dessous sont une proposition de référence ; ils doivent être synchronisés avec l’API réellement construite.</p>
+    <table><thead><tr><th>Route</th><th>Usage</th><th>Réponses attendues</th></tr></thead><tbody>
+      <tr><td><code>POST /api/v1/auth/register</code></td><td>Créer un compte</td><td><code>201</code>, validation <code>400/422</code>, <code>409</code> si le conflit est exposé par le contrat et traité contre l’énumération de comptes</td></tr>
+      <tr><td><code>POST /api/v1/auth/login</code></td><td>Ouvrir une session</td><td><code>200</code> en cas de succès, <code>401</code> avec message générique en cas d’échec, <code>429</code> si la limitation des tentatives est atteinte</td></tr>
+      <tr><td><code>POST /api/v1/auth/logout</code></td><td>Fermer la session</td><td><code>204</code> ou réponse documentée</td></tr>
+      <tr><td><code>GET /api/v1/tasks</code></td><td>Lister les tâches de l’utilisateur</td><td><code>200</code>, collection et métadonnées documentées</td></tr>
+      <tr><td><code>POST /api/v1/tasks</code></td><td>Créer une tâche</td><td><code>201</code> et représentation créée</td></tr>
+      <tr><td><code>GET/PATCH/DELETE /api/v1/tasks/:id</code></td><td>Lire, modifier ou supprimer</td><td><code>200</code>, <code>204</code>, <code>404</code> selon le contrat</td></tr>
+    </tbody></table>
+    <p>Choisir une seule enveloppe d’erreur stable, par exemple un code machine, un message lisible et des erreurs de champs optionnelles. L’interface doit traiter séparément une erreur de validation, une session absente/expirée, une ressource inexistante, une limitation de débit et une indisponibilité serveur. Ne pas afficher les traces de pile ou détails SQL.</p>
+    <p>Les types TypeScript partagés ne garantissent pas que les données réseau sont valides : valider à l’exécution côté serveur et traiter les réponses externes comme des données non fiables côté client.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>4. Architecture et choix techniques</h2>
+    <p>Stack de référence : React avec TypeScript strict, routeur côté client si plusieurs vues le justifient, bibliothèque de formulaires ou validation légère selon la complexité, API Node.js/TypeScript et PostgreSQL. Conserver le backend du Projet 2 comme base si ses choix sont adaptés. Les outils exacts sont secondaires par rapport au contrat, à l’isolation des données et aux tests.</p>
+    <pre><code>src/
+  app/                 # routes et composition de l’application
+  features/auth/       # formulaires, état de session, appels auth
+  features/tasks/      # liste, formulaire et actions des tâches
+  components/          # composants UI réutilisables
+  lib/api-client.ts    # requêtes, erreurs et configuration réseau
+  lib/validation.ts    # schémas client utiles à l’ergonomie
+server/
+  modules/auth/        # inscription, connexion, déconnexion
+  modules/tasks/       # routes, service et dépôt
+  plugins/             # base, session et gestion d’erreurs
+tests/                 # tests unitaires, intégration et E2E</code></pre>
+    <p>Le client API centralise l’URL de base, les en-têtes, l’analyse des réponses et la conversion des erreurs HTTP. Éviter de recopier des appels <code>fetch</code> avec des comportements différents dans chaque composant. En revanche, ne créez pas une couche d’abstraction générique avant d’avoir plusieurs usages réels.</p>
+    <h3>Décision d’authentification</h3>
+    <p>Choisir et documenter une stratégie compatible avec le déploiement. Pour une application web, un cookie de session <code>HttpOnly</code>, <code>Secure</code> en HTTPS et une politique <code>SameSite</code> appropriée peut réduire l’exposition du jeton au JavaScript, mais impose de traiter le risque CSRF et les origines autorisées. Si des jetons sont retenus, expliquer leur durée de vie, leur renouvellement, leur révocation et leur stockage. Ne pas stocker automatiquement un jeton de longue durée dans <code>localStorage</code> par facilité.</p>
+    <p>Les mots de passe sont hachés avec un algorithme adapté et une bibliothèque éprouvée, jamais chiffrés de façon réversible ni enregistrés en clair. Le serveur vérifie l’identité et l’autorisation à chaque requête protégée. Un identifiant de tâche deviné ne doit jamais permettre de lire ou modifier les données d’un autre compte.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>5. États UI, résilience et accessibilité</h2>
+    <ul>
+      <li>Initialiser les données avec un état de chargement explicite ; ne pas confondre une liste vide avec une requête non terminée.</li>
+      <li>Après une erreur, préserver les données déjà affichées quand c’est raisonnable et proposer une action de reprise.</li>
+      <li>Désactiver temporairement une action en cours et prévenir les doubles clics, sans bloquer toute l’application inutilement.</li>
+      <li>Après une mutation, mettre à jour l’interface à partir de la réponse serveur ou recharger les données ; gérer l’échec d’une mise à jour optimiste si cette stratégie est choisie.</li>
+      <li>Associer les messages d’erreur aux champs, utiliser des boutons et liens sémantiques, vérifier le parcours clavier et le focus après changement de vue ou dialogue.</li>
+      <li>Ne pas journaliser les mots de passe, cookies, jetons ou données personnelles dans la console et les outils de suivi.</li>
+    </ul>
+    <h3>Diagnostic type</h3>
+    <p><strong>Symptôme :</strong> la tâche apparaît comme enregistrée dans l’interface, puis disparaît après actualisation. <strong>Causes possibles :</strong> réponse serveur ignorée, erreur de persistance masquée, mise à jour optimiste jamais annulée ou liste rechargée avec un mauvais filtre. <strong>Diagnostic :</strong> inspecter le statut et le corps de la requête, comparer la réponse à la base de test, puis vérifier le mécanisme de rafraîchissement. <strong>Correction :</strong> ne présenter le succès qu’après confirmation serveur, ou implémenter explicitement rollback et message d’erreur pour une mutation optimiste.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>6. Étapes de réalisation</h2>
+    <ol>
+      <li>Écrire les scénarios utilisateur et le contrat d’API, y compris les erreurs et l’expiration de session.</li>
+      <li>Construire le backend et la persistance : utilisateurs, tâches associées, migrations, validation et contrôle d’accès.</li>
+      <li>Tester les règles de sécurité directement sur l’API, notamment l’accès croisé entre deux comptes.</li>
+      <li>Créer le client API et une tranche verticale simple : connexion, chargement des tâches, création et confirmation du résultat.</li>
+      <li>Ajouter modification, suppression, formulaires invalides, liste vide, erreurs réseau et déconnexion.</li>
+      <li>Ajouter les tests de composants et les tests de bout en bout ; rendre les données de test reproductibles.</li>
+      <li>Documenter installation, variables d’environnement, migrations, commandes, limites et procédure de démonstration.</li>
+    </ol>
+  </section>
+
+  <section class="lesson-section">
+    <h2>7. Critères d’acceptation mesurables</h2>
+    <ul>
+      <li>Un utilisateur peut s’inscrire, se connecter, consulter, créer, modifier et supprimer ses tâches puis retrouver l’état persistant après reconnexion.</li>
+      <li>Un utilisateur non authentifié ne peut accéder à aucune route privée ; les tests d’un second compte démontrent l’impossibilité de lire, modifier ou supprimer les tâches du premier.</li>
+      <li>Les entrées invalides sont rejetées côté serveur sans écriture ; les erreurs sont affichées sans perte silencieuse des données de formulaire.</li>
+      <li>Les états chargement, vide, réussite et échec sont visibles et différenciés pour les principaux parcours.</li>
+      <li>Les tests E2E couvrent au minimum connexion, création de tâche, validation invalide, déconnexion, tentative d’accès non autorisé et limitation des tentatives de connexion. Avec une session par cookie, tester aussi qu’une mutation sans protection CSRF valide est refusée ; avec une autre stratégie, tester les contrôles équivalents documentés.</li>
+      <li>Les secrets ne sont pas commités ; un fichier d’exemple contient uniquement des valeurs fictives et le guide décrit la configuration.</li>
+      <li>Les parcours principaux peuvent être utilisés au clavier ; les champs possèdent des libellés et les erreurs sont perceptibles sans dépendre uniquement de la couleur.</li>
+      <li>Les scripts de test, de lint et de vérification de types documentés correspondent aux scripts réellement présents et sont exécutés avant livraison.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>8. Plan de tests</h2>
+    <h3>Unitaires</h3><ul>
+      <li>Tester validation des formulaires, transformations de réponse et présentation des erreurs.</li>
+      <li>Tester les règles métier et la vérification des droits sur les ressources, indépendamment de l’interface.</li>
+    </ul>
+    <h3>Intégration</h3><ul>
+      <li>Vérifier le cycle de session, les routes protégées et l’association d’une tâche au compte attendu.</li>
+      <li>Confirmer qu’un identifiant appartenant à un autre compte ne permet aucune opération et que la réponse ne révèle pas de données privées.</li>
+      <li>Tester les erreurs de validation, de base de données et les réponses API inattendues.</li>
+    </ul>
+    <h3>Bout en bout</h3><ul>
+      <li>Parcours nominal : connexion → liste → création → modification → suppression → déconnexion.</li>
+      <li>Parcours d’échec : identifiants incorrects, formulaire invalide, API indisponible, session expirée et accès à une tâche d’un autre utilisateur.</li>
+      <li>Exécuter les tests sur une base isolée et des comptes jetables ; ne jamais lancer de nettoyage automatisé sur une base personnelle ou de production.</li>
+    </ul>
+    <p class="note">Aucune commande de test n’est réputée exécutée par la présence de cette liste. Consigner dans le suivi les commandes exactes, leur résultat et les éventuels tests bloqués par l’environnement.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>9. Livrables et définition de terminé</h2>
+    <ul>
+      <li>Code frontend et backend organisé, migrations et fichier de configuration d’exemple sans secret.</li>
+      <li>Contrat API/OpenAPI, instructions de démarrage, création de la base et données de démonstration.</li>
+      <li>Tests unitaires, intégration et E2E documentés avec résultats réellement observés.</li>
+      <li>Captures ou scénario de démonstration, liste des limites connues et procédure de réinitialisation sûre.</li>
+    </ul>
+    <p>Le projet est terminé lorsque les critères d’acceptation sont vérifiés, les tests prévus sont exécutés ou explicitement signalés comme bloqués, et le README permet à une autre personne de reproduire la démonstration sans secret ni étape implicite.</p>
+    <div class="checklist">
+      <label><input type="checkbox"> Contrat frontend/API documenté et synchronisé.</label>
+      <label><input type="checkbox"> Authentification, autorisation et isolation entre comptes testées.</label>
+      <label><input type="checkbox"> États de chargement, vide, erreur et réussite implémentés.</label>
+      <label><input type="checkbox"> Parcours clavier et messages de formulaire vérifiés.</label>
+      <label><input type="checkbox"> Tests unitaires, intégration et E2E exécutés et consignés.</label>
+      <label><input type="checkbox"> Installation, configuration et démonstration reproductibles.</label>
+    </div>
+    <p class="note small">Les cases de cette page ne sont pas enregistrées après fermeture. Consigner l’état durablement dans le suivi. Cette fiche est une spécification ; elle ne prouve pas que l’application a été implémentée ou validée.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>Sources documentaires</h2>
+    <ul>
+      <li><a href="https://react.dev/learn" rel="noopener noreferrer">React — documentation d’apprentissage</a></li>
+      <li><a href="https://www.typescriptlang.org/docs/" rel="noopener noreferrer">TypeScript — documentation officielle</a></li>
+      <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html" rel="noopener noreferrer">OWASP — Authentication Cheat Sheet</a></li>
+      <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html" rel="noopener noreferrer">OWASP — Authorization Cheat Sheet</a></li>
+      <li><a href="https://testing-library.com/docs/" rel="noopener noreferrer">Testing Library — documentation</a></li>
+    </ul>
+    <p class="note small">Références proposées pour les concepts couverts. Leurs URL n’ont pas été recontrôlées en HTTP durant cette exécution ; vérifier leur contenu et leur actualité avant usage.</p>
+  </section>
+  <nav class="lesson-nav"><a class="nav-link" href="../index.html#24-projets-pratiques">↑ Retour aux projets</a><a class="nav-link" href="projet-2-api-base-donnees.html">← Projet précédent</a><a class="nav-link" href="projet-4-production.html">Projet suivant →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

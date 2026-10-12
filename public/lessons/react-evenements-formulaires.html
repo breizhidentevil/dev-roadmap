@@ -1,0 +1,58 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : React : événements et formulaires
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. React — Répondre aux événements — https://react.dev/learn/responding-to-events
+2. React — Référence input — https://react.dev/reference/react-dom/components/input
+3. React — Référence form — https://react.dev/reference/react-dom/components/form
+4. MDN — Validation des formulaires — https://developer.mozilla.org/fr/docs/Learn_web_development/Extensions/Forms/Form_validation
+5. W3C WAI — Tutoriel formulaires — https://www.w3.org/WAI/tutorials/forms/
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Gérer les interactions et les champs contrôlés." name="description"/>
+<title>Événements et formulaires React — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">2. Frontend</p>
+<h1>React : événements et formulaires</h1>
+<p class="lead">Gérer les interactions, les champs contrôlés, la validation et la soumission de formulaires.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 8 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Relier un gestionnaire à une interaction.</li><li>Gérer les champs contrôlés avec l’état.</li><li>Valider et présenter les erreurs clairement.</li><li>Soumettre sans rechargement non désiré.</li></ul>
+</section><section class="lesson-section"><h2>Fil directeur</h2><p>Un formulaire React relie une interaction utilisateur à un état, puis à une validation et à une action explicite. Une bonne implémentation garde les données compréhensibles, expose les erreurs près des champs et reste utilisable au clavier.</p></section><section class="lesson-section"><h2>1. Relier les événements à une intention</h2><p>Les gestionnaires d’événements sont transmis à React, par exemple `onClick` ou `onSubmit`. Passe une fonction, pas le résultat de son exécution. Place les changements d’état dans le gestionnaire qui correspond à l’action utilisateur ; ne déclenche pas une action métier pendant le rendu.</p><pre><code>&lt;button type="button" onClick={handleAdd}&gt;Ajouter&lt;/button&gt;</code></pre><p>Précise le type des boutons dans un formulaire : sans `type="button"`, un bouton peut soumettre le formulaire par défaut.</p></section><section class="lesson-section"><h2>2. Choisir un modèle de champ cohérent</h2><p>Un champ contrôlé reçoit sa valeur depuis l’état React et met à jour cet état dans `onChange`. Le champ non contrôlé conserve plutôt sa valeur dans le DOM, avec `defaultValue` ou une référence. Choisis le modèle en fonction du besoin ; éviter de basculer entre valeur définie et `undefined` pendant la vie du champ.</p><pre><code>const [email, setEmail] = useState("");
+&lt;label htmlFor="email"&gt;Adresse e-mail&lt;/label&gt;
+&lt;input
+  id="email"
+  type="email"
+  value={email}
+  onChange={event =&gt; setEmail(event.target.value)}
+/&gt;</code></pre><p>Le contrôle donne une source de vérité claire, mais chaque changement provoque une mise à jour d’état. Pour les formulaires très simples, un modèle non contrôlé peut suffire.</p></section><section class="lesson-section"><h2>3. Valider avant l’action asynchrone</h2><p>À la soumission, empêche le rechargement natif si l’application prend en charge la soumission, puis valide les données. La validation HTML (`required`, `type`, `minLength`) améliore l’expérience, mais ne remplace jamais la validation côté serveur. Traite séparément les erreurs de champ, les erreurs globales et les erreurs réseau.</p><pre><code>function handleSubmit(event) {
+  event.preventDefault();
+  if (!email.trim()) {
+    setError("L’adresse e-mail est obligatoire.");
+    return;
+  }
+  setError("");
+  // Envoyer ensuite les données validées au serveur.
+}</code></pre><p>Pour un envoi asynchrone, indique l’état de chargement, empêche les doubles soumissions si nécessaire et rétablis l’interface en cas d’échec.</p></section><section class="lesson-section"><h2>4. Rendre le résultat accessible</h2><p>Associe chaque champ à un `label` explicite. Relie les messages d’erreur au champ avec `aria-describedby` et indique un état invalide avec `aria-invalid` lorsque c’est pertinent. Ne communique pas une erreur uniquement par la couleur. Après un échec, place le focus de façon utile ou annonce le message global sans déplacer arbitrairement l’utilisateur.</p><p>Le serveur reste l’autorité pour les règles métier et les autorisations ; le navigateur ne doit pas être considéré comme une frontière de sécurité.</p></section><section class="lesson-section"><h2>Erreurs fréquentes et diagnostic</h2><ul><li>Oublier `event.preventDefault()` lorsque la soumission est gérée côté client.</li><li>Utiliser un bouton de soumission pour une action secondaire.</li><li>Afficher une erreur uniquement par une couleur.</li><li>Considérer la validation client comme une protection serveur.</li><li>Ne pas gérer chargement, échec ou double soumission.</li></ul></section><section class="lesson-section"><h2>Exercice guidé</h2><p>Crée un formulaire de contact avec nom, e-mail et message. Implémente des champs contrôlés, une validation claire, un état de soumission, un message d’échec simulé et un message de succès. Vérifie l’usage clavier et l’association des erreurs aux champs.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul><li>Chaque champ a un libellé explicite.</li><li>La soumission est gérée une seule fois et les erreurs sont compréhensibles.</li><li>Les états chargement, échec et succès sont visibles.</li><li>Les champs et messages restent utilisables au clavier et avec un lecteur d’écran.</li><li>La validation serveur est considérée comme obligatoire pour les règles métier.</li></ul></section>
+
+
+
+
+
+
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://react.dev/learn/responding-to-events" rel="noopener noreferrer" target="_blank">React — Répondre aux événements</a></li><li><a href="https://react.dev/reference/react-dom/components/input" rel="noopener noreferrer" target="_blank">React — Référence input</a></li><li><a href="https://react.dev/reference/react-dom/components/form" rel="noopener noreferrer" target="_blank">React — Référence form</a></li><li><a href="https://developer.mozilla.org/fr/docs/Learn_web_development/Extensions/Forms/Form_validation" rel="noopener noreferrer" target="_blank">MDN — Validation des formulaires</a></li><li><a href="https://www.w3.org/WAI/tutorials/forms/" rel="noopener noreferrer" target="_blank">W3C WAI — Tutoriel formulaires</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="react-hooks.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="gestion-etat.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

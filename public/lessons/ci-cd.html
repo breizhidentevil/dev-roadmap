@@ -1,0 +1,94 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Intégration et déploiement continus
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. GitHub Actions — Documentation — https://docs.github.com/en/actions
+2. GitLab — CI/CD pipelines — https://docs.gitlab.com/ee/ci/pipelines/
+3. Martin Fowler — Continuous Integration — https://martinfowler.com/articles/continuousIntegration.html
+4. Google Cloud — Continuous delivery — https://cloud.google.com/architecture/devops/devops-tech-continuous-delivery
+5. OWASP — CI/CD Security Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/CI_CD_Security_Cheat_Sheet.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Pipelines CI/CD, tests, artefacts, secrets, environnements et stratégies de déploiement.">
+<title>Intégration et déploiement continus — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">7. Environnement, livraison et exploitation</p>
+<h1>Intégration et déploiement continus</h1>
+<p class="lead">Automatiser les contrôles et livrer des artefacts traçables, en limitant les actions manuelles et les risques de publication.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>L’intégration continue (CI) automatise des contrôles sur les changements : installation reproductible, lint, tests, compilation et parfois analyse de sécurité. La livraison continue prépare un artefact déployable ; le déploiement continu peut publier automatiquement en production lorsque les conditions prévues sont satisfaites. Ces notions sont liées mais ne sont pas synonymes.</p><ul><li>Comprendre les étapes et conditions d’un pipeline.</li><li>Rendre les contrôles reproductibles et visibles.</li><li>Relier l’artefact livré à son commit source.</li><li>Protéger les secrets et permissions du pipeline.</li><li>Prévoir vérifications de santé et retour arrière.</li></ul>
+</section><section class="lesson-section"><h2>1. Définir une chaîne de livraison</h2>
+<p>Un pipeline courant récupère le commit, installe les dépendances, exécute lint et tests, construit l’application, produit un artefact puis le vérifie et le déploie. Un contrôle obligatoire doit faire échouer clairement le pipeline lorsqu’il échoue.</p><p>La CI réduit le délai de détection d’un défaut, mais elle ne garantit pas la qualité si les tests sont faibles ou instables. Commence par les contrôles rapides puis exécute les plus coûteux. Les tests unitaires précèdent souvent les tests d’intégration et end-to-end pour fournir un retour précoce.</p>
+</section><section class="lesson-section"><h2>2. Exemple GitHub Actions</h2>
+<pre><code>name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test -- --run
+      - run: npm run build</code></pre><p>Adapte les commandes au projet et vérifie les versions des actions utilisées. Le script de test peut avoir une syntaxe différente. Épingle les actions selon la politique de sécurité ; un SHA de commit est plus immuable qu’un tag majeur.</p><p>Les permissions minimales réduisent l’impact d’une action compromise. N’accorde pas de droits d’écriture si le job ne publie rien. Pour les contributions externes, limite l’accès aux secrets et évite d’exécuter du code non fiable dans un contexte privilégié.</p>
+</section><section class="lesson-section"><h2>3. Tests fiables et artefacts</h2>
+<p>Utilise un lockfile, des données de test isolées et un nettoyage explicite des ressources. Évite les dépendances à l’heure locale ou à un service partagé non maîtrisé. Un test intermittent (« flaky ») diminue la confiance ; diagnostique sa cause plutôt que de relancer indéfiniment.</p><p>Un artefact peut être une image conteneur, un paquet ou un bundle. Idéalement, construis-le une fois puis promeus le même contenu entre test et production, en faisant varier la configuration plutôt que le binaire. Associe l’artefact au commit source et aux résultats des contrôles. Le tag <code>latest</code> n’identifie pas précisément une version.</p>
+</section><section class="lesson-section"><h2>4. Déploiement et retour arrière</h2>
+<p>Un déploiement n’est pas validé simplement parce que la commande de publication a terminé. Vérifie la santé réelle du service : démarrage, endpoint de santé, erreurs, latence et dépendances critiques. Définis les critères qui interrompent la livraison ou déclenchent un rollback.</p><p>Une livraison progressive — préproduction, canari ou remplacement graduel — peut réduire l’impact d’un défaut, mais ajoute des mécanismes à maintenir. Pour une petite application, une procédure simple, testée et documentée peut être préférable. Le rollback applicatif ne restaure pas automatiquement le schéma de base de données : les migrations doivent être conçues pour rester compatibles avec les versions concernées.</p>
+</section><section class="lesson-section"><h2>5. Secrets et permissions</h2>
+<p>Un pipeline peut lire le code, publier des paquets et déployer en production. Limite ses permissions, protège les branches et sépare validation et déploiement si le risque le justifie. Stocke les secrets dans les mécanismes prévus par la plateforme ; ne les affiche jamais dans les logs.</p><p>Lorsque c’est possible, préfère des identifiants temporaires ou une fédération d’identité aux clés statiques de longue durée. Prévois rotation et révocation. Le pipeline lui-même doit être revu comme du code : une action tierce ou un script externe non vérifié peut compromettre la chaîne entière.</p>
+</section><section class="lesson-section"><h2>6. Protéger la chaîne d’approvisionnement</h2>
+<p>Le pipeline exécute du code provenant du dépôt et parfois d’actions tierces. Une dépendance ou une action compromise peut donc obtenir les permissions du job. Pour les workflows sensibles, épingle les actions à un SHA de commit complet vérifié, examine les mises à jour et limite les permissions au besoin exact. Un tag comme <code>@v4</code> est plus lisible dans un exemple, mais ne fournit pas la même immutabilité qu’un SHA.</p>
+<ul>
+<li>Sur une pull request provenant d’un fork, n’expose aucun secret de déploiement et n’accorde pas de permission d’écriture par défaut.</li>
+<li>Évite d’exécuter du code non fiable dans un workflow privilégié tel que <code>pull_request_target</code> sans séparation et examen de sécurité explicites.</li>
+<li>Réserve le déploiement de production à une branche protégée et à un environnement avec permissions distinctes, approbation si nécessaire et identifiants temporaires lorsque la plateforme le permet.</li>
+<li>Ajoute selon le risque l’analyse des dépendances, le scan de secrets, la provenance de l’artefact et un inventaire des composants (SBOM). Un résultat vert n’est utile que si les contrôles couvrent réellement le risque visé.</li>
+</ul>
+<p>Exercice : crée une pull request depuis un fork de test et démontre que le job de validation ne peut ni lire les secrets de production ni publier un déploiement. Vérifie ensuite que l’artefact promu correspond au commit validé, sans le reconstruire silencieusement.</p>
+</section><section class="lesson-section"><h2>Erreurs fréquentes et compromis</h2>
+<ul><li><strong>Tout lancer sans ordre :</strong> sépare les contrôles rapides des plus coûteux.</li><li><strong>Rebuilder pour chaque environnement :</strong> promeus un artefact traçable.</li><li><strong>Ignorer les tests instables :</strong> traite leur cause plutôt que masquer les échecs.</li><li><strong>Accorder trop de droits :</strong> applique le moindre privilège.</li><li><strong>Publier sans contrôle de santé :</strong> vérifie le service après livraison.</li><li><strong>Penser qu’un rollback annule une migration :</strong> traite séparément le schéma et les données.</li></ul><p>La vitesse, la couverture de tests et le coût de maintenance sont des compromis. N’enlève pas un contrôle critique uniquement pour gagner quelques secondes.</p>
+</section><section class="lesson-section"><h2>Concevoir une pipeline qui bloque les livraisons risquées</h2>
+<p>Chaque étape doit produire un résultat vérifiable et échouer de façon visible : installation déterministe, lint, tests, build, puis publication et déploiement. Une étape ultérieure ne doit pas s’exécuter si un contrôle requis échoue. La pipeline doit utiliser le même lockfile que le développement et ne pas dépendre d’un cache comme source de vérité.</p>
+<pre><code># Exemple de séquence de commandes à automatiser
+npm ci
+npm run lint
+npm test -- --run
+npm run build</code></pre>
+<p>La syntaxe exacte des commandes de test dépend du projet. Vérifie qu’elles terminent dans l’environnement CI et qu’un test en échec renvoie un code de sortie non nul. Une suite qui imprime « failed » mais renvoie zéro ne protège pas la livraison.</p>
+<p>Les secrets de déploiement ne sont nécessaires qu’aux jobs qui en ont besoin. Pour les contributions provenant de forks, évite d’exposer des secrets et limite les permissions du jeton CI. Épingle les actions tierces selon la politique de sécurité du dépôt, et exige une approbation explicite avant la production si le risque le justifie.</p>
+<p>Conserve l’identifiant du commit, le résultat des tests et la version de l’artefact. Idéalement, le même artefact validé est promu entre environnements ; reconstruire différemment à chaque étape peut introduire un écart entre ce qui a été testé et ce qui est livré. Définis enfin le signal qui déclenche un rollback et vérifie qu’il est observable.</p>
+</section>
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Crée un pipeline qui installe les dépendances, exécute le lint, les tests et la compilation. Introduis volontairement une erreur de lint puis un test en échec ; confirme que chaque cas bloque le pipeline. Corrige ensuite et vérifie le retour au vert.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Ajoute la production d’un artefact versionné et un déploiement vers un environnement de test. Documente permissions, secrets, contrôles de santé et procédure de retour arrière.</p><ul><li>Les changements sont contrôlés avant fusion.</li><li>Un échec de lint, test ou build bloque le pipeline.</li><li>L’artefact est relié à un commit identifiable.</li><li>Les secrets ne sont pas exposés aux jobs non fiables.</li><li>La santé du service est vérifiée après livraison.</li><li>Les limites du rollback des migrations sont documentées.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Utilise ces références pour approfondir les notions et vérifier les détails liés aux versions de tes outils.</p><ol><li><a href="https://docs.github.com/en/actions" target="_blank" rel="noopener noreferrer">GitHub Actions — Documentation</a></li><li><a href="https://docs.gitlab.com/ee/ci/pipelines/" target="_blank" rel="noopener noreferrer">GitLab — CI/CD pipelines</a></li><li><a href="https://martinfowler.com/articles/continuousIntegration.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Continuous Integration</a></li><li><a href="https://cloud.google.com/architecture/devops/devops-tech-continuous-delivery" target="_blank" rel="noopener noreferrer">Google Cloud — Continuous delivery</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/CI_CD_Security_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — CI/CD Security Cheat Sheet</a></li></ol></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2>
+<label><input type="checkbox"> Je peux expliquer les concepts essentiels avec mes propres mots.</label>
+<label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+<label><input type="checkbox"> Je sais diagnostiquer les erreurs et expliquer les compromis.</label>
+<label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+<p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p></section>
+<nav class="lesson-nav"><a class="nav-link" href="docker.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="deploiement-base.html">Compétence suivante →</a></nav>
+</main><footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body></html>

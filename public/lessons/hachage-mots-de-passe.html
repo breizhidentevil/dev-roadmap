@@ -1,0 +1,79 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Stockage sécurisé des mots de passe
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. OWASP — Password Storage Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+2. OWASP — Authentication Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
+3. RFC 9106 — Argon2 — https://www.rfc-editor.org/rfc/rfc9106.html
+4. NIST SP 800-63B — Digital Identity Guidelines — https://pages.nist.gov/800-63-4/sp800-63b.html
+5. Node.js — Crypto API — https://nodejs.org/api/crypto.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Utiliser un hachage lent et salé pour protéger les mots de passe stockés.">
+  <title>Stockage sécurisé des mots de passe — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">3. Backend</p>
+    <h1>Stockage sécurisé des mots de passe</h1>
+    <p class="lead">Utiliser des fonctions de hachage adaptées et ne jamais stocker les mots de passe en clair.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 13 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Expliquer pourquoi un mot de passe ne doit jamais être stocké en clair.</li><li>Distinguer hachage, chiffrement et encodage.</li><li>Comprendre le rôle du sel et du coût de calcul.</li><li>Décrire une procédure sûre d’inscription et de connexion.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Hacher, et non chiffrer</h2>
+    <p>Le serveur ne devrait pas pouvoir retrouver le mot de passe d’origine. Il conserve un vérificateur calculé à partir du mot de passe, puis compare ce vérificateur lors d’une connexion. Le hachage est conçu pour être à sens unique ; le chiffrement, lui, est réversible par une personne possédant la clé.</p><p>Une fonction de hachage généraliste rapide comme SHA-256 n’est pas adaptée seule au stockage des mots de passe : un attaquant peut tester énormément de candidats par seconde. Utilise un algorithme spécialisé et configurable, comme Argon2id, scrypt ou bcrypt selon les recommandations actuelles et les contraintes de la plateforme.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Sel et coût de calcul</h2>
+    <p>Un <strong>sel</strong> aléatoire et unique est associé à chaque mot de passe. Il empêche que deux utilisateurs ayant choisi le même mot de passe produisent le même résultat et rend inefficaces les tables précalculées réutilisables. Le sel n’a pas besoin d’être secret : il est généralement stocké avec le vérificateur.</p><p>Le coût de calcul augmente le prix de chaque tentative d’un attaquant. Pour Argon2id, configure notamment la mémoire, le temps et le parallélisme. Choisis des paramètres conformes aux recommandations actuelles, puis mesure les performances sur le matériel réellement utilisé. Un coût trop faible facilite les attaques ; un coût excessif peut dégrader le service.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Flux d’inscription et de connexion</h2>
+    <ol><li>À l’inscription, valider le mot de passe et les règles de compte côté serveur.</li><li>Calculer le vérificateur avec une bibliothèque maintenue, qui génère et encode correctement le sel et les paramètres.</li><li>Stocker uniquement ce vérificateur dans une colonne dédiée, jamais le mot de passe brut.</li><li>À la connexion, recalculer et comparer avec la fonction de vérification de la bibliothèque.</li><li>Appliquer limitation de débit, messages d’erreur prudents et surveillance des tentatives anormales.</li></ol><p>Ne crée pas toi-même un format cryptographique artisanal. Les bibliothèques spécialisées gèrent les détails subtils et les formats encodés nécessaires à la vérification.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Exemple conceptuel en Node.js</h2>
+    <pre><code>// Pseudo-code : utiliser une bibliothèque Argon2 maintenue.
+const verifier = await argon2.hash(password, {
+  type: argon2.argon2id
+});
+
+// Stocker verifier en base, pas password.
+// À la connexion :
+const valid = await argon2.verify(user.passwordHash, submittedPassword);
+if (!valid) {
+  // Réponse générique et journalisation prudente.
+}</code></pre><p>Les paramètres exacts doivent être décidés à partir des recommandations de la bibliothèque et d’un benchmark local. Le code ci-dessus illustre le flux, pas une configuration universelle complète.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Défenses complémentaires</h2>
+    <ul><li>Limiter les tentatives et ralentir les attaques automatisées sans permettre un déni de service facile.</li><li>Utiliser HTTPS partout et ne jamais journaliser les mots de passe.</li><li>Protéger la réinitialisation de mot de passe par des jetons aléatoires, temporaires et à usage unique.</li><li>Envisager une authentification multifacteur pour les comptes sensibles.</li><li>Mettre à jour les paramètres de hachage progressivement lors des connexions réussies lorsque la bibliothèque le permet.</li></ul><p>Un hachage robuste ne protège pas d’un serveur compromis qui collecte les mots de passe avant le hachage, ni d’un hameçonnage. Il fait partie d’une défense globale.</p>
+    </section>
+    <section class="lesson-section"><h2>6. Choisir et vérifier un stockage de mots de passe</h2>
+<p>Un vérificateur de mot de passe doit être coûteux à calculer pour ralentir les essais hors ligne après une fuite de base. Un sel aléatoire et unique empêche la réutilisation directe de tables précalculées ; il n’est pas secret. Le paramètre de coût doit être calibré sur l’infrastructure réelle : trop faible, il facilite les essais ; trop élevé, il peut rendre la connexion vulnérable à l’épuisement de ressources.</p>
+<p>Pour une application nouvelle, privilégie un algorithme spécialisé maintenu, tel qu’Argon2id, avec une bibliothèque reconnue et les paramètres recommandés par sa documentation actuelle. Scrypt ou bcrypt peuvent convenir selon l’écosystème et les exigences ; bcrypt possède notamment une limite de longueur d’entrée qui doit être comprise. N’invente pas de construction cryptographique, ne concatène pas toi-même le sel au hash et ne remplace pas un algorithme lent par SHA-256 seul.</p>
+<h3>Cycle d’inscription</h3><ol><li>Valider la longueur et les règles d’acceptation du mot de passe sans journaliser sa valeur.</li><li>Calculer le vérificateur avec l’API de la bibliothèque ; elle doit gérer le sel et encoder les paramètres nécessaires au contrôle futur.</li><li>Stocker uniquement le vérificateur encodé, l’identifiant utilisateur et les métadonnées nécessaires. Ne jamais écrire le mot de passe en clair dans la base, les logs, les traces ou les messages d’erreur.</li><li>Lors de la connexion, charger le vérificateur et appeler la fonction de comparaison prévue par la bibliothèque. Ne pas comparer des hashes en construisant manuellement une chaîne.</li><li>Après validation, appliquer limitation de débit, détection d’abus et éventuelle MFA selon le risque. Un message d’échec générique peut limiter l’énumération des comptes.</li></ol>
+<p>Si les paramètres deviennent obsolètes, la migration peut être progressive : après une connexion réussie, vérifier si le vérificateur utilise des paramètres plus faibles et le recalculer à partir du mot de passe présenté, puis enregistrer le nouveau vérificateur. Si le mot de passe est oublié, il est impossible de le récupérer depuis un hash correct : utilise un flux de réinitialisation avec jeton aléatoire, durée courte, usage unique et révocation appropriée.</p>
+<p><strong>Tests de sécurité :</strong> même mot de passe sur deux comptes doit normalement produire deux vérificateurs distincts ; un mot de passe incorrect doit échouer ; le texte clair ne doit apparaître nulle part dans les enregistrements ; les tentatives répétées doivent être limitées ; un jeton de réinitialisation expiré ou déjà utilisé doit être refusé.</p>
+<p><strong>Critère de réussite :</strong> tu peux identifier l’algorithme et ses paramètres à partir du vérificateur stocké, expliquer le rôle du sel et démontrer que le mot de passe n’est jamais persisté ou journalisé en clair.</p></section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Stocker les mots de passe en clair ou réversiblement chiffrés sans nécessité.</li><li>Utiliser MD5, SHA-1 ou SHA-256 seuls comme hachage de mot de passe.</li><li>Réutiliser un sel fixe pour tous les comptes.</li><li>Inventer un algorithme ou un format de stockage.</li><li>Renvoyer des erreurs de connexion qui révèlent si un compte existe, sans évaluer le risque métier.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Conçois le stockage des mots de passe d’une application. Décris les colonnes à conserver, le flux d’inscription, la vérification à la connexion et la procédure de réinitialisation. Explique ce qui se passe si la base de données est exfiltrée.</p><h3>Critères de réussite</h3><ul><li>Aucun mot de passe brut n’est conservé ni journalisé.</li><li>Une bibliothèque spécialisée et maintenue est utilisée.</li><li>Sel et paramètres sont gérés par la bibliothèque.</li><li>Les tentatives de connexion sont limitées et surveillées.</li><li>Le scénario de fuite de base et la réinitialisation sont traités.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><p>Références documentaires de départ pour approfondir les concepts et vérifier les détails selon le moteur et les outils utilisés.</p><ul>
+      <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Password Storage Cheat Sheet</a></li>
+      <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Authentication Cheat Sheet</a></li>
+      <li><a href="https://www.rfc-editor.org/rfc/rfc9106.html" target="_blank" rel="noopener noreferrer">RFC 9106 — Argon2</a></li>
+      <li><a href="https://pages.nist.gov/800-63-4/sp800-63b.html" target="_blank" rel="noopener noreferrer">NIST SP 800-63B — Digital Identity Guidelines</a></li>
+      <li><a href="https://nodejs.org/api/crypto.html" target="_blank" rel="noopener noreferrer">Node.js — Crypto API</a></li>
+    </ul></section>
+    <nav class="lesson-nav"><a class="nav-link" href="oauth-oidc.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="sql.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

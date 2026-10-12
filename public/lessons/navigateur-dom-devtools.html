@@ -1,0 +1,62 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Navigateur, DOM et DevTools
+Références de départ pour approfondir les notions ; le tutoriel constitue une synthèse pédagogique originale.
+1. MDN — Comment fonctionne le navigateur — https://developer.mozilla.org/fr/docs/Web/Performance/How_browsers_work
+2. MDN — DOM — https://developer.mozilla.org/fr/docs/Web/API/Document_Object_Model
+3. Chrome DevTools — Overview — https://developer.chrome.com/docs/devtools/overview/
+4. Firefox DevTools — User docs — https://firefox-source-docs.mozilla.org/devtools-user/
+5. web.dev — Rendering performance — https://web.dev/articles/rendering-performance
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Comprendre le rendu côté navigateur, le DOM et le débogage dans les outils de développement.">
+  <title>Navigateur, DOM et DevTools — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">1. Fondamentaux de la programmation et du Web</p>
+    <h1>Navigateur, DOM et DevTools</h1>
+    <p class="lead">Comprendre le chemin entre le HTML reçu et l’interface rendue, puis utiliser les outils du navigateur pour inspecter et diagnostiquer.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 8 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Distinguer HTML source, DOM, styles calculés et pixels affichés.</li><li>Inspecter les éléments et les règles CSS effectives.</li><li>Utiliser la console, les outils réseau et les points d’arrêt.</li><li>Relier un symptôme visuel à une cause probable.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Du document à l’affichage</h2>
+    <p>Le navigateur récupère les ressources, analyse le HTML et construit le DOM. Il analyse le CSS pour déterminer les styles, puis calcule la géométrie des éléments et peint le résultat. Ce modèle est simplifié : les étapes peuvent se chevaucher, et le JavaScript peut modifier le DOM ou les styles pendant le chargement.</p><p>Le code source HTML n’est pas toujours identique au DOM observé : le navigateur corrige certaines structures, les scripts peuvent ajouter ou retirer des éléments et le serveur peut générer le document dynamiquement. Pour comprendre ce qui est réellement affiché, inspecte le DOM courant plutôt que de te fier uniquement au fichier initial.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Inspecter un élément</h2>
+    <p>L’inspecteur permet de sélectionner un élément, de remonter dans ses ancêtres et de voir les règles CSS qui s’appliquent. Les styles calculés montrent les valeurs finales après cascade, héritage et résolution des valeurs. Si une règle ne s’applique pas, vérifie le sélecteur, la spécificité, l’ordre des feuilles et les conditions de media query.</p><p>Les modifications faites dans DevTools sont temporaires et ne changent pas directement le fichier source. Utilise-les pour tester une hypothèse, puis reporte le correctif dans le code et vérifie-le après rechargement.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Console et débogueur</h2>
+    <p>La console expose les erreurs, avertissements et messages de diagnostic. Le débogueur permet de suspendre l’exécution, inspecter les variables et suivre les appels. Quand une erreur survient, pars de la première erreur pertinente et de sa pile d’appels ; les messages suivants peuvent n’être que des conséquences.</p><pre><code>console.debug("état du composant", { actif, chargement });
+    console.table(elements);</code></pre><p>Les logs doivent répondre à une question de diagnostic et ne doivent pas exposer de jetons, mots de passe ou données personnelles.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Réseau et stockage</h2>
+    <p>L’onglet Réseau montre les requêtes, leurs statuts, durées, en-têtes, corps et initiateurs. Il aide à distinguer une erreur de chargement d’une erreur de rendu. Vérifie le cache, les redirections et les réponses API, sans déduire qu’un statut 200 garantit un contenu correct.</p><p>Les outils de stockage permettent d’examiner cookies, stockage local, session storage et caches disponibles. Ne copie pas les valeurs sensibles dans un ticket ou une capture partagée. En cas de problème d’authentification, inspecte les attributs des cookies et le contexte de la requête sans divulguer leur valeur.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Reproduire les conditions réelles</h2>
+    <p>Teste plusieurs tailles de fenêtre, un réseau lent, le cache activé ou désactivé et les interactions qui déclenchent le bug. Le mode responsive simule la taille de viewport et certaines caractéristiques mobiles, mais ne remplace pas toujours un appareil réel.</p><p>Pour une interface lente, enregistre une trace de performance et cherche les tâches longues, recalculs de style ou mises en page coûteuses. Pour un bug visuel, vérifie d’abord l’existence du nœud, puis sa visibilité, sa géométrie et les règles CSS avant de modifier le code.</p>
+    </section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Confondre le code source initial et le DOM après exécution.</li><li>Modifier une règle CSS sans comprendre la cascade.</li><li>Prendre une réponse HTTP réussie pour une preuve de bon fonctionnement.</li><li>Ignorer les conditions qui rendent le bug reproductible.</li><li>Partager des captures contenant des données privées.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Analyse approfondie : formuler et tester une hypothèse</h2>
+<p>Un bon débogage réduit l’incertitude étape par étape. Commence par écrire le symptôme exact, les étapes pour le reproduire et le résultat attendu. Évite de changer plusieurs variables simultanément : tu ne saurais plus quel changement a résolu le problème.</p>
+<h3>Exemple de raisonnement</h3><ol><li><strong>Symptôme :</strong> les cartes sont visibles, mais les images manquent.</li><li><strong>Hypothèse :</strong> la ressource n’est pas chargée, plutôt qu’un problème de mise en page.</li><li><strong>Test :</strong> filtre les requêtes d’images dans Réseau et inspecte le statut et l’URL.</li><li><strong>Conclusion :</strong> un 404 oriente vers le chemin ou le déploiement ; un 200 avec image vide conduit à examiner le contenu et les dimensions CSS.</li></ol>
+<p>Le cache peut masquer un défaut ou faire croire à une correction. Répète le test avec un rechargement adapté et note si le résultat dépend du cache. Un mode mobile simulé n’émule pas parfaitement le matériel, le navigateur ni les conditions réseau d’un appareil réel.</p>
+<h3>Breakpoints et inspection ciblée</h3><p>Pose un point d’arrêt sur la ligne qui modifie l’interface, inspecte les valeurs au moment précis où le résultat diverge, puis remonte la pile d’appels. Retire les points d’arrêt et les journaux temporaires après le diagnostic. N’utilise pas de captures d’écran contenant des cookies, jetons, données personnelles ou paramètres privés d’URL.</p></section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Sur une page de test, masque volontairement un bouton par CSS, casse une URL de ressource et ajoute une erreur JavaScript. Utilise successivement l’inspecteur, l’onglet Réseau et le débogueur pour identifier chaque cause. Note la preuve observée avant de corriger.</p><h3>Critères de réussite</h3><ul><li>Chaque défaut est relié à un outil de diagnostic adapté.</li><li>La cause est démontrée par une observation reproductible.</li><li>Le correctif persiste après rechargement.</li><li>Les données sensibles ne sont pas copiées dans les logs.</li><li>Un contrôle final confirme l’absence de régression visible.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Web/Performance/How_browsers_work" target="_blank" rel="noopener noreferrer">MDN — Comment fonctionne le navigateur</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/API/Document_Object_Model" target="_blank" rel="noopener noreferrer">MDN — DOM</a></li><li><a href="https://developer.chrome.com/docs/devtools/overview/" target="_blank" rel="noopener noreferrer">Chrome DevTools — Overview</a></li><li><a href="https://firefox-source-docs.mozilla.org/devtools-user/" target="_blank" rel="noopener noreferrer">Firefox DevTools — User docs</a></li><li><a href="https://web.dev/articles/rendering-performance" target="_blank" rel="noopener noreferrer">web.dev — Rendering performance</a></li></ul></section>
+        <nav class="lesson-nav"><a class="nav-link" href="git.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="html-semantique.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

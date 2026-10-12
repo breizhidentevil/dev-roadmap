@@ -1,0 +1,97 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Kubernetes
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. Kubernetes — Concepts — https://kubernetes.io/docs/concepts/
+2. Kubernetes — Learn Kubernetes Basics — https://kubernetes.io/docs/tutorials/kubernetes-basics/
+3. Kubernetes — Deployments — https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+4. Kubernetes — Services, Load Balancing, and Networking — https://kubernetes.io/docs/concepts/services-networking/
+5. CNCF — Kubernetes — https://www.cncf.io/projects/kubernetes/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Comprendre l’orchestration de conteneurs et décider quand Kubernetes est utile.">
+<title>Kubernetes — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Parcours Full Stack · Architecture et exploitation</p>
+<h1>Kubernetes</h1>
+<p class="lead">Kubernetes orchestre des conteneurs à travers un cluster : il maintient un état souhaité, redémarre ou replace des charges de travail et fournit des primitives de déploiement et de réseau. Sa puissance s’accompagne d’un coût d’exploitation réel.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Ce tutoriel présente les objets essentiels et leur rôle, sans supposer que vous devez immédiatement installer un cluster. Vous devez connaître les bases des conteneurs, des ports, des variables d’environnement et du déploiement d’une application.</p><ul><li>Distinguer cluster, nœud, Pod, Deployment et Service.</li><li>Comprendre l’état souhaité et les contrôleurs.</li><li>Décrire les vérifications de santé et le cycle de déploiement.</li><li>Identifier les besoins en configuration, stockage, réseau et sécurité.</li><li>Évaluer si Kubernetes est proportionné à un projet.</li></ul>
+</section>
+<section class="lesson-section"><h2>1. Le problème que résout l’orchestration</h2>
+<p>Lancer un conteneur sur une machine est simple ; exploiter plusieurs conteneurs en production est plus difficile. Il faut choisir où les exécuter, les redémarrer après une panne, déployer une nouvelle version, répartir le trafic, injecter la configuration, limiter les ressources et suivre leur état.</p><p>Kubernetes fournit un plan de contrôle qui compare l’état observé à l’état demandé. Si un Deployment demande trois réplicas et qu’un Pod disparaît, un contrôleur tente de ramener le système à trois réplicas. Cela n’assure pas que l’application fonctionne correctement : un processus peut être vivant mais incapable de répondre aux requêtes, et une base de données peut être inaccessible.</p><p>Kubernetes ne remplace ni les tests, ni l’observabilité, ni les sauvegardes, ni la conception applicative. Il automatise une partie de l’exploitation des charges de travail conteneurisées.</p>
+</section>
+<section class="lesson-section"><h2>2. Les objets à connaître</h2>
+<ul><li><strong>Cluster :</strong> ensemble du plan de contrôle et des nœuds qui exécutent les charges.</li><li><strong>Nœud :</strong> machine physique ou virtuelle qui héberge les Pods.</li><li><strong>Pod :</strong> plus petite unité planifiable ; il contient un ou plusieurs conteneurs partageant certains espaces réseau et volumes.</li><li><strong>Deployment :</strong> décrit les réplicas d’une application sans état et pilote les mises à jour progressives.</li><li><strong>Service :</strong> fournit un point d’accès réseau stable à un ensemble de Pods sélectionnés.</li><li><strong>ConfigMap et Secret :</strong> séparent configuration et image ; les Secrets demandent des contrôles d’accès et une configuration de stockage adaptés.</li><li><strong>Ingress ou Gateway :</strong> expose des routes HTTP selon le contrôleur et l’architecture retenus.</li><li><strong>PersistentVolume et PersistentVolumeClaim :</strong> modélisent le stockage persistant, selon la classe et le fournisseur disponibles.</li></ul><p>Ne créez pas un objet pour chaque petit concept sans comprendre son rôle. Le nombre de primitives peut rendre la configuration difficile à suivre lorsque les frontières ne sont pas claires.</p>
+</section>
+<section class="lesson-section"><h2>3. Déploiement et santé</h2>
+<p>Un Deployment exprime notamment le nombre de réplicas et le modèle de Pod. Kubernetes effectue ensuite le rapprochement. Exemple simplifié :</p><pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: example/web:1.4.2
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              memory: "256Mi"</code></pre><p>Cet exemple est illustratif : l’image doit exister, les routes de santé doivent être réellement implémentées et les ressources ajustées par mesure. La <em>readiness probe</em> indique si le Pod doit recevoir du trafic ; une <em>liveness probe</em> sert à détecter certains blocages nécessitant un redémarrage. Une sonde mal conçue peut provoquer des redémarrages en boucle ou retirer tous les Pods du trafic.</p><p>Évitez le tag mutable <code>latest</code> pour les déploiements reproductibles. Préférez une version immuable ou un digest d’image, et gardez un chemin de retour à une version connue.</p>
+</section>
+<section class="lesson-section"><h2>4. Réseau, configuration et stockage</h2>
+<p>Les Pods sont éphémères : leur adresse peut changer. Un Service fournit une identité réseau stable et sélectionne les Pods grâce à des labels. Un Service ne rend pas automatiquement l’application publique ; l’exposition dépend du type de Service, du contrôleur d’entrée et du réseau du cluster.</p><p>Les ConfigMaps conviennent aux paramètres non secrets. Les Secrets ne sont pas magiquement sûrs : vérifiez le chiffrement au repos, les droits RBAC, la gestion des identités et les possibilités d’intégration à un gestionnaire externe. Ne placez jamais une clé d’accès dans une image ou dans un dépôt.</p><p>Les données durables doivent vivre dans un stockage conçu pour survivre au remplacement d’un Pod. Un volume persistant n’est pas à lui seul une stratégie de sauvegarde : prévoyez des copies cohérentes, des tests de restauration et une politique de rétention.</p>
+</section>
+<section class="lesson-section"><h2>5. Quand Kubernetes est-il justifié ?</h2>
+<p>Il devient intéressant lorsqu’une équipe exploite plusieurs services conteneurisés, a des exigences de déploiement et de résilience précises, et peut financer l’exploitation du cluster. Il est souvent excessif pour une application simple, un trafic modeste ou une petite équipe sans expérience opérationnelle.</p><p>Le coût réel comprend le cluster, les nœuds, le réseau, le stockage, la surveillance, les mises à niveau, la gestion des secrets, les politiques de sécurité et le temps d’astreinte. Un service applicatif géré ou un simple hébergement de conteneurs peut être plus adapté. La bonne comparaison porte sur le coût total et la charge cognitive, pas seulement sur le prix des machines.</p><ul><li>Ne pas déployer Kubernetes uniquement parce qu’il est populaire.</li><li>Ne pas confondre redémarrage automatique et haute disponibilité.</li><li>Ne pas supposer qu’un cluster multi-nœuds protège contre une panne de région ou une erreur humaine.</li><li>Ne pas exposer l’API du cluster ou les services internes sans politique réseau et contrôle d’accès.</li></ul>
+</section>
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Définissez le déploiement d’une API web sans état qui écoute sur le port 8080 et utilise une base de données gérée externe. Décrivez les objets nécessaires avant d’écrire les manifestes.</p><ol><li>Combien de réplicas demandez-vous et pourquoi ?</li><li>Que doit vérifier la readiness probe ?</li><li>Comment le trafic atteint-il l’API sans connaître l’adresse de chaque Pod ?</li><li>Où stocker l’URL de la base et son mot de passe ?</li><li>Que faut-il surveiller lors d’une mise à jour ?</li><li>Quel service plus simple pourrait remplacer Kubernetes pour ce projet ?</li></ol><p><strong>Critères de réussite :</strong> vous expliquez le rôle de Pod, Deployment et Service, distinguez santé et disponibilité, prévoyez des ressources et une gestion sûre des secrets, et justifiez le choix de Kubernetes par des besoins concrets.</p>
+</section>
+<section class="lesson-section"><h2>Atelier de validation : diagnostiquer un déploiement Kubernetes</h2>
+<p>Le but n’est pas de redémarrer les Pods au hasard, mais de remonter du symptôme à la cause. Utilisez un namespace de test et des commandes en lecture seule avant toute modification.</p>
+<h3>Procédure reproductible</h3><ol>
+<li><code>kubectl get deploy,rs,pods,svc -n demo</code> : relever les réplicas souhaités et disponibles, l’âge des objets et l’état des Pods.</li>
+<li><code>kubectl describe pod NOM -n demo</code> : chercher les événements, les erreurs de scheduling, les probes et les limites de ressources.</li>
+<li><code>kubectl logs NOM -n demo --previous</code> si le conteneur a redémarré ; sinon consulter les logs courants et vérifier le nom du conteneur.</li>
+<li><code>kubectl get endpointslice -n demo</code> : confirmer que le Service a des endpoints prêts ; vérifier ensuite le selector et le port cible.</li>
+<li>Après avoir formulé une hypothèse, ne changez qu’un paramètre à la fois et comparez l’état avant/après.</li></ol>
+<h3>Exemple de raisonnement</h3><p>Un Pod est <code>Running</code>, mais le site répond en erreur. Cet état ne prouve pas que l’application est prête. Vérifiez la readiness probe, les endpoints du Service, puis le routage et le port cible. Si le Pod est en <code>CrashLoopBackOff</code>, examinez d’abord les événements et les logs précédents plutôt que d’augmenter arbitrairement les réplicas.</p>
+<h3>Pièges et exercice</h3><ul><li>Ne stockez pas de secret dans une image ou un manifeste versionné en clair.</li><li>Une liveness probe agressive peut amplifier une panne en redémarrant continuellement l’application.</li><li>Un <code>kubectl apply</code> n’est pas une preuve de disponibilité : observez l’état convergé et testez le parcours utilisateur.</li></ul>
+<p><strong>Exercice :</strong> dans un cluster de test, simulez un selector de Service incorrect ou une readiness probe qui échoue. Documentez symptôme, hypothèse, commande de preuve, correction minimale et vérification de retour à la normale.</p>
+<p><strong>Critères de réussite :</strong> vous distinguez scheduling, démarrage, readiness et routage ; chaque correction repose sur une observation ; vous décrivez un retour arrière et ne divulguez aucun secret.</p></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces références permettent d’approfondir les concepts et de vérifier les détails propres aux outils. Les exemples du tutoriel sont synthétiques ; consultez la documentation officielle avant une mise en production.</p><ol><li><a href="https://kubernetes.io/docs/concepts/" target="_blank" rel="noopener noreferrer">Kubernetes — Concepts</a></li>
+<li><a href="https://kubernetes.io/docs/tutorials/kubernetes-basics/" target="_blank" rel="noopener noreferrer">Kubernetes — Learn Kubernetes Basics</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/" target="_blank" rel="noopener noreferrer">Kubernetes — Deployments</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/services-networking/" target="_blank" rel="noopener noreferrer">Kubernetes — Services, Load Balancing, and Networking</a></li>
+<li><a href="https://www.cncf.io/projects/kubernetes/" target="_blank" rel="noopener noreferrer">CNCF — Kubernetes</a></li></ol></section>
+<nav class="lesson-nav" aria-label="Navigation entre les compétences"><a href="infrastructure-as-code.html">← Compétence précédente</a><a href="architecture-modulaire.html">Compétence suivante →</a></nav>
+</main>
+<footer class="site-footer"><p>Roadmap Full Stack 2026 · Apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

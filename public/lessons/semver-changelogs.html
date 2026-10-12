@@ -1,0 +1,93 @@
+<!-- SOURCES DOCUMENTAIRES
+- Semantic Versioning 2.0.0: https://semver.org/
+- npm Docs — About semantic versioning: https://docs.npmjs.com/about-semantic-versioning
+- Keep a Changelog: https://keepachangelog.com/en/1.1.0/
+- npm Docs — package.json: https://docs.npmjs.com/cli/v10/configuring-npm/package-json
+- GitHub Docs — Releases: https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases
+Références ciblées servant de points d’entrée documentaires ; leur présence ne signifie pas que chaque ressource a été intégralement lue.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Versionnement sémantique et changelogs — tutoriel de la roadmap Full Stack 2026.">
+<title>Versionnement sémantique et changelogs — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Roadmap Full Stack 2026</a></header>
+<main class="lesson">
+<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="/" target="_top">Accueil</a> / Tutoriel</nav>
+<article>
+<header class="lesson-header"><h1>Versionnement sémantique et changelogs</h1><p>Le versionnement sémantique et le changelog aident les utilisateurs d’une bibliothèque ou d’un service à comprendre le risque associé à une mise à jour. Le numéro de version ne remplace pas des tests de compatibilité, mais il fournit un contrat de communication. Une version doit refléter les changements réellement livrés ; un changelog doit permettre de repérer les nouveautés, corrections, suppressions et migrations nécessaires sans parcourir chaque commit.</p></header>
+<section><h2>Objectifs pédagogiques</h2><ul><li>Appliquer les règles MAJOR, MINOR et PATCH dans un contexte de versions stables.</li><li>Identifier les changements incompatibles, compatibles et correctifs.</li><li>Maintenir un changelog lisible, orienté utilisateur et lié aux versions publiées.</li><li>Comprendre les limites de SemVer pour les versions initiales et les dépendances.</li></ul></section>
+<section><h2>Prérequis</h2><p>Connaître les bases du HTML, du CSS et du JavaScript, savoir inspecter une page dans les outils de développement du navigateur et pouvoir modifier un exemple simple. Les notions propres à ce sujet sont introduites progressivement. Il n’est pas nécessaire de maîtriser tous les outils cités avant de commencer.</p></section>
+<section><h2>1. Lire MAJOR.MINOR.PATCH</h2><p>SemVer représente une version stable sous la forme `MAJOR.MINOR.PATCH`, par exemple `3.4.2`. PATCH augmente pour une correction compatible avec l’API publique. MINOR augmente lorsqu’une fonctionnalité compatible est ajoutée ; PATCH revient alors à zéro. MAJOR augmente lorsqu’un changement incompatible est introduit ; MINOR et PATCH reviennent à zéro. Cette logique suppose que le projet définit clairement son API publique et respecte la compatibilité annoncée.</p><p>Une correction n’est pas automatiquement un PATCH si elle change un comportement sur lequel les utilisateurs s’appuyaient, même si ce comportement était considéré comme un bug. La compatibilité dépend du contrat public, des usages réels et parfois des comportements documentés. Les changements de schéma, signatures, types exportés, formats de configuration et effets secondaires peuvent être incompatibles sans modifier une simple fonction exportée.</p></section><section><h2>2. Définir ce qui est public</h2><p>Avant d’appliquer SemVer, déterminez ce qui constitue l’API publique : fonctions exportées, commandes CLI, variables de configuration, événements, formats de données, schémas, interfaces TypeScript ou comportements documentés. Un détail interne peut devenir de facto public s’il est utilisé et observé par les consommateurs ; c’est une raison de garder une frontière explicite entre API stable et implémentation privée.</p><p>L’ajout d’une fonction facultative est souvent compatible, mais pas toujours : il peut créer une ambiguïté dans une surcharge, changer l’inférence de types ou introduire un conflit de nom. Un changement de valeur par défaut peut être incompatible même si aucune signature ne change. Analysez le contrat de bout en bout et testez des exemples de consommateurs existants, pas seulement les tests internes de la bibliothèque.</p></section><section><h2>3. Préversions et dépendances</h2><p>Les suffixes de préversion, comme `-alpha.1`, `-beta.2` ou `-rc.1`, signalent un état qui ne doit pas être interprété comme une version stable ordinaire. Leur comparaison suit des règles précises ; les scripts ne devraient pas trier les versions en comparant simplement des chaînes. Les plages SemVer des gestionnaires de paquets expriment une politique de sélection, mais elles ne garantissent pas que chaque publication respecte réellement la compatibilité annoncée.</p><p>Pour une application, verrouillez les dépendances de façon reproductible et testez les mises à jour dans une intégration continue. Pour une bibliothèque, vérifiez le comportement attendu avec les versions prises en charge et documentez les changements de dépendances. Les versions `0.y.z` sont généralement considérées comme initiales et peuvent évoluer plus librement selon la spécification ; ne promettez pas le même niveau de stabilité qu’une API mature sans l’avoir défini.</p></section><section><h2>4. Écrire un changelog utile</h2><p>Un changelog est destiné aux personnes qui doivent comprendre ce qui change entre deux versions. Regroupez les entrées par version et par catégorie : nouveautés, modifications, corrections, dépréciations et changements incompatibles. Une entrée utile décrit l’effet observable, pas uniquement le nom du fichier modifié. « Corrige l’erreur lors d’une réponse 204 sans corps » aide davantage qu’un message de commit comme « fix response handler ».</p><p>Mentionnez les migrations, les changements de configuration, les versions minimales requises et les comportements supprimés. Si une entrée concerne une correction de sécurité, suivez la politique de divulgation du projet et ne publiez pas prématurément des détails exploitables. Un changelog n’a pas besoin de contenir tous les détails de développement : reliez les discussions techniques, commits ou notes de publication lorsqu’ils sont utiles.</p></section><section><h2>5. Automatiser la publication sans perdre le contrôle</h2><p>Un processus de release fiable vérifie les tests, construit les artefacts, confirme la version et publie des notes cohérentes. Automatisez les tâches répétitives, mais protégez les secrets de publication et vérifiez le contenu réellement envoyé au registre. Un tag Git, une version dans `package.json`, un changelog et une release doivent correspondre. Toute divergence rend le diagnostic et la reproduction plus difficiles.</p><p>Avant une version majeure, fournissez un guide de migration avec les remplacements recommandés et les changements de comportement. Avant une version mineure, vérifiez que l’ajout est réellement compatible avec les consommateurs pris en charge. Après publication, surveillez les erreurs et préparez une stratégie de correction ou de retrait. Le numéro de version est une promesse de communication ; il n’est fiable que si le processus et les tests soutiennent cette promesse.</p></section>
+<section><h2>Exemple pratique</h2><p>Le fragment suivant illustre une décision de conception à tester dans le contexte complet du produit.</p><pre><code>{
+  &quot;name&quot;: &quot;@exemple/format-date&quot;,
+  &quot;version&quot;: &quot;2.3.1&quot;
+}
+
+Changelog
+## [2.3.1] - 2026-10-09
+### Corrigé
+- Gère les dates invalides sans lever d&#x27;exception non documentée.
+
+## [2.3.0] - 2026-10-01
+### Ajouté
+- Ajoute l&#x27;option `locale` compatible avec les appels existants.</code></pre><p>La version 2.3.1 décrit une correction compatible ; la version 2.3.0 ajoute une option sans casser les appels existants. Dans un vrai package, validez que les dates invalides suivent bien le contrat documenté et que l’option possède une valeur par défaut compatible. Les dates de publication doivent correspondre à l’historique réel de la release.</p></section>
+<section><h2>Pièges fréquents et compromis</h2><ul><li>Augmenter PATCH pour un changement qui casse un contrat public.</li><li>Considérer tout ajout comme compatible sans tester les consommateurs.</li><li>Rédiger un changelog composé uniquement de messages de commit internes.</li><li>Oublier les étapes de migration d’une version majeure.</li><li>Publier des artefacts dont la version diffère du tag ou du changelog.</li></ul><p>Une recommandation générale est un point de départ, pas une preuve de qualité. Vérifiez le parcours complet, les états moins fréquents et les contraintes du produit avant de conclure qu’une solution est appropriée.</p></section>
+<section><h2>Exercice pratique</h2><p>Prenez cinq changements fictifs : correction d’une exception, ajout d’une option facultative, suppression d’un paramètre, modification d’une valeur par défaut et dépréciation d’une fonction. Classez chacun en PATCH, MINOR ou MAJOR selon le contrat défini, justifiez chaque choix puis rédigez un changelog compréhensible par un utilisateur de la bibliothèque.</p></section>
+<section><h2>Critères de réussite</h2><ul><li>La règle de version est justifiée par le contrat public.</li><li>Les préversions ne sont pas traitées comme des versions stables.</li><li>Le changelog décrit les effets observables.</li><li>Les incompatibilités et migrations sont clairement signalées.</li><li>La release, le tag et les métadonnées du package restent cohérents.</li></ul><p>Considérez l’exercice terminé lorsque chaque critère peut être démontré avec un exemple reproductible. Expliquez vos choix, les tests réalisés et les limites restantes ; l’absence d’erreur visible ne suffit pas à prouver qu’une interface est accessible, compréhensible ou rapide.</p></section>
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — seconde passe</h2>
+<h3>Objectifs opérationnels</h3>
+<ul>
+  <li>Classer une modification publique en MAJOR, MINOR ou PATCH selon le contrat annoncé.</li>
+  <li>Rédiger un changelog orienté vers les utilisateurs et les migrations nécessaires.</li>
+  <li>Distinguer une version stable d’une préversion et contrôler ce qui sera effectivement publié.</li>
+</ul>
+<h3>Explications et méthode</h3>
+<p>SemVer s’applique à une API publique déclarée. PATCH corrige sans casser la compatibilité, MINOR ajoute une capacité compatible et MAJOR indique une rupture incompatible. Cette règle n’évalue pas automatiquement le risque : elle dépend de la définition explicite du contrat public et des comportements garantis.</p>
+<p>Un changelog doit expliquer les changements visibles, leurs effets et les actions nécessaires. Il ne devrait pas être une simple liste de messages de commits. Les modifications internes sans effet utilisateur peuvent rester dans les notes de développement, tandis qu’une dépréciation doit annoncer le calendrier et l’alternative.</p>
+<p>Les préversions comme 2.0.0-beta.1 servent à tester un changement avant la version stable. L’automatisation peut proposer une version, mais la décision doit être cohérente avec les changements réels, les tests de compatibilité et la politique de support.</p>
+
+<h3>Exemple commenté</h3>
+<pre><code>## [2.4.0] - 2026-10-10
+### Added
+- Ajout de `searchProducts({ cursor })` pour parcourir les résultats.
+### Fixed
+- Correction du traitement des réponses vides.
+### Migration
+- Aucun changement requis pour les appels existants.
+
+# Exemple de règle de décision
+# Nouvelle fonction compatible -&gt; MINOR
+# Correction compatible -&gt; PATCH
+# Suppression/changement incompatible d’une API stable -&gt; MAJOR</code></pre>
+<h3>Pièges à éviter</h3>
+<ul>
+  <li>Incrémenter automatiquement PATCH pour une modification qui change en réalité un contrat public.</li>
+  <li>Présenter un ajout comme compatible sans tester les comportements existants ou les types exportés.</li>
+  <li>Publier un changelog qui ne dit ni qui est affecté ni comment migrer.</li>
+</ul>
+<h3>Exercice d’application</h3>
+<p>À partir de cinq changements proposés sur une bibliothèque TypeScript, classe chaque changement, justifie la version attendue et rédige les sections Added, Changed, Fixed, Deprecated ou Removed pertinentes. Ajoute une note de migration pour tout changement incompatible.</p>
+<h3>Critères de réussite</h3>
+<ul>
+  <li>Chaque numéro de version est justifié par rapport à l’API publique et à la compatibilité.</li>
+  <li>Le changelog décrit les effets observables plutôt que de recopier uniquement les commits.</li>
+  <li>Les préversions, dépréciations et instructions de migration sont explicites quand elles s’appliquent.</li>
+</ul>
+</section>
+<section class="sources-documentaires"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les notions et de vérifier les recommandations. Consultez les pages de référence adaptées à la version et au contexte de votre projet.</p><ul><li><a href="https://semver.org/" target="_blank" rel="noopener noreferrer">Semantic Versioning 2.0.0</a></li><li><a href="https://docs.npmjs.com/about-semantic-versioning" target="_blank" rel="noopener noreferrer">npm Docs — About semantic versioning</a></li><li><a href="https://keepachangelog.com/en/1.1.0/" target="_blank" rel="noopener noreferrer">Keep a Changelog</a></li><li><a href="https://docs.npmjs.com/cli/v10/configuring-npm/package-json" target="_blank" rel="noopener noreferrer">npm Docs — package.json</a></li><li><a href="https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases" target="_blank" rel="noopener noreferrer">GitHub Docs — Releases</a></li></ul></section>
+</article>
+<nav class="lesson-navigation" aria-label="Navigation entre les tutoriels">
+<a rel="prev" href="branches-conflits-git.html">← Tutoriel précédent</a>
+<a href="/" target="_top">Sommaire</a>
+<a rel="next" href="documentation-decisions.html">Tutoriel suivant →</a>
+</nav>
+</main>
+</body>
+</html>

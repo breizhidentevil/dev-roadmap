@@ -1,0 +1,120 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Navigation clavier et lecteurs d’écran
+Domaine documentaire : accessibility
+Ces références sont des points de départ ciblés pour approfondir le sujet ; cette liste ne prétend pas que chaque page liée a été lue intégralement.
+1. W3C WAI — Comprendre la navigation au clavier — https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html
+2. MDN — Accessibilité clavier — https://developer.mozilla.org/en-US/docs/Web/Accessibility/Guides/Understanding_WCAG/Keyboard
+3. W3C WAI — Parcours d’apprentissage sur les lecteurs d’écran — https://www.w3.org/WAI/people-use-web/tools-techniques/
+4. MDN — tabindex — https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex
+5. W3C WAI — Messages de statut — https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Navigation au clavier, focus visible, ordre logique et annonces accessibles.">
+  <title>Navigation clavier et lecteurs d’écran — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">14. UX, accessibilité et qualité produit</p>
+    <h1>Navigation clavier et lecteurs d’écran</h1>
+    <p class="lead">Construire des parcours utilisables sans souris et compréhensibles avec les technologies d’assistance.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Lecture et mise en pratique</span></div>
+    <section class="lesson-section">
+<h2>Objectifs d’apprentissage</h2>
+<p>Tu sauras tester un parcours sans souris, conserver un focus visible et logique, choisir les éléments HTML interactifs appropriés, comprendre le rôle des lecteurs d’écran et traiter correctement les dialogues et mises à jour dynamiques. Tu apprendras également à ne pas confondre un test au clavier avec un audit complet d’accessibilité.</p>
+<p>Prérequis : HTML sémantique, formulaires et notions de CSS. Il est utile de connaître `button`, `a`, `input`, `label` et les attributs ARIA de base.</p>
+</section><section class="lesson-section">
+<h2>1. Le clavier est un parcours complet</h2>
+<p>De nombreuses personnes naviguent au clavier en permanence ou temporairement : utilisateurs de lecteurs d’écran, personnes ayant une mobilité réduite, personnes blessées ou utilisateurs qui préfèrent les raccourcis. Le critère essentiel est que toutes les fonctionnalités puissent être utilisées au clavier sans piège et dans un ordre compréhensible.</p>
+<p>La touche Tab déplace généralement le focus vers les éléments interactifs. Maj+Tab revient en arrière. Entrée active un lien ou un bouton ; Espace active habituellement un bouton et permet de cocher certaines cases. Les flèches servent souvent à parcourir les options d’un groupe, d’un menu ou d’un contrôle spécialisé. Ces conventions dépendent du type de composant : un lien navigue, un bouton effectue une action.</p>
+<p>Le focus est la position actuelle de l’interaction clavier. Il ne doit pas disparaître visuellement. Si l’interface supprime le contour par défaut, elle doit fournir un indicateur équivalent suffisamment contrasté et visible. Le focus ne doit pas être masqué par une barre fixe, un bandeau ou un panneau qui recouvre l’élément actif.</p>
+<p>Teste la page du début à la fin sans toucher à la souris. Tu dois pouvoir ouvrir les menus, remplir les champs, soumettre le formulaire, fermer les dialogues et atteindre les liens du pied de page. Si un contrôle ne peut être activé qu’au survol, le parcours est incomplet.</p>
+</section><section class="lesson-section">
+<h2>2. Utiliser les éléments natifs avant ARIA</h2>
+<p>Les éléments HTML natifs fournissent déjà beaucoup de comportement et d’informations aux technologies d’assistance. Un `&lt;button&gt;` possède un rôle et un comportement clavier attendus. Un `&lt;a href&gt;` représente une navigation. Un `&lt;input&gt;` peut recevoir le focus et expose sa valeur. Un élément générique avec un gestionnaire `onClick` n’acquiert pas automatiquement ces propriétés.</p>
+<p>Créer un faux bouton avec `&lt;div&gt;` oblige à recréer le rôle, le focus, les interactions clavier, l’état désactivé et les comportements attendus. Même si l’ajout de `role=&quot;button&quot;` améliore l’annonce du rôle, il ne fournit pas le comportement du bouton natif. La règle pratique est donc : choisir l’élément HTML qui correspond à l’action, puis compléter seulement ce qui manque.</p>
+<p>L’ordre du DOM devrait refléter l’ordre de lecture et d’interaction. Utiliser des valeurs positives de `tabindex` pour imposer un ordre artificiel est fragile : l’ordre doit être maintenu lorsque la page change. `tabindex=&quot;0&quot;` rend un élément focalisable dans l’ordre naturel ; `tabindex=&quot;-1&quot;` permet généralement de lui donner le focus par script sans l’ajouter au parcours Tab ordinaire. Ne rends pas chaque paragraphe focalisable sans raison.</p>
+<p>Un composant personnalisé, comme un onglet ou une liste de choix, doit respecter un modèle d’interaction cohérent. Les flèches peuvent déplacer le focus dans le groupe tandis que Tab entre ou sort du composant. N’invente pas un comportement particulier sans nécessité, et documente les raccourcis non standard.</p>
+</section><section class="lesson-section">
+<h2>3. Focus, navigation et composants dynamiques</h2>
+<p>Après une action qui change la structure de la page, le focus doit rester utile. Quand un dialogue s’ouvre, place le focus à l’intérieur, empêche l’interaction avec le contenu derrière si le dialogue est modal, puis rends le focus à l’élément déclencheur à la fermeture. Sinon, la personne peut se retrouver dans une zone cachée ou devoir recommencer la navigation depuis le haut.</p>
+<p>Après une suppression ou une navigation, l’élément qui recevait le focus peut ne plus exister. Il faut alors choisir une destination logique, par exemple le titre de la liste actualisée ou l’élément suivant. Ne déplace pas le focus automatiquement à chaque mise à jour : un déplacement inattendu peut désorienter et interrompre la saisie.</p>
+<p>Les menus, onglets et accordéons doivent exposer leur état. Pour un accordéon, `aria-expanded` peut indiquer si le contenu est ouvert, tandis qu’un bouton natif déclenche l’action. Les éléments masqués doivent être réellement retirés du parcours clavier, par exemple en utilisant une stratégie de rendu ou l’attribut `hidden`. Mettre uniquement `opacity: 0` ne retire pas nécessairement un élément de l’ordre de focus ou de l’arbre d’accessibilité.</p>
+<p>Les messages qui apparaissent après une requête peuvent être annoncés à l’aide d’une région de statut appropriée. Les erreurs urgentes peuvent nécessiter une alerte, mais il ne faut pas tout déclarer comme urgent. Une annonce répétée, longue ou trop fréquente devient du bruit.</p>
+</section><section class="lesson-section">
+<h2>4. Comprendre ce qu’annonce un lecteur d’écran</h2>
+<p>Un lecteur d’écran transforme la structure et l’état accessibles en parole, braille ou autre sortie. Il s’appuie sur l’arbre d’accessibilité produit par le navigateur, lui-même influencé par le HTML, les styles et les attributs ARIA. Il ne lit pas simplement le code source ni tous les pixels affichés.</p>
+<p>Un contrôle doit avoir un nom accessible, un rôle et, si pertinent, un état ou une valeur. Une icône de suppression peut être visuellement évidente mais annoncer seulement « bouton » si elle n’a pas de nom. Un champ dont l’étiquette est uniquement une image décorative peut être difficile à comprendre. Les labels explicites, titres de page distincts, titres hiérarchisés et régions de navigation nommées aident à se repérer.</p>
+<p>Le texte alternatif d’une image dépend de sa fonction. Une image informative doit transmettre l’information pertinente ; une image purement décorative peut avoir un texte alternatif vide. N’utilise pas le nom de fichier comme description. Les tableaux de données nécessitent des en-têtes appropriés, et les formulaires doivent associer erreurs, aides et champs.</p>
+<p>Les lecteurs d’écran possèdent des modes et raccourcis spécifiques. Un test rapide avec un seul couple navigateur/lecteur d’écran ne garantit pas le comportement partout. Combine tests clavier, inspection de l’arbre d’accessibilité et essais avec les technologies courantes lorsque le public et le risque le justifient.</p>
+</section><section class="lesson-section">
+<h2>5. Méthode de test</h2>
+<p>Effectue un parcours clavier en observant l’indicateur de focus et l’ordre. Vérifie qu’aucun piège ne bloque l’utilisateur, que les contrôles sont activables et que le contenu qui apparaît reste atteignable. Ensuite, contrôle les noms accessibles et les états avec les outils de développement du navigateur. Les audits automatisés détectent certaines erreurs, mais ils ne savent pas toujours si le focus se déplace au bon moment ou si le texte est réellement compréhensible.</p>
+<p>Teste les scénarios importants : ouverture/fermeture d’un dialogue, validation d’un formulaire, erreur serveur, ajout ou suppression d’un élément et navigation dans une application monopage. Après un changement de route, mets à jour le titre du document et considère une annonce ou un déplacement de focus vers le contenu principal, selon le fonctionnement de l’application.</p>
+<p>Rédige les résultats sous forme de défauts reproductibles : étape, résultat observé, résultat attendu, impact et environnement. « Le clavier ne marche pas » est trop vague ; « après suppression de la dernière ligne, le focus est perdu et Tab repart dans la barre d’adresse » donne un problème actionnable.</p>
+</section><section class="lesson-section">
+<h2>Pièges, limites et compromis</h2>
+<ul><li>Ne retire pas l’outline sans fournir un focus visible équivalent.</li><li>N’utilise pas `tabindex` positif pour réparer un ordre DOM incohérent.</li><li>`aria-label` n’est pas un remède universel ; un label visible et natif est souvent préférable.</li><li>ARIA modifie les informations exposées, mais ne crée pas automatiquement les interactions clavier.</li><li>Le contenu masqué visuellement peut rester focalisable s’il n’est pas retiré du parcours.</li><li>Les tests automatisés et le contrôle clavier ne remplacent pas les essais avec des technologies d’assistance.</li><li>Les déplacements de focus doivent être intentionnels, prévisibles et limités aux changements qui le nécessitent.</li></ul>
+</section><section class="lesson-section">
+<h2>Exercice</h2>
+<p>Sur une page avec navigation, formulaire et dialogue de confirmation, réalise un parcours complet sans souris. Corrige les éléments impossibles à atteindre, ajoute un focus visible, puis implémente un dialogue qui reçoit le focus à l’ouverture et le restitue à la fermeture. Inspecte les noms accessibles des champs et boutons. Simule une erreur de validation et vérifie qu’elle est associée au champ. Documente au moins cinq contrôles avec leur résultat et une correction éventuelle.</p>
+</section><section class="lesson-section">
+<h2>Critères de réussite</h2>
+<ul class="checklist"><li>Chaque action est réalisable au clavier.</li><li>Le focus est visible, logique et jamais piégé.</li><li>Les éléments interactifs utilisent des balises natives lorsque possible.</li><li>Les dialogues gèrent l’entrée, le confinement et le retour du focus.</li><li>Les champs et boutons ont des noms accessibles compréhensibles.</li><li>Les changements de statut importants sont annoncés sans bruit excessif.</li><li>Je sais expliquer les limites d’un audit automatisé.</li></ul>
+</section>
+    <section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — seconde passe</h2>
+<h3>Objectifs opérationnels</h3>
+<ul>
+  <li>Parcourir un flux complet avec Tab, Maj+Tab, Entrée, Espace et Échap lorsque pertinent.</li>
+  <li>Maintenir un ordre de focus logique et un indicateur visible.</li>
+  <li>Gérer correctement le focus lors de l’ouverture et de la fermeture d’un dialogue.</li>
+</ul>
+<h3>Explications et méthode</h3>
+<p>Le focus clavier est l’emplacement où une action clavier sera appliquée. L’ordre doit suivre le sens de lecture et l’ordre visuel ; il ne doit pas obliger à traverser des contrôles sans rapport. Les éléments natifs comme button, a, input et select fournissent déjà des comportements attendus.</p>
+<p>Un dialogue modal doit recevoir le focus à l’ouverture, contenir le parcours de tabulation tant qu’il est ouvert et rendre le focus à son déclencheur lorsqu’il se ferme. Ne crée pas de piège clavier personnalisé si un élément natif comme dialog couvre le besoin.</p>
+<p>Les lecteurs d’écran s’appuient sur le nom, le rôle, l’état et les changements de statut. Une annonce n’est utile que si elle communique une information nouvelle ; annoncer chaque rendu peut rendre le parcours pénible.</p>
+
+<h3>Exemple commenté</h3>
+<pre><code>&lt;button id=&quot;open-help&quot; type=&quot;button&quot;&gt;Ouvrir l’aide&lt;/button&gt;
+&lt;dialog id=&quot;help&quot; aria-labelledby=&quot;help-title&quot;&gt;
+  &lt;h2 id=&quot;help-title&quot;&gt;Aide&lt;/h2&gt;
+  &lt;p&gt;Voici les étapes à suivre.&lt;/p&gt;
+  &lt;button id=&quot;close-help&quot; type=&quot;button&quot;&gt;Fermer&lt;/button&gt;
+&lt;/dialog&gt;
+&lt;script&gt;
+  const dialog = document.querySelector(&quot;#help&quot;);
+  const opener = document.querySelector(&quot;#open-help&quot;);
+  opener.addEventListener(&quot;click&quot;, () =&gt; dialog.showModal());
+  document.querySelector(&quot;#close-help&quot;).addEventListener(&quot;click&quot;, () =&gt; dialog.close());
+  dialog.addEventListener(&quot;close&quot;, () =&gt; opener.focus());
+&lt;/script&gt;</code></pre>
+<h3>Pièges à éviter</h3>
+<ul>
+  <li>Utiliser tabindex positif pour forcer l’ordre : cela crée une séquence fragile à maintenir.</li>
+  <li>Remplacer un bouton natif par un div cliquable sans recréer clavier, rôle et nom accessible.</li>
+  <li>Déplacer le focus après chaque mise à jour ou le laisser derrière un élément supprimé du DOM.</li>
+</ul>
+<h3>Exercice d’application</h3>
+<p>Ajoute un dialogue de confirmation et un formulaire à une page. Sans souris, ouvre le dialogue, parcours ses commandes, ferme-le avec les mécanismes prévus et vérifie que le focus revient à l’élément déclencheur. Recommence avec un lecteur d’écran.</p>
+<h3>Critères de réussite</h3>
+<ul>
+  <li>Tous les contrôles sont atteignables et activables au clavier, dans un ordre logique.</li>
+  <li>Le focus est visible, ne disparaît pas derrière un panneau et revient à un emplacement cohérent.</li>
+  <li>Les champs, erreurs et statuts ont un nom ou une annonce compréhensible ; aucun blocage clavier n’est introduit.</li>
+</ul>
+</section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Les ressources suivantes sont des points de départ ciblés pour vérifier les notions et poursuivre l’apprentissage. Les versions et recommandations peuvent évoluer ; consulte les pages officielles à jour.</p><ol><li><a href="https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html" target="_blank" rel="noopener noreferrer">W3C WAI — Comprendre la navigation au clavier</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/Accessibility/Guides/Understanding_WCAG/Keyboard" target="_blank" rel="noopener noreferrer">MDN — Accessibilité clavier</a></li><li><a href="https://www.w3.org/WAI/people-use-web/tools-techniques/" target="_blank" rel="noopener noreferrer">W3C WAI — Parcours d’apprentissage sur les lecteurs d’écran</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex" target="_blank" rel="noopener noreferrer">MDN — tabindex</a></li><li><a href="https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html" target="_blank" rel="noopener noreferrer">W3C WAI — Messages de statut</a></li></ol></section>
+    <nav class="lesson-nav" aria-label="Navigation entre les leçons">
+      <a href="etats-interface.html">← Précédent : États de chargement, erreur et vide</a>
+      <a href="contraste-semantique-aria.html">Suivant : Contraste, sémantique et ARIA →</a>
+    </nav>
+  </main>
+</body>
+</html>

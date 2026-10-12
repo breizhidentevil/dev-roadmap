@@ -1,0 +1,116 @@
+<!-- SOURCES DOCUMENTAIRES
+- TypeScript Handbook — Utility Types: https://www.typescriptlang.org/docs/handbook/utility-types.html
+- TypeScript Handbook — Object Types: https://www.typescriptlang.org/docs/handbook/2/objects.html
+- TypeScript Handbook — keyof Type Operator: https://www.typescriptlang.org/docs/handbook/2/keyof-types.html
+- TypeScript Handbook — Type Compatibility: https://www.typescriptlang.org/docs/handbook/type-compatibility.html
+- TypeScript Playground: https://www.typescriptlang.org/play/
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Composer des types existants avec les utilitaires intégrés de TypeScript et comprendre les garanties, limites et usages de chacun.">
+<title>TypeScript : types utilitaires — Pick, Omit, Partial et Record — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>TypeScript : types utilitaires — Pick, Omit, Partial et Record</h1>
+<p class="lead">Composer des types existants avec les utilitaires intégrés de TypeScript et comprendre les garanties, limites et usages de chacun.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Les types utilitaires sont des transformations génériques fournies par TypeScript. Ils permettent de dériver un type d’un autre sans recopier les propriétés manuellement. À la fin, vous saurez utiliser <code>Pick</code>, <code>Omit</code>, <code>Partial</code> et <code>Record</code>, choisir entre eux selon l’intention et repérer les cas où ils rendent le contrat trop permissif. Il faut connaître les objets, les unions, <code>keyof</code> et les types génériques.</p>
+<h2>2. Pourquoi dériver un type ?</h2>
+<p>Un même modèle métier peut être utilisé dans plusieurs contextes. Un utilisateur complet peut contenir un identifiant, un nom, un courriel, un statut et des champs internes. Une fiche publique ne doit peut-être exposer que le nom et le statut ; un formulaire de mise à jour ne reçoit qu’une partie des propriétés. Copier la définition dans plusieurs types provoque des divergences quand le modèle évolue.</p>
+<p>Les utilitaires expriment une intention à partir du type source. Ils ne créent pas un nouvel objet JavaScript et ne suppriment pas réellement des propriétés à l’exécution. Ils ne remplacent donc ni une projection de données, ni une validation de requête, ni une règle d’autorisation.</p>
+<h2>3. <code>Pick&lt;T, K&gt;</code> : ne garder que certaines clés</h2>
+<pre><code>type User = {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+};
+
+type PublicUser = Pick&lt;User, "id" | "name"&gt;;
+// { id: string; name: string }</code></pre>
+<p><code>Pick</code> est utile quand vous voulez définir précisément les champs nécessaires à une vue ou à une fonction. Les clés doivent appartenir au type source, ce qui aide à détecter une faute de frappe. Si le modèle évolue, le type dérivé continue à suivre les types des propriétés sélectionnées.</p>
+<p>Attention : <code>Pick</code> n’efface pas les champs de l’objet à l’exécution. Si vous renvoyez directement un objet complet depuis une API, les propriétés supplémentaires peuvent toujours être présentes. Construisez explicitement la réponse ou utilisez une couche de sérialisation adaptée pour contrôler les données exposées.</p>
+<h2>4. <code>Omit&lt;T, K&gt;</code> : retirer certaines clés du type</h2>
+<pre><code>type UserWithoutEmail = Omit&lt;User, "email"&gt;;
+// { id: string; name: string; isAdmin: boolean }</code></pre>
+<p><code>Omit</code> est pratique lorsqu’un type reprend presque tout le modèle sauf quelques champs. Mais une liste d’exclusions peut devenir dangereuse si le modèle gagne plus tard une nouvelle propriété sensible : celle-ci sera incluse par défaut. Pour une réponse publique ou une frontière de sécurité, une liste positive avec <code>Pick</code> est souvent plus sûre parce qu’elle n’expose que les champs explicitement autorisés.</p>
+<h2>5. <code>Partial&lt;T&gt;</code> : rendre les propriétés facultatives</h2>
+<pre><code>type Profile = {
+  displayName: string;
+  biography: string;
+};
+
+type ProfilePatch = Partial&lt;Profile&gt;;
+// { displayName?: string; biography?: string }</code></pre>
+<p><code>Partial</code> est souvent utilisé pour des mises à jour partielles. Il autorise toutefois l’objet vide et n’exprime pas automatiquement la différence entre « champ absent » et « champ fourni avec une valeur vide ». Ces distinctions peuvent être importantes dans une API. Il faut définir la sémantique de la mise à jour : une propriété absente signifie-t-elle « ne rien changer », et une chaîne vide signifie-t-elle « effacer le contenu » ?</p>
+<p>Pour une opération métier qui exige au moins un champ, ajoutez une validation ou définissez un type plus précis. Le type statique peut empêcher certaines erreurs, mais la requête reçue d’un client doit être validée à l’exécution.</p>
+<h2>6. <code>Record&lt;K, V&gt;</code> : associer des clés à un type de valeur</h2>
+<pre><code>type Role = "reader" | "editor" | "admin";
+type RolePermissions = Record&lt;Role, boolean&gt;;
+
+const permissions: RolePermissions = {
+  reader: true,
+  editor: true,
+  admin: false
+};</code></pre>
+<p>Lorsque les clés forment une union finie, <code>Record</code> impose une entrée pour chaque membre et signale les clés manquantes ou inattendues dans un littéral d’objet. Il est adapté aux tables de configuration, dictionnaires et correspondances entre états et fonctions.</p>
+<p>Si <code>K</code> est simplement <code>string</code>, <code>Record&lt;string, V&gt;</code> décrit un objet indexé par des chaînes ; cela ne signifie pas que toutes les chaînes possibles existent réellement à l’exécution. Pour une clé arbitraire, vérifiez la présence de l’entrée avant de l’utiliser, et considérez <code>noUncheckedIndexedAccess</code> dans la configuration TypeScript.</p>
+<h2>7. Combiner les utilitaires avec intention</h2>
+<pre><code>type UserPatch = Partial&lt;Pick&lt;User, "name" | "email"&gt;&gt;;
+type UserSummary = Pick&lt;User, "id" | "name"&gt;;
+type UserCreation = Pick&lt;User, "name" | "email"&gt;;</code></pre>
+<p>Ces combinaisons peuvent réduire la duplication, mais chaque alias devrait exprimer un concept du domaine. Pour une entrée contrôlée par un client, <code>Pick</code> établit une liste positive des champs acceptés ; <code>Omit&lt;User, "id"&gt;</code> laisserait ici <code>isAdmin</code> dans le type de création. La liste positive réduit le risque d’autoriser involontairement un champ ajouté plus tard. Les types sont une interface pour les personnes qui lisent le code autant qu’une contrainte pour le compilateur.</p>
+<h2>8. Ce que les utilitaires ne font pas</h2>
+<ul>
+<li>Ils ne valident pas le JSON reçu sur le réseau.</li>
+<li>Ils ne retirent pas les propriétés d’un objet à l’exécution.</li>
+<li>Ils ne garantissent pas l’autorisation d’un utilisateur à consulter un champ.</li>
+<li>Ils ne définissent pas à eux seuls la sémantique métier d’une mise à jour.</li>
+<li>Ils n’empêchent pas toutes les valeurs incorrectes si le code contourne le système de types.</li>
+</ul>
+<p>Un type comme <code>PublicUser</code> documente ce que votre code prévoit d’exposer ; la couche qui construit la réponse doit respecter ce contrat réellement. Une autorisation doit être contrôlée côté serveur, même si le frontend ne possède pas le champ sensible dans ses types.</p>
+<h2>Atelier guidé — distinguer forme TypeScript et sécurité métier</h2>
+<p>Considérons un modèle interne et une requête de modification :</p>
+<pre><code>type InternalUser = {
+  id: string;
+  email: string;
+  displayName: string;
+  isAdmin: boolean;
+};
+
+type InternalUserSummary = Pick&lt;InternalUser, "id" | "displayName"&gt;;
+type InternalUserPatch = Partial&lt;Pick&lt;InternalUser, "email" | "displayName"&gt;&gt;;
+type RoleByUserId = Record&lt;string, "reader" | "editor"&gt;;</code></pre>
+<p>Ces types précisent la forme attendue au moment de la compilation. Ils ne filtrent pas automatiquement le JSON reçu sur le réseau. Si un client envoie <code>{ "isAdmin": true }</code>, une annotation <code>InternalUserPatch</code> ne constitue pas une validation à l’exécution. Il faut analyser les données entrantes, rejeter les propriétés non autorisées selon le contrat de l’API, puis appliquer une autorisation côté serveur.</p>
+<p><strong>Décision de conception :</strong> <code>Partial&lt;T&gt;</code> rend toutes les propriétés facultatives ; il ne signifie pas que toutes les combinaisons partielles sont valides métier. Un patch peut aussi avoir des règles différentes pour une valeur absente, <code>null</code> et une chaîne vide. Documentez ces distinctions et testez-les explicitement.</p>
+
+<h2>9. Exercice</h2>
+<p>À partir d’un type <code>Product</code> contenant <code>id</code>, <code>name</code>, <code>price</code>, <code>stock</code> et <code>internalCost</code>, créez un type pour l’affichage public, un type de mise à jour partielle et un dictionnaire de produits indexé par une union de catégories. Expliquez pourquoi le type d’affichage ne suffit pas à filtrer les champs de la réponse HTTP et écrivez une fonction qui construit explicitement la projection publique.</p>
+<h2>10. Critères de réussite</h2>
+<ul class="checklist">
+<li>Je sais distinguer les usages de <code>Pick</code> et <code>Omit</code>.</li>
+<li>Je comprends que <code>Partial</code> autorise des champs absents et peut être trop permissif.</li>
+<li>Je sais utiliser <code>Record</code> pour une table de correspondance.</li>
+<li>Je sépare types statiques, validation runtime et autorisation serveur.</li>
+<li>Je peux justifier chaque type dérivé par un besoin identifiable.</li>
+</ul>
+
+<section class="sources"><h2>Sources documentaires</h2><p>Consultez ces références pour approfondir les concepts et vérifier les détails liés aux versions.</p><ul><li><a href="https://www.typescriptlang.org/docs/handbook/utility-types.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Utility Types</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/2/objects.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Object Types</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/2/keyof-types.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — keyof Type Operator</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/type-compatibility.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Type Compatibility</a></li>
+<li><a href="https://www.typescriptlang.org/play/" target="_blank" rel="noopener noreferrer">TypeScript Playground</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="typescript-types-conditionnels-mappes.html">← Précédent : TypeScript : types conditionnels et types mappés</a><a rel="next" href="typescript-unknown-never.html">Suivant : Inférence, unknown et never →</a></nav>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

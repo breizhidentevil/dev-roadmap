@@ -1,0 +1,85 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Git et gestion de versions
+Références de départ pour approfondir les notions ; le tutoriel constitue une synthèse pédagogique originale.
+1. Git — Documentation officielle — https://git-scm.com/doc
+2. Pro Git — Livre en ligne — https://git-scm.com/book/fr/v2
+3. GitHub Docs — About Git — https://docs.github.com/fr/get-started/using-git/about-git
+4. GitHub Docs — Résoudre les conflits de fusion — https://docs.github.com/fr/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/about-merge-conflicts
+5. Atlassian — Git tutorials — https://www.atlassian.com/git/tutorials
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Créer des commits utiles, des branches et collaborer via un dépôt.">
+  <title>Git et gestion de versions — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">1. Fondamentaux de la programmation et du Web</p>
+    <h1>Git et gestion de versions</h1>
+    <p class="lead">Conserver l’historique du code, organiser les changements et collaborer sans perdre le travail des autres.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 8 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Expliquer le rôle du dépôt, de l’index et du répertoire de travail.</li><li>Créer des commits cohérents et lisibles.</li><li>Utiliser branches, fusion et rebase avec discernement.</li><li>Résoudre un conflit et vérifier le résultat.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Comprendre les trois zones</h2>
+    <p>Git est un système de gestion de versions distribué. Le répertoire de travail contient les fichiers modifiés, l’index prépare le prochain commit et le dépôt local conserve l’historique. <code>git status</code> résume leur état ; <code>git diff</code> montre les changements non indexés et <code>git diff --staged</code> ceux qui sont prêts à être validés.</p><pre><code>git status
+    git diff
+    git add src/
+    git diff --staged
+    git commit -m "Ajoute la validation du formulaire"</code></pre><p>Un commit représente un ensemble de changements enregistré dans l’historique. Prépare uniquement les fichiers qui appartiennent à cette modification : cela rend la revue et l’annulation plus faciles.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Écrire des commits utiles</h2>
+    <p>Un bon commit correspond à une intention cohérente : correction d’un bug, ajout d’une fonctionnalité ou refactorisation ciblée. Le message doit décrire le changement de façon précise. Évite les commits fourre-tout qui mélangent formatage, dépendances et logique métier sans raison.</p><p>Avant de valider, inspecte le diff et vérifie qu’aucun secret, fichier généré inutile ou changement accidentel n’est inclus. Le fichier <code>.gitignore</code> permet d’exclure les fichiers qui ne doivent généralement pas être versionnés, mais il ne retire pas automatiquement un fichier déjà suivi.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Branches et intégration</h2>
+    <p>Une branche est un pointeur mobile vers un commit. Elle permet de travailler sur une fonctionnalité sans modifier directement la branche de référence.</p><pre><code>git switch -c feat/recherche
+    # modifier les fichiers et créer des commits
+    git switch main
+    git pull --ff-only
+    git merge feat/recherche</code></pre><p>Adapte les noms de branches et la procédure aux conventions de l’équipe. Une demande de fusion (pull request ou merge request) permet la revue, l’exécution des tests et la discussion avant intégration. Elle complète les tests automatiques, elle ne les remplace pas.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Fusion, rebase et conflits</h2>
+    <p>La fusion conserve les relations entre les branches et peut créer un commit de fusion. Le rebase rejoue des commits sur une nouvelle base et réécrit leurs identifiants. Le rebase peut produire un historique linéaire, mais il faut éviter de réécrire une branche partagée sans coordination.</p><p>Un conflit signifie que Git ne peut pas décider seul comment combiner certaines modifications. Ouvre les fichiers concernés, interprète les deux versions, édite le résultat final, puis vérifie le diff et lance les tests.</p><pre><code># Si le conflit survient pendant une fusion (merge)
+git status
+# Éditer les fichiers, puis vérifier la résolution
+git add fichier-concerne
+git diff --cached
+git merge --continue
+
+# Si le conflit survient pendant un rebase : autre séquence
+git add fichier-concerne
+git diff --cached
+git rebase --continue</code></pre><p>Ne résous pas mécaniquement un conflit en gardant systématiquement « la nôtre » ou « la leur » : chacune peut contenir un comportement indispensable. Pour abandonner l’opération en cours, <code>git merge --abort</code> ou <code>git rebase --abort</code> correspond à l’opération concernée ; vérifie d’abord l’état du répertoire de travail et sauvegarde les changements non engagés si nécessaire.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Annuler sans perdre le travail</h2>
+    <p>Les commandes d’annulation ont des effets différents. <code>git restore fichier</code> peut remplacer des modifications locales ; <code>git revert</code> crée un commit qui inverse un changement déjà enregistré ; <code>git reset</code> déplace la référence courante et peut retirer des commits de la branche. Vérifie toujours le statut et la portée avant d’exécuter une commande destructive.</p><pre><code>git log --oneline --graph --decorate -12
+    git revert &lt;identifiant-du-commit&gt;
+    git reflog</code></pre><p>Le reflog aide à retrouver des références récentes dans le dépôt local, mais ce n’est pas une sauvegarde universelle. Pousse régulièrement les branches utiles et conserve les données sensibles hors du dépôt.</p>
+    </section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Valider sans relire le diff indexé.</li><li>Confondre <code>git fetch</code> et l’intégration des changements distants.</li><li>Réécrire l’historique d’une branche déjà partagée.</li><li>Résoudre un conflit sans exécuter les tests.</li><li>Utiliser <code>reset --hard</code> sans avoir sauvegardé le travail.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Analyse approfondie : récupérer sans perdre de travail</h2>
+<p>Avant une commande destructive, identifie ce qui est dans le répertoire de travail, l’index et les commits. Les noms de commandes ne suffisent pas à prévoir leur effet : leur portée dépend de la cible et des options.</p>
+<pre><code>git status --short
+git diff
+git diff --staged
+git log --oneline --decorate -8</code></pre>
+<p>Ces commandes constituent un état des lieux avant toute récupération. Si un fichier modifié doit être conservé temporairement, un commit de sauvegarde sur une branche ou un <code>git stash push -u</code> peut être approprié ; vérifie ensuite le contenu récupéré. Le stash n’est pas une sauvegarde durable et les fichiers ignorés ne sont pas inclus par défaut.</p>
+<h3>Choisir la bonne opération</h3><ul><li><code>git revert</code> crée un nouveau commit qui annule l’effet d’un commit existant : pratique pour une branche partagée.</li><li><code>git reset</code> déplace le pointeur de branche et, selon le mode, modifie aussi l’index ou le répertoire de travail : prudence sur les commits publiés.</li><li><code>git restore</code> restaure des fichiers depuis une source choisie ; une restauration peut écraser des modifications locales.</li><li><code>git reflog</code> aide à retrouver des positions récentes de références locales, mais n’est pas une garantie d’archivage permanent.</li></ul>
+<h3>Vérification après intégration</h3><p>Après une fusion ou un rebase, inspecte <code>git status</code>, le diff par rapport à la branche cible et l’historique. Exécute les tests pertinents : résoudre les marqueurs de conflit ne garantit pas que le comportement métier est correct.</p></section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Crée un dépôt, ajoute une petite application, puis effectue une fonctionnalité sur une branche dédiée. Crée deux commits distincts, modifie la même ligne sur deux branches et provoque un conflit. Résous-le, inspecte le diff final et lance les tests.</p><h3>Critères de réussite</h3><ul><li>Les commits sont petits et décrivent une intention cohérente.</li><li>La branche principale reste stable pendant le développement.</li><li>Le conflit est résolu en comprenant les deux changements.</li><li>Les tests passent après intégration.</li><li>La méthode d’annulation choisie correspond à l’effet voulu.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://git-scm.com/doc" target="_blank" rel="noopener noreferrer">Git — Documentation officielle</a></li><li><a href="https://git-scm.com/book/fr/v2" target="_blank" rel="noopener noreferrer">Pro Git — Livre en ligne</a></li><li><a href="https://docs.github.com/fr/get-started/using-git/about-git" target="_blank" rel="noopener noreferrer">GitHub Docs — About Git</a></li><li><a href="https://docs.github.com/fr/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/about-merge-conflicts" target="_blank" rel="noopener noreferrer">GitHub Docs — Résoudre les conflits de fusion</a></li><li><a href="https://www.atlassian.com/git/tutorials" target="_blank" rel="noopener noreferrer">Atlassian — Git tutorials</a></li></ul></section>
+        <nav class="lesson-nav"><a class="nav-link" href="http.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="navigateur-dom-devtools.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

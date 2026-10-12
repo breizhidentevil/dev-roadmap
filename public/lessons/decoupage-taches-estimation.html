@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Découpage en tâches et estimation
+Domaine documentaire : gestion de projet
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. Atlassian — Work breakdown structure — https://www.atlassian.com/work-management/project-management/work-breakdown-structure
+2. Atlassian — Agile estimation — https://www.atlassian.com/agile/project-management/estimation
+3. Scrum Guide — https://scrumguides.org/scrum-guide.html
+4. Mountain Goat Software — Planning Poker — https://www.mountaingoatsoftware.com/agile/planning-poker
+5. Google Engineering Practices — Small CLs — https://google.github.io/eng-practices/review/developer/small-cls.html
+
+Note : les cinq références documentaires ci-dessous sont reprises dans la liste visible de la page.-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Transformer un périmètre en étapes livrables, vérifiables et suffisamment petites pour être planifiées.">
+<title>Découpage en tâches et estimation — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Gestion de projet et produit</p>
+<h1>Découpage en tâches et estimation</h1>
+<p class="lead">Transformer un périmètre en étapes livrables, vérifiables et suffisamment petites pour être planifiées.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un contexte réel et justifier tes décisions en fonction des contraintes et des risques.</p>
+<ul><li>Comprendre les notions essentielles et le problème qu’elles permettent de résoudre.</li><li>Appliquer une méthode concrète et vérifier son résultat.</li><li>Identifier les limites, les compromis et les erreurs fréquentes.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Pourquoi découper le travail ?</h2>
+<p>Un objectif comme « développer l’authentification » est trop large pour être suivi précisément. Il mélange interface, règles métier, stockage, sécurité, tests, documentation et déploiement. Le découpage transforme un objectif en éléments de travail plus petits, avec un résultat observable et des dépendances identifiées. Il aide à estimer, répartir, tester et détecter tôt les blocages.</p>
+<p>Commence par le résultat utilisateur, puis identifie les capacités nécessaires et les livrables techniques. Évite de découper uniquement par couche (« faire tout le backend, puis tout le frontend ») si cela retarde trop longtemps la validation. Lorsque c’est possible, une tranche verticale fournit une petite valeur de bout en bout : formulaire, endpoint, validation, persistance et test.</p>
+<p>Un bon découpage ne cherche pas à prévoir chaque minute du projet. Il rend les incertitudes visibles et permet d’apprendre progressivement. Les tâches très petites peuvent entraîner de la coordination inutile ; les tâches trop grosses masquent les retards et rendent l’avancement difficile à vérifier.</p></section>
+<section class="lesson-section"><h2>2. Décrire une tâche actionnable</h2>
+<p>Chaque tâche devrait préciser son objectif, son périmètre, ses dépendances et ses critères de fin. « Travailler sur les exports » ne définit pas un résultat. « Ajouter l’endpoint d’export CSV pour les commandes d’une période, vérifier les permissions et tester les périodes invalides » est plus concret.</p>
+<p>Une tâche peut inclure des critères d’acceptation, les fichiers ou services concernés, des références de conception et des risques. Évite de détailler tous les choix d’implémentation avant que l’équipe ait besoin de les faire. Les tâches doivent permettre à une personne de commencer sans devoir reconstituer le contexte à partir de multiples conversations.</p>
+<p>La définition de terminé doit inclure la qualité attendue : code revu, tests pertinents, documentation mise à jour, contrôles de sécurité et intégration. « Le code compile sur ma machine » n’est généralement pas un critère suffisant. À l’inverse, toutes les tâches n’ont pas besoin du même cérémonial : adapte les contrôles à leur risque.</p></section>
+<section class="lesson-section"><h2>3. Estimer avec incertitude</h2>
+<p>Une estimation est une prévision, pas une promesse. Elle dépend du contexte, des compétences, des interruptions, des dépendances et de l’inconnu. Une tâche estimée à deux jours peut prendre davantage si l’API externe est mal documentée ou si les données historiques sont incohérentes. Exprime les hypothèses et l’incertitude plutôt que de donner une précision artificielle.</p>
+<p>Pour un travail bien connu, une fourchette de durée peut être adaptée. Pour un backlog produit, une estimation relative (par exemple en points) peut comparer la taille, la complexité et le risque sans prétendre convertir mécaniquement chaque point en heures. Les points ne sont pas une mesure universelle de productivité et ne doivent pas servir à comparer les individus ou les équipes.</p>
+<p>Le planning poker permet aux personnes concernées d’estimer indépendamment, puis d’expliquer les écarts. Les différences révèlent souvent des hypothèses divergentes : certains ont inclus les tests, d’autres non ; certains pensent que l’API existe déjà. L’objectif n’est pas de faire voter la moyenne, mais de rendre le raisonnement explicite.</p>
+<p>Si l’incertitude est très élevée, découpe une tâche d’exploration limitée dans le temps. Le résultat attendu est alors une décision, un prototype ou une réduction d’incertitude, pas nécessairement une fonctionnalité finale. Une estimation révisée après cette exploration est plus honnête qu’un chiffre inventé au départ.</p></section>
+<section class="lesson-section"><h2>4. Identifier dépendances et chemin critique</h2>
+<p>Les tâches ont souvent des relations : le frontend dépend du contrat d’API, le déploiement dépend de la configuration, et la migration dépend de l’analyse des données existantes. Représente les dépendances qui influencent réellement l’ordre de travail. Une dépendance externe peut devenir un risque de planning même si la tâche correspondante est petite.</p>
+<p>Le chemin critique est la chaîne de tâches dépendantes qui détermine la durée minimale du projet, selon les durées et les contraintes retenues. Une tâche sur ce chemin mérite une attention particulière, car son retard peut retarder l’ensemble. Accélérer une tâche qui dispose de beaucoup de marge n’aura pas nécessairement d’effet sur la date finale.</p>
+<p>Prévois les activités souvent oubliées : tests d’intégration, migration, revue, accessibilité, instrumentation, documentation, validation utilisateur et mise en production. Elles ne doivent pas être ajoutées en urgence à la fin si elles sont nécessaires à la qualité du résultat.</p></section>
+<section class="lesson-section"><h2>5. Exemple de découpage</h2>
+<p>Pour une fonctionnalité « réinitialiser un mot de passe », un découpage possible serait :</p>
+<ol><li>Clarifier les règles : expiration du lien, limitation des tentatives, messages d’erreur et contraintes de sécurité.</li><li>Définir le contrat d’API et les réponses attendues.</li><li>Implémenter la génération et le stockage sûr d’un jeton à usage limité.</li><li>Construire l’écran de demande et l’écran de nouveau mot de passe.</li><li>Intégrer l’envoi de message et gérer les échecs du prestataire.</li><li>Tester les jetons expirés, réutilisés, invalides et les demandes répétées.</li><li>Documenter la configuration et valider le déploiement.</li></ol>
+<p>Le découpage doit rester adapté à l’équipe : certains éléments peuvent être regroupés ou exécutés en parallèle. Ne parallélise pas artificiellement les tâches qui partagent un même fichier ou contrat instable. Le coût de coordination peut dépasser le bénéfice.</p></section>
+<section class="lesson-section"><h2>6. Erreurs fréquentes et exercice</h2>
+<ul><li><strong>Tâches floues :</strong> impossible de dire si elles sont terminées.</li><li><strong>Estimation sans hypothèses :</strong> les risques sont cachés derrière un chiffre.</li><li><strong>Découpage par activité seulement :</strong> la valeur utilisateur n’est visible qu’à la fin.</li><li><strong>Oubli de validation :</strong> tests, revue ou déploiement sont considérés comme du travail optionnel.</li><li><strong>Mesure individuelle de vitesse :</strong> les estimations deviennent un outil de pression plutôt qu’un moyen de planifier.</li></ul>
+<p><strong>Exercice :</strong> découpe « permettre à un utilisateur de modifier son adresse » en six à dix tâches. Pour chacune, précise le résultat, les dépendances, les critères de fin et une estimation avec son niveau d’incertitude. Identifie le chemin critique et indique quelle tâche d’exploration réduirait le plus le risque.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Chaque tâche produit un résultat observable et possède des critères de fin.</li><li>Je sais estimer sans confondre prévision et engagement certain.</li><li>Je rends explicites les dépendances et les hypothèses.</li><li>Je prends en compte tests, intégration et livraison dans le périmètre.</li><li>Je peux expliquer pourquoi un découpage vertical facilite le retour utilisateur.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les points de la leçon. Consulte les sections pertinentes et vérifie les détails qui dépendent des versions, des outils ou du contexte de ton projet.</p><ol><li><a href="https://www.atlassian.com/work-management/project-management/work-breakdown-structure" target="_blank" rel="noopener noreferrer">Atlassian — Work breakdown structure</a></li>
+<li><a href="https://www.atlassian.com/agile/project-management/estimation" target="_blank" rel="noopener noreferrer">Atlassian — Agile estimation</a></li>
+<li><a href="https://scrumguides.org/scrum-guide.html" target="_blank" rel="noopener noreferrer">Scrum Guide</a></li>
+<li><a href="https://www.mountaingoatsoftware.com/agile/planning-poker" target="_blank" rel="noopener noreferrer">Mountain Goat Software — Planning Poker</a></li>
+<li><a href="https://google.github.io/eng-practices/review/developer/small-cls.html" target="_blank" rel="noopener noreferrer">Google Engineering Practices — Small CLs</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="recueil-besoin-specifications.html">← Recueil du besoin et spécifications</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="priorisation-produit.html">Priorisation produit →</a></nav>
+
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — découper et estimer sans fausse précision</h2>
+<h3>Objectifs pédagogiques</h3>
+<ul><li>Découper un résultat en tâches vérifiables et de taille maîtrisable.</li><li>Séparer effort, durée, dépendances et incertitude.</li><li>Utiliser l’estimation pour décider, pas pour promettre une précision fictive.</li></ul>
+<h3>Résultat vertical</h3><p>Découper par valeur livrable de bout en bout plutôt que par couches techniques qui ne produisent rien de démontrable isolément.</p>
+<h3>Granularité</h3><p>Une tâche devrait avoir un résultat observable, des critères d’acceptation, un propriétaire et des dépendances connues.</p>
+<h3>Estimation</h3><p>Utiliser une unité cohérente; distinguer effort actif du temps calendaire, et exprimer les incertitudes plutôt qu’un chiffre faussement exact.</p>
+<h3>Dépendances</h3><p>Rendre visibles les validations externes, migrations, accès, décisions et travaux qui conditionnent le chemin critique.</p>
+<h3>Révision</h3><p>Après quelques tâches terminées, comparer estimation et réalité pour améliorer la calibration, sans transformer l’écart en jugement individuel.</p>
+<h3>Exercice pratique</h3><p>Découper la livraison d’une page de recherche avec filtres en 6 à 10 tâches verticales. Pour chacune, donner résultat, critères, dépendances et estimation avec niveau de confiance.</p>
+<h3>Critères de réussite</h3><ul><li>Les tâches produisent des résultats vérifiables.</li><li>Les dépendances et risques sont visibles.</li><li>L’effort n’est pas confondu avec la durée calendaire.</li><li>L’incertitude et la méthode d’ajustement sont explicites.</li></ul>
+</section>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

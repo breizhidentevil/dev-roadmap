@@ -1,0 +1,98 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Tests d’intégration
+Les références sont des points de départ pertinents ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. Vitest — Testing — https://vitest.dev/guide/
+2. Node.js — Test runner — https://nodejs.org/api/test.html
+3. Martin Fowler — Integration Test — https://martinfowler.com/bliki/IntegrationTest.html
+4. Testcontainers — Documentation — https://testcontainers.com/guides/
+5. OWASP — Web Security Testing Guide — https://owasp.org/www-project-web-security-testing-guide/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Vérifier que plusieurs composants collaborent correctement à travers leurs interfaces.">
+  <title>Tests d’intégration — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">6. Tests, débogage et qualité</p>
+    <h1>Tests d’intégration</h1>
+    <p class="lead">Vérifier que plusieurs composants collaborent correctement à travers leurs interfaces.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Qualité et tests</span></div>
+    <section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Tu dois savoir écrire quelques tests unitaires et comprendre les interfaces entre modules. À la fin, tu pourras choisir les dépendances réelles à inclure, préparer un environnement isolé et tester des scénarios tels qu’une requête HTTP avec accès à une base de données de test.</p><ul><li>Distinguer un test unitaire d’un test d’intégration.</li><li>Tester les contrats entre couches plutôt que toutes les combinaisons possibles.</li><li>Rendre l’environnement et les données reproductibles.</li></ul>
+</section><section class="lesson-section"><h2>1. Ce que l’intégration permet de détecter</h2>
+<p>Des unités peuvent passer leurs tests isolés tout en échouant ensemble : configuration de connexion incorrecte, requête SQL incompatible avec le schéma, sérialisation inattendue, middleware absent ou transaction mal gérée. Les tests d’intégration exercent plusieurs composants réels à travers leurs interfaces.</p><p>Un test d’intégration peut démarrer un serveur HTTP et une base de données jetable, appeler un endpoint, puis vérifier le statut, le corps et l’effet en base. Il est généralement plus lent qu’un test unitaire, mais donne une preuve plus forte que les composants s’accordent réellement.</p>
+</section><section class="lesson-section"><h2>2. Définir la frontière du test</h2>
+<p>Décide ce qui sera réel et ce qui sera simulé. Pour un test d’API avec base de données, conserve souvent le routeur, la validation, la logique métier et la base réelle de test ; remplace éventuellement un service tiers coûteux par un faux serveur ou un stub contrôlé.</p><p>Évite de remplacer précisément le composant dont tu veux vérifier l’intégration. Si la question est « le dépôt enregistre-t-il correctement la commande dans PostgreSQL ? », mocker le dépôt rend le test incapable de répondre. À l’inverse, appeler un service de paiement réel n’est généralement ni nécessaire ni souhaitable.</p>
+</section><section class="lesson-section"><h2>3. Préparer des données isolées</h2>
+<p>Chaque test doit disposer d’un état connu. Les stratégies courantes sont une base éphémère, un schéma par exécution, des transactions annulées après le test ou un nettoyage explicite. Choisis une stratégie compatible avec le comportement testé : une transaction externe peut masquer un problème de commit ou ne pas isoler correctement plusieurs connexions.</p><p>Utilise des données synthétiques et déterministes. Évite les bases de production et les comptes personnels. Les tests ne doivent pas dépendre d’un ordre particulier, d’un identifiant déjà présent ou d’un état laissé par la suite précédente.</p>
+</section><section class="lesson-section"><h2>4. Exemple de test HTTP + persistance</h2>
+<p>Exemple conceptuel avec un endpoint de création de tâche :</p><pre><code>it("crée une tâche persistée", async () =&gt; {
+  const response = await request(app)
+    .post("/api/tasks")
+    .send({ title: "Préparer la release" });
+
+  expect(response.status).toBe(201);
+  expect(response.body.title).toBe("Préparer la release");
+
+  const stored = await db.task.findUnique({
+    where: { id: response.body.id }
+  });
+  expect(stored?.title).toBe("Préparer la release");
+});</code></pre><p>Les fonctions <code>request</code> et <code>db</code> représentent les outils de ton projet, pas une API universelle. Le test doit initialiser une base de test et nettoyer les données. Vérifie aussi le comportement invalide, par exemple un titre manquant, et assure-toi qu’aucune ligne n’est créée lorsque la validation échoue.</p>
+<p>Ne te limite pas au statut HTTP : vérifie les invariants persistants. Pour une création qui écrit dans plusieurs tables, teste qu’une erreur au milieu de l’opération n’en laisse pas une partie enregistrée. Par exemple, si la commande est créée mais qu’une ligne de commande échoue, le résultat attendu peut être un rollback complet. Le test doit observer la base après la réponse, pas seulement inspecter un objet en mémoire.</p>
+<p>Pour rendre l’assertion fiable, distingue les données créées par le test de celles déjà présentes : utilise un identifiant connu ou une requête filtrée sur une clé unique. Une assertion sur le nombre total de lignes est fragile dès que les tests peuvent s’exécuter en parallèle.</p>
+<h3>Isoler et nettoyer sans masquer un échec</h3>
+<p>Prépare le schéma et applique les migrations avant la suite ; ferme les connexions et arrête les services après les tests. Pour un exemple simple exécuté de façon séquentielle, une liste d’identifiants créés permet un nettoyage ciblé :</p>
+<pre><code>const createdTaskIds: string[] = [];
+
+afterEach(async () =&gt; {
+  if (createdTaskIds.length &gt; 0) {
+    await db.task.deleteMany({
+      where: { id: { in: createdTaskIds } }
+    });
+  }
+  createdTaskIds.length = 0;
+});</code></pre>
+<p>Cette syntaxe de nettoyage illustre une API de type ORM et doit être adaptée au projet. Ajoute l’identifiant à la liste dès que la création réussit. Pour les suites parallèles ou les tests qui peuvent échouer avant de récupérer l’identifiant, préfère une base ou un schéma isolé par worker, des noms de ressources propres au test ou une base éphémère détruite en fin de suite. N’utilise jamais un nettoyage global sur une base partagée.</p>
+<p>Ajoute aussi un cas de validation invalide : envoie un titre absent ou vide, vérifie le statut d’erreur contractuel (souvent 400 ou 422) et confirme qu’aucune ressource n’a été créée. Une comparaison du nombre de lignes avant/après n’est fiable que dans une base isolée et sans écritures concurrentes ; sinon, recherche par identifiant unique ou isole davantage le test.</p>
+</section><section class="lesson-section"><h2>5. Temps, dépendances et diagnostic</h2>
+<p>Les tests d’intégration peuvent échouer à cause d’un port occupé, d’un service non démarré ou d’une course sur les migrations. Réduis ces aléas en démarrant explicitement les dépendances, en attendant leur état prêt, en fixant les versions des images et en affichant les logs utiles lors d’un échec.</p><p>Les tests qui touchent le réseau externe doivent éviter de dépendre de la disponibilité de tiers. Utilise des environnements sandbox contrôlés ou des doubles de service. Si un test échoue, le rapport doit aider à distinguer un bug applicatif d’un environnement de test défaillant.</p>
+<table><thead><tr><th>Symptôme</th><th>Première vérification</th><th>Interprétation possible</th></tr></thead><tbody>
+<tr><td>Connexion refusée ou timeout avant la requête</td><td>État prêt du service, port, URL et logs de démarrage.</td><td>Environnement non prêt ou configuration incorrecte ; ne pas masquer par une relance aveugle.</td></tr>
+<tr><td>HTTP 2xx mais ligne absente</td><td>Transaction validée, connexion utilisée et requête de lecture filtrée par identifiant.</td><td>Écriture non commitée, mauvaise base ou réponse construite sans persistance.</td></tr>
+<tr><td>Échec seulement en parallèle</td><td>Clés uniques, nettoyage et partage de comptes/ressources.</td><td>Collision de données ou dépendance à l’ordre.</td></tr>
+<tr><td>Contrainte SQL inattendue</td><td>Migrations, valeurs par défaut, nullabilité et contraintes réellement installées.</td><td>Schéma de test différent du schéma attendu.</td></tr>
+</tbody></table>
+<p>La correction doit viser la cause identifiée : une temporisation plus longue n’est pas une solution si le service n’est jamais prêt, et un nettoyage global n’est pas acceptable s’il peut supprimer les données d’un autre test.</p>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Appeler le test « intégration » alors que toutes les dépendances sont mockées.</li><li>Partager une base persistante entre développeurs ou CI sans isolation.</li><li>Ne pas tester l’effet en base après une réponse HTTP réussie.</li><li>Nettoyer les données de manière incomplète et créer des tests dépendants de l’ordre.</li><li>Utiliser un service externe réel pour un scénario qui n’en a pas besoin.</li><li>Ignorer les migrations et la configuration de la base de test.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Ajoute un test d’intégration à un endpoint de création de ressource. Le test doit démarrer l’application, utiliser une base isolée, envoyer une requête valide, vérifier le code de statut et relire l’enregistrement en base. Ajoute ensuite un test de validation invalide et vérifie qu’aucune donnée n’a été créée.</p><p>Exécute la suite deux fois de suite et dans un ordre différent. Le résultat ne doit pas dépendre de données laissées par la première exécution.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Définis un petit plan de tests d’intégration pour un endpoint qui crée une commande avec plusieurs lignes et vérifie le stock.</p><p><strong>Réussite :</strong> la frontière de test est explicite ; les dépendances critiques sont réelles ; les données sont isolées ; les migrations sont exécutées ; le test vérifie la réponse et l’état persistant ; les échecs sont diagnostiquables ; aucun service de production n’est utilisé. Lance la suite deux fois et en parallèle si possible, puis démontre qu’une erreur simulée pendant une écriture multiple ne laisse pas de données partielles lorsque la règle exige l’atomicité.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Ces références permettent d’approfondir les choix d’implémentation et de confronter les exemples au framework et à la version utilisés dans ton projet.</p>
+      <ol><li><a href="https://vitest.dev/guide/" target="_blank" rel="noopener noreferrer">Vitest — Testing</a></li><li><a href="https://nodejs.org/api/test.html" target="_blank" rel="noopener noreferrer">Node.js — Test runner</a></li><li><a href="https://martinfowler.com/bliki/IntegrationTest.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Integration Test</a></li><li><a href="https://testcontainers.com/guides/" target="_blank" rel="noopener noreferrer">Testcontainers — Documentation</a></li><li><a href="https://owasp.org/www-project-web-security-testing-guide/" target="_blank" rel="noopener noreferrer">OWASP — Web Security Testing Guide</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer le problème traité et les garanties recherchées.</label>
+      <label><input type="checkbox"> Je peux appliquer la méthode sur un cas concret.</label>
+      <label><input type="checkbox"> Je sais identifier les limites et les cas non couverts.</label>
+      <label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="tests-unitaires.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="tests-e2e.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

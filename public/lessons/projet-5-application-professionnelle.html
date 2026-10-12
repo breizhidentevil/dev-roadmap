@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Projet 5 — Application de niveau professionnel
+Domaine documentaire : architecture, sécurité, qualité, performance et exploitation
+Ces références constituent des points de départ documentaires. Leur disponibilité et leur actualité doivent être contrôlées au moment de l’utilisation ; leur présence ne prouve pas qu’elles ont été consultées intégralement.
+1. The Twelve-Factor App — https://12factor.net/
+2. OWASP Application Security Verification Standard — https://owasp.org/www-project-application-security-verification-standard/
+3. OWASP Cheat Sheet Series — https://cheatsheetseries.owasp.org/
+4. Google SRE Book — https://sre.google/sre-book/table-of-contents/
+5. OpenTelemetry Documentation — https://opentelemetry.io/docs/
+6. PostgreSQL Documentation — https://www.postgresql.org/docs/
+7. Web Content Accessibility Guidelines (WCAG) — https://www.w3.org/WAI/standards-guidelines/wcag/
+8. Google Engineering Practices — https://google.github.io/eng-practices/
+-->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projet 5 — Application de niveau professionnel — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a>
+  <span class="topbar-note">Parcours d’apprentissage</span>
+</header>
+<main class="lesson">
+  <p class="eyebrow">Projets pratiques et validation des acquis</p>
+  <h1>Projet 5 — Application de niveau professionnel</h1>
+  <p class="lead">Construire un produit maintenable, observable, sécurisé et évolutif, avec des compromis d’architecture documentés et des preuves de qualité reproductibles.</p>
+
+  <section class="lesson-section">
+    <h2>1. Contexte, objectif et prérequis</h2>
+    <p>Ce projet final assemble les compétences des projets précédents dans une application dont le cycle de vie est pensé au-delà du premier déploiement. Le sujet métier peut être un outil de réservation, un gestionnaire de tâches d’équipe, un catalogue avec espace client ou un service de suivi. Le choix importe moins que la capacité à justifier les décisions, mesurer les risques et maintenir le système.</p>
+    <p>Prérequis : développement frontend et backend, HTTP/REST, persistance relationnelle, authentification et autorisation, tests automatisés, Git, intégration continue et déploiement. Le projet ne demande pas de concevoir un système distribué complexe par défaut : la complexité doit être motivée par des exigences observables.</p>
+    <h3>Résultat attendu</h3>
+    <p>Un dépôt reproductible, une application déployable, une documentation de prise en main, un modèle de menace proportionné, une suite de tests utile, des mesures de performance, des signaux d’exploitation et un registre des limites connues.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>2. Périmètre et exigences</h2>
+    <h3>Fonctionnalités minimales</h3>
+    <ul>
+      <li>Un parcours métier principal de bout en bout, avec validation des données côté client et côté serveur.</li>
+      <li>Des comptes et rôles si le domaine le justifie ; chaque accès à une ressource privée est autorisé côté serveur.</li>
+      <li>Une interface avec états de chargement, absence de données, succès et erreur, utilisable au clavier.</li>
+      <li>Une API documentée, versionnée si nécessaire, avec erreurs cohérentes et pagination pour les collections qui peuvent croître.</li>
+      <li>Une persistance avec contraintes d’intégrité, migrations versionnées et stratégie de sauvegarde adaptée.</li>
+      <li>Une chaîne de livraison qui exécute les contrôles, produit un artefact identifiable et permet un retour arrière documenté.</li>
+    </ul>
+    <h3>Exigences non fonctionnelles à fixer avant l’implémentation</h3>
+    <ul>
+      <li><strong>Sécurité :</strong> rôles et permissions explicites, secrets hors du dépôt, dépendances surveillées, validation côté serveur et journalisation sans données sensibles.</li>
+      <li><strong>Performance :</strong> définir un scénario représentatif et une cible mesurable de latence, de débit ou de volume avant d’optimiser.</li>
+      <li><strong>Fiabilité :</strong> décrire les erreurs tolérées, les limites de reprise, les sauvegardes et les objectifs de restauration pertinents.</li>
+      <li><strong>Accessibilité :</strong> navigation clavier, focus visible, libellés, messages d’erreur compréhensibles, structure de titres et contrastes contrôlés.</li>
+      <li><strong>Maintenabilité :</strong> modules cohérents, conventions documentées, migrations réversibles lorsque c’est réaliste, tests lisibles et décisions d’architecture traçables.</li>
+    </ul>
+    <h3>Hors périmètre initial</h3>
+    <p>Microservices, Kubernetes, bus d’événements, multi-région, moteur de recherche dédié et architecture multi-cloud ne sont pas des objectifs automatiques. Ils ne sont ajoutés que si un besoin mesuré ou une contrainte métier l’impose et si leur coût d’exploitation est accepté.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>3. Architecture et frontières de modules</h2>
+    <p>Commencer par un monolithe modulaire ou une application déployable unique, sauf exigence contraire. Séparer les responsabilités par domaine plutôt que multiplier les couches sans usage démontré.</p>
+    <ul>
+      <li><strong>Présentation :</strong> pages, composants, formulaires, navigation, gestion des états et appels au client API.</li>
+      <li><strong>Application :</strong> cas d’usage, orchestration et règles de permission au niveau métier.</li>
+      <li><strong>Domaine :</strong> invariants métier et règles qui ne doivent pas dépendre du framework HTTP ou du stockage.</li>
+      <li><strong>Infrastructure :</strong> base de données, messagerie éventuelle, fournisseur d’identité, stockage et intégrations externes.</li>
+    </ul>
+    <p>Le backend reste l’autorité pour les permissions et les règles métier. L’interface peut masquer une action interdite pour l’expérience utilisateur, mais ce masquage ne remplace jamais le contrôle serveur. Les frontières doivent être visibles dans le dépôt et les dépendances doivent pointer dans un sens cohérent.</p>
+    <h3>Décisions d’architecture</h3>
+    <p>Créer un petit journal ADR (Architecture Decision Record) pour les décisions coûteuses à inverser : choix du stockage, stratégie d’authentification, séparation des modules, hébergement, cache éventuel et politique de migrations. Chaque entrée indique contexte, options, décision, conséquences et date de révision. Ne documenter pas chaque détail trivial.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>4. Contrats, données et intégrations</h2>
+    <p>Décrire les routes publiques, schémas d’entrée et de sortie, codes HTTP, règles de pagination et format d’erreur. Une réponse d’erreur utile contient un code stable, un message non sensible et, si nécessaire, des détails de validation ; elle ne renvoie ni trace de pile ni secret.</p>
+    <p>Le modèle de données doit définir les clés, contraintes d’unicité, relations, règles de suppression et index justifiés par les requêtes. Toute modification de schéma passe par une migration versionnée. Pour les opérations qui modifient plusieurs enregistrements liés, préciser la frontière transactionnelle et tester les cas d’échec.</p>
+    <p>Pour chaque intégration externe, documenter les délais d’attente, le traitement des erreurs, les limites de débit, la stratégie de reprise et l’idempotence lorsque des répétitions pourraient créer des doublons. Ne pas réessayer aveuglément une opération non idempotente.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>5. Sécurité et protection des données</h2>
+    <ul>
+      <li>Établir les actifs, les rôles, les frontières de confiance et les principales menaces avant la revue de sécurité.</li>
+      <li>Valider toutes les entrées au serveur, utiliser des requêtes paramétrées et encoder les sorties selon leur contexte.</li>
+      <li>Vérifier l’autorisation à chaque accès aux ressources ; tester notamment qu’un utilisateur ne peut pas lire ou modifier les données d’un autre.</li>
+      <li>Choisir une gestion de session adaptée au contexte : cookies sécurisés et protections CSRF si nécessaires, ou jetons gérés avec une stratégie de stockage et d’expiration explicite.</li>
+      <li>Stocker les mots de passe avec une fonction de hachage dédiée et éprouvée ; ne jamais écrire mots de passe, jetons, secrets ou données personnelles inutiles dans les journaux.</li>
+      <li>Limiter les privilèges de l’application et de la base, configurer les en-têtes de sécurité et appliquer HTTPS dans les environnements exposés.</li>
+      <li>Automatiser les contrôles de dépendances et de secrets ; traiter les alertes selon leur sévérité plutôt que les ignorer.</li>
+      <li>Définir la durée de conservation, les droits d’accès et les modalités de suppression ou d’export des données pertinentes.</li>
+    </ul>
+    <p>La revue doit laisser une trace : risques identifiés, gravité, mesure de réduction, responsable et risque résiduel. Un outil d’analyse automatisée aide à détecter certains problèmes mais ne prouve pas l’absence de vulnérabilité.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>6. Qualité du code et stratégie de tests</h2>
+    <p>Choisir les tests selon le risque. Les tests unitaires couvrent les règles métier déterministes ; les tests d’intégration vérifient les frontières avec la base et les services ; quelques tests de bout en bout couvrent les parcours essentiels. Éviter une grande quantité de tests fragiles qui reproduisent l’implémentation au lieu de vérifier le comportement.</p>
+    <ul>
+      <li>Tests positifs et négatifs de validation, permissions, erreurs et cas limites.</li>
+      <li>Tests de migration depuis une base vide et, si possible, depuis une version précédente représentative.</li>
+      <li>Tests de contrat de l’API : formats, codes de statut, pagination et erreurs.</li>
+      <li>Tests d’interface pour clavier, messages d’erreur et états de chargement.</li>
+      <li>Analyse statique, formatage, lint, vérification de types et audit des dépendances dans la CI.</li>
+      <li>Scénario de charge explicite avec jeu de données, environnement, nombre de clients, durée et seuils d’échec consignés.</li>
+    </ul>
+    <p>Une couverture de lignes élevée ne garantit pas la qualité. La définition de terminé doit exiger que les risques critiques soient testés et que les tests échoués soient expliqués, pas simplement qu’un pourcentage soit atteint.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>7. Performance et capacité</h2>
+    <p>Établir une mesure de référence avant optimisation : temps de réponse par percentile, erreurs, ressources consommées et scénario de charge. Définir une cible réaliste selon le produit, par exemple un percentile p95 pour le parcours principal, puis enregistrer la méthode de mesure. Une valeur cible n’est pas universelle et doit être justifiée.</p>
+    <p>Examiner d’abord les requêtes lentes, les accès répétés à la base, la taille des réponses, le rendu coûteux et les appels externes. Ajouter des index ou du cache à partir de mesures ; préciser l’invalidation et la cohérence si un cache est introduit. Documenter les limites de débit et le comportement lorsque la capacité est dépassée.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>8. Observabilité et exploitation</h2>
+    <p>Prévoir des journaux structurés, des métriques utiles et, lorsque la complexité le justifie, des traces corrélées entre les composants. Chaque signal doit aider à répondre à une question opérationnelle. Éviter les tableaux de bord qui accumulent des métriques sans seuil ni action associée.</p>
+    <ul>
+      <li>Métriques : taux d’erreur, latence, saturation des ressources, connexions et échecs d’intégration.</li>
+      <li>Alertes : seuils associés à un impact utilisateur ou à un risque de perte de données, avec responsable et procédure.</li>
+      <li>Identifiant de corrélation : relier les événements d’une même requête sans exposer de données privées.</li>
+      <li>Runbook : étapes de diagnostic, mitigation, escalade, communication et vérification du rétablissement.</li>
+      <li>Post-incident : chronologie factuelle, impact, cause contributive, actions correctives et suivi des actions.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>9. Livraison et exploitation continue</h2>
+    <p>La CI doit reproduire les contrôles de qualité sur une machine propre. La livraison doit promouvoir un artefact identifié entre environnements plutôt que reconstruire un contenu différent sans traçabilité. Les secrets sont injectés par le mécanisme de configuration de l’environnement et ne sont pas inclus dans l’image ou le dépôt.</p>
+    <p>Définir les contrôles avant mise en production, la stratégie de migration, la procédure de rollback et les critères de surveillance après déploiement. Une migration destructive peut rendre un retour arrière applicatif impossible ; privilégier si nécessaire une séquence compatible : ajout, déploiement du code compatible, migration des données, puis suppression différée de l’ancien schéma.</p>
+    <p>Les sauvegardes ne sont utiles que si la restauration est testée. Documenter fréquence, rétention, chiffrement, responsabilités et objectifs RPO/RTO. Une restauration d’essai doit vérifier l’intégrité et le fonctionnement métier, pas seulement l’existence d’un fichier de sauvegarde.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>10. Étapes de réalisation</h2>
+    <ol>
+      <li><strong>Cadrage :</strong> choisir un domaine, écrire les parcours, les exclusions, les acteurs et les critères d’acceptation.</li>
+      <li><strong>Conception :</strong> définir les modules, les données, le contrat API, les risques de sécurité et les décisions d’architecture majeures.</li>
+      <li><strong>Tranche verticale :</strong> réaliser un parcours complet du navigateur à la persistance, puis ajouter les fonctionnalités nécessaires.</li>
+      <li><strong>Durcissement :</strong> ajouter tests négatifs, contrôle des permissions, gestion des erreurs, accessibilité et validation des entrées.</li>
+      <li><strong>Mesure :</strong> établir une référence de performance, identifier les goulots d’étranglement et justifier toute optimisation.</li>
+      <li><strong>Exploitation :</strong> mettre en place CI, configuration d’environnement, journaux, métriques, sauvegardes et procédure de retour arrière.</li>
+      <li><strong>Revue finale :</strong> exécuter les contrôles, documenter les limites et faire relire les décisions les plus risquées.</li>
+    </ol>
+  </section>
+
+  <section class="lesson-section">
+    <h2>11. Critères d’acceptation mesurables</h2>
+    <ul>
+      <li>Un nouvel intervenant peut installer et lancer le projet depuis le README sur une machine propre, sans secret personnel incorporé.</li>
+      <li>Le parcours métier principal fonctionne et chaque critère d’acceptation est relié à une preuve de test ou à une démonstration documentée.</li>
+      <li>Les tests de permissions démontrent l’isolation des données entre rôles ou utilisateurs selon le modèle retenu.</li>
+      <li>La CI bloque une livraison si les contrôles obligatoires échouent ; l’artefact publié est identifiable par version ou empreinte.</li>
+      <li>La cible de performance définie au cadrage est mesurée dans un environnement et un scénario documentés ; tout écart est expliqué.</li>
+      <li>Les journaux et alertes permettent de repérer une erreur simulée sans exposer de secret ou de donnée sensible.</li>
+      <li>Une procédure de restauration ou de rollback est documentée et testée dans un environnement non productif si l’environnement le permet.</li>
+      <li>Les parcours essentiels sont utilisables au clavier ; les erreurs de formulaire sont associées aux champs et annoncées clairement.</li>
+      <li>Les décisions d’architecture majeures, les limites connues et les risques résiduels sont consignés.</li>
+      <li>Aucun risque critique connu ne franchit la porte de livraison sans acceptation explicite par un responsable identifié, justification écrite, mesures compensatoires et date de réexamen ; à défaut, la livraison reste bloquée.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>12. Plan de tests et preuves à conserver</h2>
+    <table>
+      <thead><tr><th>Type</th><th>Preuve attendue</th><th>Condition d’acceptation</th></tr></thead>
+      <tbody>
+        <tr><td>Unitaire</td><td>Rapport CI et cas critiques couverts</td><td>Règles métier et cas limites passent</td></tr>
+        <tr><td>Intégration</td><td>Résultats avec base et dépendances de test</td><td>Contraintes, transactions et erreurs sont vérifiées</td></tr>
+        <tr><td>API / autorisation</td><td>Collection de requêtes ou tests automatisés</td><td>Statuts, schémas, permissions et isolation conformes</td></tr>
+        <tr><td>Bout en bout</td><td>Résultat du parcours principal</td><td>Le scénario métier complet est reproductible</td></tr>
+        <tr><td>Performance</td><td>Rapport avec environnement et charge</td><td>La cible définie est mesurée ou l’écart expliqué</td></tr>
+        <tr><td>Sécurité</td><td>Checklist de revue et résultats des outils</td><td>Aucun risque critique connu non traité sans acceptation explicite</td></tr>
+        <tr><td>Exploitation</td><td>Exercice de déploiement, rollback ou restauration</td><td>Procédure réalisable et limites consignées</td></tr>
+        <tr><td>Accessibilité</td><td>Checklist clavier, focus, libellés et contraste</td><td>Parcours principaux vérifiés et défauts consignés</td></tr>
+      </tbody>
+    </table>
+    <p>Conserver les commandes exactes, les versions, les résultats et les échecs connus. Ne pas présenter un test prévu dans le plan comme un test déjà exécuté.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>13. Livrables et définition de terminé</h2>
+    <ul>
+      <li>Dépôt versionné avec instructions d’installation, configuration d’exemple sans secrets et commandes de test.</li>
+      <li>Application déployable et contrat API/documentation à jour.</li>
+      <li>Schéma de données et migrations, avec stratégie de sauvegarde et de restauration.</li>
+      <li>Suite de tests et pipeline CI documentés ; rapports des contrôles de sécurité et de performance.</li>
+      <li>Journal des décisions d’architecture, modèle de menace succinct et registre des risques résiduels.</li>
+      <li>Procédures d’exploitation, de diagnostic et de retour arrière adaptées au projet.</li>
+      <li>Liste explicite des limites : fonctions non livrées, tests non exécutés, dépendances ou risques encore ouverts.</li>
+    </ul>
+    <p><strong>Terminé</strong> signifie que les critères d’acceptation sont démontrés, que les contrôles convenus passent ou que leurs écarts sont formellement consignés, que l’installation est reproductible et que les limites sont transparentes. Cela ne signifie pas que le système est exempt de défauts ou prêt pour n’importe quelle charge.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>14. Sources documentaires</h2>
+    <ul>
+      <li><a href="https://12factor.net/">The Twelve-Factor App</a> — principes de configuration, dépendances et exploitation d’applications.</li>
+      <li><a href="https://owasp.org/www-project-application-security-verification-standard/">OWASP ASVS</a> — référentiel de vérification de sécurité applicative.</li>
+      <li><a href="https://cheatsheetseries.owasp.org/">OWASP Cheat Sheet Series</a> — recommandations pratiques de sécurité.</li>
+      <li><a href="https://sre.google/sre-book/table-of-contents/">Google SRE Book</a> — fiabilité, objectifs de service et gestion des incidents.</li>
+      <li><a href="https://opentelemetry.io/docs/">OpenTelemetry</a> — instrumentation et collecte de signaux d’observabilité.</li>
+      <li><a href="https://www.postgresql.org/docs/">Documentation PostgreSQL</a> — transactions, contraintes, index et exploitation de la base.</li>
+      <li><a href="https://www.w3.org/WAI/standards-guidelines/wcag/">W3C WAI — WCAG</a> — principes et critères d’accessibilité du Web.</li>
+      <li><a href="https://google.github.io/eng-practices/">Google Engineering Practices</a> — revues de code et pratiques d’ingénierie.</li>
+    </ul>
+    <p class="note small">Les liens sont fournis comme références. Leur présence ne constitue pas une vérification HTTP de leur disponibilité ni une validation exhaustive de leur contenu.</p>
+  </section>
+
+  <section class="lesson-section checklist">
+    <h2>15. Checklist de validation du projet</h2>
+    <label><input type="checkbox"> Le besoin, les exclusions et les critères d’acceptation sont écrits.</label>
+    <label><input type="checkbox"> Les frontières de modules et décisions d’architecture sont documentées.</label>
+    <label><input type="checkbox"> Les contrats API, contraintes de données et migrations sont décrits.</label>
+    <label><input type="checkbox"> Les permissions, menaces et mesures de protection sont revues.</label>
+    <label><input type="checkbox"> Les tests unitaires, intégration et bout en bout ciblent les risques principaux.</label>
+    <label><input type="checkbox"> La performance est mesurée selon un scénario reproductible.</label>
+    <label><input type="checkbox"> La CI, les artefacts, la configuration et les secrets sont gérés explicitement.</label>
+    <label><input type="checkbox"> Les journaux, alertes, sauvegardes et procédures de reprise sont documentés.</label>
+    <label><input type="checkbox"> L’accessibilité des parcours essentiels a été vérifiée.</label>
+    <label><input type="checkbox"> Les limites, preuves de test et risques résiduels sont consignés.</label>
+    <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+  </section>
+  <nav class="lesson-nav"><a class="nav-link" href="../index.html#24-projets-pratiques">↑ Retour aux projets</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

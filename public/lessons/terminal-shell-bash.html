@@ -1,0 +1,122 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Terminal, shell et Bash
+Références retenues comme points de départ documentaires ; vérifier leur actualité et leur adéquation au projet.
+1. GNU Bash Reference Manual — https://www.gnu.org/software/bash/manual/bash.html
+2. ShellCheck — Analyse statique des scripts shell — https://www.shellcheck.net/
+3. GNU Coreutils manual — https://www.gnu.org/software/coreutils/manual/
+4. Linux man-pages — intro — https://man7.org/linux/man-pages/man1/intro.1.html
+5. OWASP — OS Command Injection Defense Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/OS_Command_Injection_Defense_Cheat_Sheet.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Utiliser efficacement le terminal pour naviguer, manipuler des fichiers et automatiser des tâches répétitives en Bash.">
+  <title>Terminal, shell et Bash — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">0. Informatique générale et fonctionnement des systèmes</p>
+    <h1>Terminal, shell et Bash</h1>
+    <p class="lead">Utiliser efficacement la ligne de commande et automatiser des tâches simples.</p>
+    <div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 2 h</span></div>
+<section class="lesson-section"><h2>Objectifs pédagogiques</h2><ul><li>Distinguer terminal, shell et commande.</li><li>Composer des commandes avec redirections et pipelines.</li><li>Écrire un script Bash robuste qui gère les erreurs et les arguments.</li></ul></section>
+<section class="lesson-section"><h2>1. Terminal, shell et processus</h2><p>Le terminal fournit une interface d’entrée et de sortie. Le shell interprète les commandes, développe les variables et motifs, puis lance des programmes. Bash est un shell courant sous Linux. Une commande peut être un builtin du shell, un exécutable trouvé dans <code>PATH</code> ou une fonction définie par l’utilisateur.</p><pre><code>pwd
+printf '%s\n' "$SHELL"
+command -v bash
+type cd
+echo "$PATH"</code></pre><p>Comprendre cette distinction aide à diagnostiquer les commandes introuvables, les différences d’environnement et les scripts qui fonctionnent dans un terminal mais pas dans un service automatisé.</p></section>
+<section class="lesson-section"><h2>2. Fichiers, motifs et citations</h2><p>Les espaces et caractères spéciaux ont une signification pour le shell. Les guillemets doubles permettent généralement l’expansion des variables, tandis que les guillemets simples préservent leur contenu littéral. Les chemins contenant des espaces doivent être cités.</p><pre><code>name="rapport final.txt"
+printf '%s\n' "$name"
+ls -l -- "$name"
+find . -type f -name '*.html'</code></pre><p>Dans le dernier exemple, les apostrophes empêchent le shell de développer le motif avant que <code>find</code> le reçoive. Utilisez <code>--</code> lorsque la commande le prend en charge pour séparer les options des arguments qui pourraient commencer par un tiret.</p></section>
+<section class="lesson-section"><h2>3. Redirections et pipelines</h2><p>La sortie standard (stdout) et la sortie d’erreur (stderr) sont deux flux distincts. Les redirections permettent de les envoyer vers un fichier ; un pipeline transmet la sortie d’une commande à l’entrée de la suivante.</p><pre><code>grep -n "ERROR" app.log > erreurs.txt
+command-that-may-fail 2> erreurs.log
+cat app.log | grep "WARN" | sort | uniq -c</code></pre><p>Évitez les pipelines inutiles si une commande peut lire directement le fichier. Dans un script, l’option <code>set -o pipefail</code> permet qu’un échec au milieu d’un pipeline ne soit pas masqué par la réussite de la dernière commande.</p></section>
+<section class="lesson-section"><h2>4. Écrire un script plus robuste</h2><p>Un script doit rendre ses hypothèses visibles, vérifier les arguments et échouer proprement.</p><pre><code>#!/usr/bin/env bash
+set -Eeuo pipefail
+
+if [[ $# -ne 1 ]]; then
+  printf 'Usage : %s fichier\n' "$0" >&2
+  exit 2
+fi
+
+file=$1
+if [[ ! -r "$file" ]]; then
+  printf 'Fichier absent ou illisible : %s\n' "$file" >&2
+  exit 1
+fi
+
+wc -l -- "$file"</code></pre><p><code>set -e</code> a des règles de comportement nuancées dans certaines constructions ; il ne remplace pas une gestion explicite des erreurs importantes. Le quoting, la validation des arguments et les codes de sortie restent essentiels.</p></section>
+<section class="lesson-section"><h2>5. Sécurité et débogage</h2><p>Ne construisez pas une commande shell en concaténant directement des données fournies par un utilisateur. Une chaîne contenant des métacaractères peut être interprétée comme du code. Dans un programme, préférez lancer un exécutable avec une liste d’arguments plutôt que de passer une commande assemblée à un shell.</p><p>Pour diagnostiquer un script, utilisez des messages sur stderr, inspectez les codes de sortie et activez temporairement une trace avec <code>bash -x script.sh</code>. Attention : la trace peut révéler des secrets présents dans les arguments ou les variables. N’utilisez pas <code>sudo</code> comme solution générale à un problème de permissions.</p></section>
+<section class="lesson-section"><h2>6. Exercice</h2><p>Écrivez un script qui reçoit un répertoire et un chemin de rapport, vérifie que le répertoire est accessible, compte les fichiers HTML et crée le rapport sans écraser un fichier existant. Testez un chemin avec des espaces, un répertoire absent, un rapport déjà présent et un répertoire non lisible lorsque vous pouvez effectuer le test avec un compte non privilégié.</p><h3>Exemple de solution</h3><pre><code>#!/usr/bin/env bash
+set -Eeuo pipefail
+
+if [[ $# -ne 2 ]]; then
+  printf 'Usage : %s repertoire rapport\n' "$0" >&2
+  exit 2
+fi
+repertoire=$1
+rapport=$2
+
+if [[ ! -d "$repertoire" || ! -r "$repertoire" || ! -x "$repertoire" ]]; then
+  printf 'Répertoire absent ou inaccessible : %s\n' "$repertoire" >&2
+  exit 1
+fi
+if [[ -e "$rapport" ]]; then
+  printf 'Le rapport existe déjà : %s\n' "$rapport" >&2
+  exit 1
+fi
+
+liste=$(mktemp)
+trap 'rm -f -- "$liste"' EXIT
+if ! find "$repertoire" -type f -name '*.html' -print0 &gt; "$liste"; then
+  printf 'Échec du parcours du répertoire : %s\n' "$repertoire" >&2
+  exit 1
+fi
+
+compte=0
+while IFS= read -r -d '' fichier; do
+  ((compte += 1))
+done &lt; "$liste"
+
+if ! (set -o noclobber; printf 'Répertoire : %s\nFichiers HTML : %d\n' "$repertoire" "$compte" &gt; "$rapport"); then
+  printf 'Impossible de créer le rapport sans écrasement : %s\n' "$rapport" >&2
+  exit 1
+fi
+printf 'Rapport créé : %s\n' "$rapport"</code></pre><p>La liste intermédiaire permet de vérifier le code de sortie de <code>find</code> avant de compter. Les chemins sont séparés par NUL afin de préserver les noms contenant des espaces ou des retours à la ligne. Le mode <code>noclobber</code> évite de remplacer un rapport créé entre le contrôle initial et l’écriture ; il ne remplace pas les permissions du système de fichiers.</p><h3>Critères de réussite</h3><ul><li>Le script vérifie ses arguments et ses entrées.</li><li>Les variables et chemins sont correctement cités.</li><li>Les erreurs sont envoyées sur stderr avec un code de sortie adapté.</li><li>Un échec de <code>find</code> n’est pas présenté comme un comptage complet.</li><li>Le rapport existant n’est pas écrasé et les noms avec espaces sont préservés.</li><li>Le script ne transforme pas des données non fiables en commandes shell.</li></ul></section>
+    <section class="lesson-section"><h2>Approfondissement — préserver les noms de fichiers et comprendre les flux</h2>
+    <p>Un nom de fichier peut contenir des espaces, des tabulations ou même un retour à la ligne. Une ligne de sortie n’est donc pas toujours une frontière fiable entre deux noms. Pour transmettre des chemins à une autre commande, utilise un séparateur qui ne peut pas apparaître dans un nom Unix : l’octet NUL. C’est le rôle de <code>-print0</code> de <code>find</code> et de <code>read -d ''</code> en Bash.</p>
+    <pre><code>#!/usr/bin/env bash
+set -u
+
+repertoire=${1:?Usage : $0 repertoire}
+[[ -d "$repertoire" ]] || {
+  printf 'Répertoire introuvable : %s\n' "$repertoire" >&2
+  exit 1
+}
+
+compte=0
+while IFS= read -r -d '' fichier; do
+  printf 'HTML : %s\n' "$fichier"
+  ((compte += 1))
+done &lt; &lt;(find "$repertoire" -type f -name '*.html' -print0)
+printf 'Total : %d fichier(s)\n' "$compte"</code></pre>
+    <p><code>IFS=</code> empêche la suppression des espaces de début et de fin, <code>-r</code> évite que les antislashs soient interprétés, et le délimiteur NUL préserve le nom entier. La substitution de processus <code>&lt; &lt;(…)</code> est une fonctionnalité de Bash, pas une syntaxe POSIX universelle. Autre nuance : le code de sortie de <code>find</code> lancé dans cette substitution n’est pas automatiquement celui de la boucle ; si la détection d’une erreur de parcours est critique, traite explicitement ce statut.</p>
+    <p>Les redirections sont traitées de gauche à droite. Ainsi, <code>commande &gt;sortie.log 2&gt;&amp;1</code> envoie stdout et stderr vers le fichier, tandis que <code>commande 2&gt;&amp;1 &gt;sortie.log</code> duplique d’abord stderr vers la sortie courante : les deux formes ne sont pas équivalentes. De même, <code>&gt; rapport.txt</code> remplace le fichier, alors que <code>&gt;&gt; rapport.txt</code> ajoute à la fin. Vérifie toujours si l’écrasement est voulu.</p>
+    <h3>Diagnostic reproductible</h3>
+    <ol><li>Reproduis la commande avec un petit fichier de test.</li><li>Observe séparément stdout, stderr et le code de sortie avec <code>printf '%s\n' "$?"</code> juste après la commande concernée.</li><li>Ajoute une redirection seulement après avoir identifié le flux à conserver.</li><li>Teste les chemins contenant des espaces et les cas d’échec, pas uniquement le chemin nominal.</li></ol>
+    <h3>Exercice de vérification</h3>
+    <p>Crée dans un répertoire de test deux fichiers HTML, dont un nommé <code>page avec espaces.html</code>. Modifie le script pour écrire la liste dans un rapport et le total dans stderr. Provoque aussi un échec de lecture et explique ce que le script peut détecter ou non.</p>
+    <h3>Critères de réussite</h3><ul><li>Les noms de fichiers sont préservés sans découpage sur les espaces.</li><li>Le rapport n’est écrasé que si ce comportement est explicite.</li><li>La différence entre stdout, stderr et code de sortie est démontrée.</li><li>Les limites de la substitution de processus sont documentées si elle est utilisée.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://www.gnu.org/software/bash/manual/bash.html" target="_blank" rel="noopener noreferrer">GNU Bash Reference Manual</a></li><li><a href="https://www.shellcheck.net/" target="_blank" rel="noopener noreferrer">ShellCheck — Analyse statique des scripts shell</a></li><li><a href="https://www.gnu.org/software/coreutils/manual/" target="_blank" rel="noopener noreferrer">GNU Coreutils manual</a></li><li><a href="https://man7.org/linux/man-pages/man1/intro.1.html" target="_blank" rel="noopener noreferrer">Linux man-pages — intro</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/OS_Command_Injection_Defense_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — OS Command Injection Defense Cheat Sheet</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je sais expliquer le rôle du shell et des redirections.</label><label><input type="checkbox"> Je cite correctement les variables et chemins.</label><label><input type="checkbox"> Mes scripts valident les arguments et gèrent les erreurs.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="dns-tls-proxy.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="javascript-typescript.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

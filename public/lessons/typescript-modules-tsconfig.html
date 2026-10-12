@@ -1,0 +1,115 @@
+<!-- SOURCES DOCUMENTAIRES
+- TypeScript Handbook — Modules: https://www.typescriptlang.org/docs/handbook/2/modules.html
+- TypeScript TSConfig Reference: https://www.typescriptlang.org/tsconfig/
+- TypeScript Handbook — Declaration Files: https://www.typescriptlang.org/docs/handbook/2/type-declarations.html
+- Node.js — ECMAScript modules: https://nodejs.org/api/esm.html
+- TypeScript — Module Resolution: https://www.typescriptlang.org/docs/handbook/modules/reference.html
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Comprendre les imports et exports, les fichiers de déclaration, les options de compilation et les différences entre vérification des types et exécution.">
+<title>TypeScript : modules, déclarations et tsconfig — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>TypeScript : modules, déclarations et tsconfig</h1>
+<p class="lead">Comprendre les imports et exports, les fichiers de déclaration, les options de compilation et les différences entre vérification des types et exécution.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Ce module explique comment organiser un projet TypeScript en modules, ce que contiennent les fichiers de déclaration et comment lire un <code>tsconfig.json</code>. À la fin, vous saurez distinguer les modules source des types de déclaration, comprendre la résolution des imports et diagnostiquer des erreurs fréquentes liées aux options de compilation. Vous devez connaître les fonctions, les imports JavaScript et les bases de la ligne de commande.</p>
+<h2>2. Modules : définir une interface entre fichiers</h2>
+<p>Un module expose explicitement les éléments qu’un autre fichier peut importer. Un export nommé rend disponible un symbole avec son nom ; un export par défaut définit une valeur principale. Dans une base de code, les exports nommés facilitent souvent la recherche et la refactorisation, mais l’essentiel est de suivre une convention cohérente.</p>
+<pre><code>// src/math.ts
+export function add(a: number, b: number): number {
+  return a + b;
+}
+
+// src/app.ts
+import { add } from "./math.js";
+console.log(add(2, 3));</code></pre>
+<p>Dans cet exemple, les fichiers sont placés sous <code>src/</code> pour correspondre au <code>include</code> du <code>tsconfig.json</code> présenté ensuite. Pour exécuter cet exemple comme ESM avec Node.js, le <code>package.json</code> du projet doit déclarer <code>"type": "module"</code>. Avec <code>module</code>/<code>moduleResolution</code> réglés sur <code>NodeNext</code>, l’import source utilise ici l’extension d’exécution <code>.js</code> : TypeScript la résout vers <code>math.ts</code> pendant la vérification, puis le chemin reste valide dans le JavaScript émis. La forme exacte dépend de l’outillage, du format de module et de la résolution utilisée ; vérifiez le runtime réel, pas seulement l’absence d’erreur de type.</p>
+<h2>3. Modules TypeScript et formats d’exécution</h2>
+<p>TypeScript vérifie les types puis, selon la configuration, émet du JavaScript. Les mots-clés <code>import</code> et <code>export</code> participent au système de modules ; ils ne garantissent pas que le runtime choisira automatiquement le même format. L’écosystème JavaScript distingue notamment ECMAScript Modules (ESM) et CommonJS.</p>
+<p>Le projet doit aligner la configuration TypeScript, les champs de <code>package.json</code>, l’environnement d’exécution et l’outil de build. Les options <code>module</code> et <code>moduleResolution</code> influencent l’interprétation des imports et la manière dont le compilateur cherche les fichiers. Il n’existe pas une combinaison universelle : utilisez le modèle recommandé pour votre version de Node.js, votre bundler ou votre plateforme cible.</p>
+<h2>4. Le rôle de <code>tsconfig.json</code></h2>
+<p>Le fichier de configuration fixe les règles de compilation et les fichiers inclus. Il doit être compris comme un contrat de projet : une option peut changer le niveau de vérification, les fichiers produits ou la manière dont les modules sont résolus.</p>
+<pre><code>{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"]
+}</code></pre>
+<p>Cet exemple illustre des options, pas une configuration à copier pour tous les projets. <code>noEmit</code> demande au compilateur de ne pas générer de fichiers ; un bundler ou un autre outil doit alors prendre en charge la production du JavaScript. Si vous exécutez directement le code avec un outil spécialisé, sa configuration doit être compatible avec celle du compilateur.</p>
+<h2>5. Comprendre quelques options importantes</h2>
+<ul>
+<li><code>target</code> : version de JavaScript visée pour le code émis.</li>
+<li><code>module</code> : format de modules attendu pour la sortie ou l’analyse.</li>
+<li><code>moduleResolution</code> : règles de recherche des modules et de leurs entrées.</li>
+<li><code>strict</code> : active un ensemble de vérifications plus strictes.</li>
+<li><code>noEmit</code> : vérifie sans produire les fichiers JavaScript.</li>
+<li><code>outDir</code> et <code>rootDir</code> : contrôlent l’organisation des fichiers sources et générés.</li>
+<li><code>include</code>, <code>exclude</code> et <code>files</code> : déterminent l’ensemble de fichiers du projet, selon leurs règles de priorité.</li>
+</ul>
+<p>Quand le compilateur semble ignorer une option, vérifiez quel fichier de configuration est effectivement chargé, si un autre outil utilise sa propre configuration et si le fichier source appartient au projet. La commande <code>tsc --showConfig</code> peut aider à examiner la configuration effective.</p>
+<h2>6. Fichiers de déclaration : décrire des types qui existent ailleurs</h2>
+<p>Les fichiers <code>.d.ts</code> décrivent des types sans fournir l’implémentation JavaScript correspondante. Ils permettent à TypeScript de comprendre une bibliothèque JavaScript, un environnement global ou un module dont les types ne sont pas inclus. Ils peuvent déclarer des fonctions, classes, interfaces, types et modules.</p>
+<pre><code>// legacy-library.d.ts
+declare module "legacy-library" {
+  export function transform(input: string): string;
+}</code></pre>
+<p>Cette déclaration indique au compilateur comment utiliser le module ; elle ne crée pas le module et ne prouve pas que l’implémentation respecte la signature. Si la fonction réelle renvoie parfois un nombre, le fichier de déclaration peut masquer le problème au lieu de le résoudre. Les déclarations doivent correspondre au comportement observé et être maintenues quand la dépendance change.</p>
+<h2>7. Types d’une dépendance et résolution des imports</h2>
+<p>De nombreuses bibliothèques publient leurs types avec le package ; d’autres s’appuient sur des packages de déclarations séparés. Si un import est introuvable, vérifiez d’abord que la dépendance est installée, que sa version est compatible, que son package expose bien le point d’entrée utilisé et que la configuration correspond au runtime. Évitez d’ajouter un fichier de déclaration global permissif juste pour faire disparaître l’erreur.</p>
+<p>Les chemins d’alias comme <code>@/utils</code> nécessitent souvent une configuration cohérente entre TypeScript, le bundler, les tests et le runtime. L’option <code>paths</code> aide le compilateur à résoudre certains imports, mais ne réécrit pas nécessairement les chemins dans le JavaScript émis. Il faut donc configurer également l’outil qui exécute ou regroupe le code.</p>
+<h2>8. Erreurs fréquentes et diagnostic</h2>
+<ul>
+<li>Confondre une vérification de types réussie avec une application exécutable.</li>
+<li>Mélanger ESM et CommonJS sans comprendre les règles du runtime.</li>
+<li>Supposer que <code>paths</code> réécrit automatiquement les imports dans le code final.</li>
+<li>Écrire des déclarations <code>.d.ts</code> qui ne reflètent pas l’implémentation.</li>
+<li>Modifier plusieurs options à la fois et perdre la cause de l’erreur.</li>
+</ul>
+<p>Pour diagnostiquer, réduisez le problème à un import, inspectez la configuration effective, vérifiez le package installé et exécutez la commande de build ou de lancement réelle. Consultez la documentation de la version utilisée : la résolution des modules a évolué avec TypeScript, Node.js et les bundlers.</p>
+<h2>9. Exercice</h2>
+<p>Créez deux fichiers, l’un qui exporte une fonction typée et l’autre qui l’importe. Ajoutez un <code>tsconfig.json</code> strict et une commande de vérification. Puis choisissez une dépendance JavaScript sans types intégrés et rédigez une petite déclaration qui reflète son API réelle. Testez à la fois la compilation et l’exécution : notez si les deux étapes utilisent les mêmes règles de résolution.</p>
+<h2>10. Critères de réussite</h2>
+<ul class="checklist">
+<li>Je sais expliquer les exports nommés et les imports correspondants.</li>
+<li>Je distingue ESM, CommonJS et les options TypeScript associées.</li>
+<li>Je peux expliquer les options principales de <code>tsconfig.json</code>.</li>
+<li>Je comprends qu’un fichier <code>.d.ts</code> décrit des types sans implémenter le module.</li>
+<li>Je sais diagnostiquer un import en vérifiant configuration, dépendance et runtime.</li>
+</ul>
+
+<section class="sources"><h2>Sources documentaires</h2><p>Consultez ces références pour approfondir les concepts et vérifier les détails liés aux versions.</p><ul><li><a href="https://www.typescriptlang.org/docs/handbook/2/modules.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Modules</a></li>
+<li><a href="https://www.typescriptlang.org/tsconfig/" target="_blank" rel="noopener noreferrer">TypeScript TSConfig Reference</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/2/type-declarations.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Declaration Files</a></li>
+<li><a href="https://nodejs.org/api/esm.html" target="_blank" rel="noopener noreferrer">Node.js — ECMAScript modules</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/modules/reference.html" target="_blank" rel="noopener noreferrer">TypeScript — Module Resolution</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="typescript-unknown-never.html">← Précédent : TypeScript : inférence, unknown et never</a><a rel="next" href="api-pagination-filtrage.html">Suivant : Pagination, tri et filtrage →</a></nav>
+
+<section class="lesson-workshop"><h2>Atelier approfondi — Construire un petit module TypeScript reproductible</h2><h3>Objectifs opérationnels</h3><ul><li>Expliquer les garanties et les limites du mécanisme présenté.</li><li>Choisir une stratégie adaptée à un cas réaliste et justifier ses compromis.</li><li>Vérifier le comportement avec des tests reproductibles plutôt que par intuition.</li></ul><h3>Explications et exemple guidé</h3><p>Le système de modules TypeScript dépend de trois éléments distincts : la syntaxe d’import/export, la résolution de modules du compilateur et le runtime qui exécutera le JavaScript. Une compilation réussie ne garantit donc pas qu’un import fonctionnera en production.</p><ol><li>Identifier le runtime cible (Node.js, navigateur ou bundler).</li><li>Choisir <code>module</code> et <code>moduleResolution</code> compatibles avec ce runtime, plutôt que copier une configuration générique.</li><li>Vérifier les chemins relatifs, les extensions attendues par le runtime et les fichiers de déclaration des dépendances.</li><li>Tester le résultat compilé dans le même environnement que la production.</li></ol><pre><code>// src/domain/money.ts
+export type Money = { amountCents: number; currency: 'EUR' };
+export function formatMoney(value: Money): string {
+  return `${(value.amountCents / 100).toFixed(2)} ${value.currency}`;
+}
+
+// src/main.ts
+import { formatMoney, type Money } from './domain/money.js';
+const total: Money = { amountCents: 1299, currency: 'EUR' };
+console.log(formatMoney(total));</code></pre><p>Dans un projet Node en ESM, l’extension présente dans l’import TypeScript peut devoir correspondre au fichier JavaScript généré. Le réglage exact dépend de la version de TypeScript et du mode d’exécution.</p><h3>Pièges et limites</h3><ul><li>Piège : confondre <code>target</code> (syntaxe JavaScript émise) et <code>module</code> (format des modules).</li><li>Piège : installer des types externes sans vérifier qu’ils correspondent à la version de la bibliothèque.</li><li>Piège : utiliser des chemins d’alias connus du compilateur mais inconnus du runtime.</li></ul><h3>Exercice</h3><p>Créez un module <code>price.ts</code> exportant un type et deux fonctions, puis importez-les depuis <code>main.ts</code>. Configurez le projet pour son runtime, compilez-le et exécutez réellement le JavaScript produit. Ajoutez une dépendance sans types natifs et documentez comment ses déclarations sont résolues.</p><h3>Critères de réussite</h3><ul><li>La configuration cible explicitement le runtime et sa résolution de modules.</li><li>Le projet compile depuis un répertoire propre avec la commande documentée.</li><li>Le JavaScript compilé s’exécute sans erreur d’import.</li><li>Les types externes et les alias sont expliqués sans masquer les erreurs par <code>any</code>.</li></ul></section>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

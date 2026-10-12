@@ -1,0 +1,61 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Choisir et utiliser un framework backend
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. Express — Guide — https://expressjs.com/en/guide/routing.html
+2. NestJS — Documentation — https://docs.nestjs.com/
+3. Fastify — Documentation — https://fastify.dev/docs/latest/
+4. Spring Boot — Documentation — https://docs.spring.io/spring-boot/index.html
+5. OWASP — REST Security Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Choisir et utiliser un framework backend adapté au projet." name="description"/>
+<title>Choisir un framework backend — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">3. Backend</p>
+<h1>Choisir et utiliser un framework backend</h1>
+<p class="lead">Choisir un framework backend à partir des contraintes du projet, puis organiser son cycle de requête et ses dépendances sans enfermer la logique métier dans le framework.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 10 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Expliquer les responsabilités d’un framework backend.</li><li>Comparer conventions, extensibilité et complexité.</li><li>Organiser routes, services, accès aux données et middleware.</li><li>Évaluer la sécurité, les tests et le coût de maintenance.</li></ul>
+</section><section class="lesson-section"><h2>Fil conducteur</h2><p>Évalue d’abord les besoins de l’application et les compétences de l’équipe, puis compare les mécanismes concrets de routage, validation, tests, injection, documentation et exploitation.</p></section>
+<section class="lesson-section"><h2>1. Ce qu’un framework apporte</h2>
+<p>Un framework backend fournit une structure pour recevoir des requêtes, router les URL, gérer les dépendances, convertir les données, traiter les erreurs et produire des réponses. Il peut aussi proposer validation, injection de dépendances, outils de test, documentation ou intégration avec des systèmes d’authentification.</p><p>Un framework ne remplace pas la conception du domaine ni la connaissance du protocole HTTP. Il faut comprendre ce que ses abstractions font, leurs limites et ce qui reste à configurer. Une convention pratique peut devenir une contrainte si elle est mal adaptée au projet.</p>
+</section>
+<section class="lesson-section"><h2>2. Comparer sans chercher un gagnant universel</h2>
+<p>Express est minimal et flexible ; NestJS propose une structure plus prescriptive, avec modules et injection de dépendances ; Fastify met l’accent sur un serveur léger et une validation structurée ; Spring Boot s’inscrit dans l’écosystème Java. Ces descriptions sont des orientations générales, pas des garanties de performance ou de qualité.</p><p>Compare le langage de l’équipe, les conventions, la documentation, l’écosystème, la compatibilité des dépendances, les mécanismes de sécurité, les outils de test et la facilité de recrutement. Pour un petit service, une abstraction supplémentaire peut coûter plus qu’elle ne rapporte ; pour une grande application, des conventions communes peuvent faciliter le travail collectif.</p>
+</section>
+<section class="lesson-section"><h2>3. Organiser les responsabilités</h2>
+<p>Une route ou un contrôleur traduit la requête HTTP en appel applicatif et transforme le résultat en réponse. Un service porte les règles d’usage ou orchestre le cas métier. Une couche de persistance traite les requêtes de données. Les frontières exactes dépendent du projet, mais chaque composant doit avoir une responsabilité identifiable.</p><pre><code>Route / contrôleur
+      → validation de la requête
+      → service applicatif
+      → dépôt / accès aux données
+      → réponse et gestion des erreurs</code></pre><p>Évite les contrôleurs qui contiennent toute la logique métier et les abstractions qui ne font que renommer un appel sans isoler de responsabilité. La structure doit aider à modifier et tester le comportement.</p>
+</section>
+<section class="lesson-section"><h2>4. Middleware, injection et cycle de vie</h2>
+<p>Les middleware interviennent dans le traitement des requêtes : journalisation, authentification, limitation de débit ou gestion des en-têtes. Leur ordre peut changer le résultat. Une erreur dans la chaîne de middleware peut empêcher le contrôleur d’être exécuté ou transformer incorrectement une réponse.</p><p>L’injection de dépendances permet de fournir à un composant les services dont il a besoin, plutôt que de les construire lui-même. Elle facilite les tests et le remplacement d’implémentations, mais un conteneur complexe peut masquer les dépendances réelles. Comprends aussi le cycle de vie des objets et la gestion des ressources partagées.</p>
+</section>
+<section class="lesson-section"><h2>5. Configuration, sécurité et exploitation</h2>
+<p>Configure les secrets et les paramètres selon l’environnement, vérifie les entrées, applique les autorisations au niveau de la ressource et limite les abus. Utilise des mécanismes de validation reconnus par le framework et des paramètres SQL liés plutôt que de construire des requêtes par concaténation.</p><p>En production, prévois des logs structurés, des métriques, des contrôles de santé, des timeouts et un arrêt propre. Évalue les mises à jour de sécurité et la compatibilité des plugins. Les benchmarks synthétiques sont utiles, mais ils ne remplacent pas une mesure avec les charges et dépendances réelles du service.</p>
+</section>
+
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Conçois un petit service de catalogue dans le framework de ton choix. Sépare contrôleur, service et accès aux données ; ajoute validation, gestion d’erreurs, authentification simulée et tests. Rédige une justification courte du choix de framework en fonction des besoins du projet.</p><h3>Critères de réussite</h3><ul><li>Les responsabilités sont séparées sans couches artificielles.</li><li>Les entrées et permissions sont contrôlées côté serveur.</li><li>Les erreurs produisent des réponses cohérentes.</li><li>Les tests peuvent remplacer les dépendances externes.</li><li>Les critères de choix et compromis sont documentés.</li></ul>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Choisir un framework uniquement sur sa popularité ou un benchmark isolé.</li><li>Placer toutes les règles métier dans les contrôleurs.</li><li>Installer des plugins sans évaluer leur maintenance.</li><li>Oublier l’ordre des middleware et les chemins d’erreur.</li><li>Confondre les abstractions du framework avec des contrôles de sécurité automatiques.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://expressjs.com/en/guide/routing.html" rel="noopener noreferrer" target="_blank">Express — Guide</a></li><li><a href="https://docs.nestjs.com/" rel="noopener noreferrer" target="_blank">NestJS — Documentation</a></li><li><a href="https://fastify.dev/docs/latest/" rel="noopener noreferrer" target="_blank">Fastify — Documentation</a></li><li><a href="https://docs.spring.io/spring-boot/index.html" rel="noopener noreferrer" target="_blank">Spring Boot — Documentation</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html" rel="noopener noreferrer" target="_blank">OWASP — REST Security Cheat Sheet</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="cycle-requete-reponse.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="modules-responsabilites.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html><p><strong>Repère pratique. </strong>Compare des scénarios identiques : ajouter un endpoint validé, tester une erreur, remplacer une dépendance et démarrer l’application en CI. Note le coût de mise en œuvre, la lisibilité et les contraintes de l’écosystème plutôt que de comparer uniquement la popularité.</p><p><strong>Repère pratique. </strong>Le contrôleur/adaptateur HTTP traduit la requête et la réponse ; le service métier applique les règles ; le dépôt ou client encapsule l’accès aux données. Cette séparation doit rester proportionnée : elle est utile lorsqu’elle clarifie les responsabilités, pas lorsqu’elle crée des fichiers sans rôle réel.</p><p><strong>Repère pratique. </strong>Vérifie que les erreurs ne divulguent ni pile d’exécution ni secrets en production. Ajoute des limites de taille, des délais, une validation à l’entrée et des points de santé qui distinguent « processus vivant » de « service prêt à recevoir du trafic ».</p>

@@ -1,0 +1,76 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Architecture modulaire
+Domaine documentaire : architecture
+Références consultées pour vérifier l’existence et l’adéquation générale des ressources. Elles servent de base de travail, pas de classement absolu des cinq meilleures ressources.
+1. Martin Fowler — Articles et patterns d’architecture — https://martinfowler.com/
+2. Microsoft — Architecture Center — https://learn.microsoft.com/en-us/azure/architecture/
+3. AWS — Well-Architected Framework — https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html
+4. Refactoring Guru — Design Patterns — https://refactoring.guru/design-patterns
+5. The Twelve-Factor App — https://12factor.net/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Découper le système en modules cohérents et à responsabilités claires.">
+  <title>Architecture modulaire — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">8. Architecture et conception logicielle</p>
+    <h1>Architecture modulaire</h1>
+    <p class="lead">Découper le système en modules cohérents et à responsabilités claires.</p>
+<div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 2 h</span></div>
+<section class="lesson-section"><h2>Objectifs</h2><ul><li>Découper un système en modules cohérents.</li><li>Définir des interfaces publiques et limiter les dépendances.</li><li>Détecter les cycles et tester les frontières architecturales.</li></ul></section>
+<section class="lesson-section"><h2>1. Pourquoi modulariser ?</h2><p>La modularité réduit le nombre de concepts qu’un développeur doit comprendre simultanément. Un bon module regroupe des responsabilités qui changent ensemble et expose une interface publique limitée. Un mauvais découpage disperse une règle métier dans de nombreux dossiers ou crée des dépendances croisées.</p><p>Le découpage doit suivre la cohésion fonctionnelle et les changements probables, pas uniquement les types de fichiers. Un dossier « controllers » ou « services » est une organisation technique ; un module « facturation » ou « catalogue » représente une capacité métier et peut regrouper ses propres routes, règles et accès aux données.</p></section>
+<section class="lesson-section"><h2>2. Cohésion, couplage et frontières</h2><p>La cohésion mesure à quel point les éléments d’un module servent un même objectif. Le couplage décrit la dépendance entre modules. Recherchez une forte cohésion interne et des dépendances explicites, limitées et stables.</p><pre><code>src/
+  modules/
+    tasks/
+      public.ts
+      taskService.ts
+      taskRepository.ts
+      taskRoutes.ts
+    users/
+      public.ts
+      userService.ts
+      userRepository.ts</code></pre><p>Un module devrait consommer l’API publique d’un autre module plutôt que d’importer ses fichiers internes. L’import direct de détails internes crée une dépendance cachée qui rend les changements plus risqués.</p></section>
+<section class="lesson-section"><h2>3. Contrats publics</h2><p>Exposez uniquement ce dont les autres modules ont besoin. Les types internes, requêtes SQL et structures de persistance doivent rester privés si les consommateurs n’en ont pas besoin. Une interface publique trop large devient un engagement de compatibilité.</p><pre><code>// modules/tasks/public.ts
+export type TaskSummary = {
+  id: string;
+  title: string;
+  status: "open" | "done";
+};
+
+export async function getTaskSummary(id: string): Promise&lt;TaskSummary | null&gt; {
+  // délégation à l'implémentation interne
+  return taskService.getSummary(id);
+}</code></pre><p>Cet exemple est schématique : les imports et l’initialisation sont omis. Dans un projet réel, évitez d’exposer des fonctions qui contournent les règles d’autorisation ou les invariants métier.</p></section>
+<section class="lesson-section"><h2>4. Dépendances et cycles</h2><p>Un cycle A → B → C → A rend l’initialisation, les tests et la compréhension plus difficiles. Si deux modules se connaissent trop intimement, cherchez à déplacer un contrat partagé dans une couche neutre, à inverser une dépendance ou à revoir la frontière métier. Un dossier « shared » géant n’est pas une solution durable : il devient vite une dépendance universelle.</p><ul><li>Définissez des règles d’import explicites.</li><li>Utilisez un outil d’analyse de dépendances si le dépôt est assez grand.</li><li>Ajoutez une vérification automatique qui interdit certains imports.</li><li>Évitez les imports profonds vers des fichiers internes d’un autre module.</li></ul></section>
+<section class="lesson-section"><h2>5. Modularité dans un monolithe et dans des packages</h2><p>Un monolithe modulaire peut fournir des frontières solides sans introduire les coûts du réseau. Des packages distincts deviennent pertinents lorsqu’un module doit être publié, versionné ou déployé indépendamment. Ne transformez pas automatiquement chaque module en microservice : les appels réseau, la sécurité, la supervision et les transactions distribuées ajoutent un coût important.</p><p>Pour un package npm, définissez les points d’entrée publics, les types exportés, les dépendances de production et une politique de versionnage. N’exposez pas accidentellement toute l’arborescence interne via des chemins d’import non documentés.</p></section>
+<section class="lesson-section"><h2>6. Refactoriser progressivement</h2><ol><li>Cartographiez les dépendances et repérez les zones qui changent ensemble.</li><li>Choisissez une capacité métier limitée.</li><li>Définissez son contrat public avant de déplacer les fichiers.</li><li>Déplacez l’implémentation en conservant les tests de comportement.</li><li>Remplacez les imports internes par le contrat public.</li><li>Ajoutez des règles automatisées pour empêcher la régression.</li></ol><p>Effectuez des changements petits et vérifiables. Une refonte massive qui déplace simultanément des centaines de fichiers rend difficile l’identification de la cause d’une régression.</p></section>
+<section class="lesson-section"><h2>7. Exercice</h2><p>Dans une application de gestion de tâches, séparez les modules utilisateurs, tâches et notifications. Définissez ce que chacun expose, ce qu’il garde privé et comment les notifications sont déclenchées sans importer les détails internes du module tâches.</p><h3>Critères de réussite</h3><ul><li>Chaque module a une responsabilité claire.</li><li>Les imports intermodules passent par des contrats explicites.</li><li>Aucun cycle de dépendance n’est nécessaire.</li><li>Le découpage n’ajoute pas une complexité disproportionnée.</li></ul></section>
+<section class="lesson-section"><h2>Atelier de validation : éprouver une frontière de module</h2>
+<p>Une frontière utile protège une règle métier et limite les raisons de modifier plusieurs modules ensemble. Elle ne se mesure pas au nombre de dossiers, mais à la stabilité des contrats et à la facilité d’évolution indépendante.</p>
+<h3>Exemple : commandes et notifications</h3><p>Le module Commandes décide si une commande est confirmée et émet un événement métier <code>CommandeConfirmee</code>. Le module Notifications traduit cet événement en courriel. Commandes ne doit pas importer le client SMTP, le modèle de courriel ni les détails internes de Notifications.</p>
+<pre><code>type CommandeConfirmee = { commandeId: string; clientId: string; date: string };
+interface EvenementsMetier {
+  publier(event: CommandeConfirmee): Promise&lt;void&gt;;
+}</code></pre>
+<p>Ce contrat est un exemple de forme, pas une obligation d’utiliser un bus d’événements. Dans un petit monolithe, un appel d’interface local peut être plus simple. Si la publication et l’écriture de commande doivent être atomiques, étudiez une outbox transactionnelle plutôt que de supposer que deux opérations indépendantes réussiront ensemble.</p>
+<h3>Test de la frontière</h3><ol><li>Énumérez les dépendances publiques autorisées pour chaque module.</li><li>Recherchez les imports profonds qui contournent l’API publique.</li><li>Vérifiez les cycles dans le graphe des dépendances.</li><li>Testez le contrat public sans connaître l’implémentation interne.</li><li>Mesurez le coût de coordination d’un changement réel avant de déplacer du code.</li></ol>
+<h3>Pièges et exercice</h3><ul><li>Un module par classe produit souvent de la fragmentation sans autonomie.</li><li>Un type partagé trop générique peut devenir une dépendance centrale instable.</li><li>Une frontière de package n’isole pas à elle seule les données ou les transactions.</li></ul>
+<p><strong>Exercice :</strong> dessinez les modules Utilisateurs, Commandes et Notifications ; marquez les imports actuels et proposez une API publique minimale. Décrivez un test qui échoue si un import interne est ajouté.</p>
+<p><strong>Critères de réussite :</strong> responsabilités explicites, dépendances orientées, absence de cycle, contrat testable et justification du coût du découpage.</p></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je sais expliquer cohésion et couplage.</label><label><input type="checkbox"> Les modules ont des interfaces publiques limitées.</label><label><input type="checkbox"> Je peux repérer et supprimer un cycle de dépendances.</label></section>
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://martinfowler.com/articles/modularizing.html">Martin Fowler — Modularizing Applications</a></li><li><a href="https://www.martinfowler.com/bliki/BoundedContext.html">Martin Fowler — Bounded Context</a></li><li><a href="https://www.typescriptlang.org/docs/handbook/modules/introduction.html">TypeScript — Modules</a></li><li><a href="https://docs.npmjs.com/cli/v10/using-npm/packages">npm — Packages</a></li><li><a href="https://refactoring.guru/design-patterns/facade">Refactoring.Guru — Facade</a></li></ul></section>
+
+<nav class="lesson-nav"><a class="nav-link" href="kubernetes.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="separation-responsabilites.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Lire le code d’autres développeurs
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. MDN — Apprendre le développement Web — https://developer.mozilla.org/fr/docs/Learn_web_development
+2. MDN — JavaScript — https://developer.mozilla.org/fr/docs/Web/JavaScript
+3. Node.js — Learn — https://nodejs.org/en/learn
+4. GitHub Docs — Repositories — https://docs.github.com/en/repositories
+5. Google Engineering Practices — Code Review — https://google.github.io/eng-practices/review/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Méthode pour comprendre un projet existant, reconstruire un chemin d’exécution et distinguer les faits des hypothèses.">
+<title>Lire le code d’autres développeurs — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">6. Tests, débogage et qualité</p>
+<h1>Lire le code d’autres développeurs</h1>
+<p class="lead">Explorer un dépôt inconnu en remontant des points d’entrée vers les règles métier, les dépendances et les tests.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Lire du code existant est différent d’écrire du code neuf. Dans un projet réel, le comportement est réparti entre routes, composants, services, modèles, configuration, tests et bibliothèques. L’objectif n’est pas de comprendre tout le dépôt immédiatement, mais de reconstruire une explication fiable du parcours qui mène d’une entrée à un résultat.</p><ul><li>Repérer les points d’entrée et les commandes de lancement.</li><li>Suivre une fonctionnalité à travers plusieurs modules.</li><li>Utiliser les tests et l’historique Git pour confirmer les hypothèses.</li><li>Documenter les responsabilités et les questions encore ouvertes.</li></ul><p>Prérequis : lire le langage principal du projet et comprendre fonctions, imports, HTTP et tests.</p>
+</section><section class="lesson-section"><h2>1. Commencer par le contexte</h2>
+<p>Lis d’abord le README, les scripts du gestionnaire de paquets, les fichiers de configuration et l’arborescence. Ces éléments indiquent comment installer, lancer, tester et construire le projet. Vérifie la version du runtime : une documentation récente peut ne pas correspondre à la version utilisée.</p><pre><code>pwd
+git status --short
+git log -5 --oneline
+find . -maxdepth 2 -type f | sort | head -100
+cat package.json</code></pre><p>Adapte les commandes au dépôt et n’affiche pas de fichiers contenant des secrets. Le statut Git révèle aussi les changements locaux à préserver. Identifie les commandes de test, build, lint et développement. Si les tests ne démarrent pas, note ce blocage au lieu de conclure que le code est cassé.</p>
+</section><section class="lesson-section"><h2>2. Suivre une fonctionnalité de bout en bout</h2>
+<p>Choisis une fonctionnalité observable et trace son parcours. Une page de liste peut suivre ce chemin : route frontend → composant → appel HTTP → route backend → validation → service métier → requête SQL → réponse JSON → affichage. C’est une hypothèse de départ, pas une architecture universelle.</p><ol><li>Repère l’URL, le libellé d’interface ou le message d’erreur.</li><li>Recherche ce texte, le nom de la route ou un champ de données.</li><li>Examine le point d’entrée et les appels qu’il effectue.</li><li>Continue jusqu’à la source de données ou l’effet final.</li><li>Remonte le chemin pour comprendre comment le résultat est transformé.</li></ol><p>La recherche globale de l’éditeur est souvent plus efficace qu’une lecture séquentielle. Les noms de fonctions, types et événements sont de bons indices. Vérifie où les permissions sont réellement contrôlées : un nom comme <code>getOrder</code> ne garantit aucune autorisation.</p><pre><code>async function getOrderPage(id: string) {
+  const response = await fetch(`/api/orders/${id}`);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}</code></pre><p>Cet extrait montre seulement le client. Pour comprendre le comportement complet, trouve la route serveur, la validation, le service appelé et les tests correspondants.</p>
+</section><section class="lesson-section"><h2>3. Tests, historique et preuves</h2>
+<p>Les tests décrivent des comportements attendus, des entrées limites et parfois des décisions métier. Lis le scénario, sa préparation, l’action et les assertions. Un test peut toutefois être incomplet ou préserver un comportement historique incorrect : il constitue une preuve utile, pas une vérité absolue.</p><pre><code>git log --oneline -- chemin/vers/fichier
+git blame chemin/vers/fichier
+git show &lt;identifiant-du-commit&gt;</code></pre><p><code>git blame</code> montre qui a modifié une ligne en dernier, pas qui est responsable d’une décision. Utilise-le pour retrouver le commit et son contexte. Les messages de commit et les revues peuvent expliquer pourquoi une abstraction existe ou quel bug elle prévient.</p><p>Distingue le fait observé de l’hypothèse. « La route appelle <code>orderService.findById</code> » est vérifiable ; « le service garantit que la commande appartient à l’utilisateur » doit être confirmé dans le code ou les tests.</p>
+</section><section class="lesson-section"><h2>4. Construire une carte utile</h2>
+<p>Note le point d’entrée, les modules importants, les flux de données, les dépendances externes et les tests pertinents. Un schéma de cinq à dix boîtes consacré à une fonctionnalité est souvent plus utile qu’une architecture exhaustive et vite périmée. Mets à jour tes notes lorsque tu confirmes ou réfutes une hypothèse.</p><p>La profondeur dépend du risque : une correction de texte demande peu d’exploration ; une modification d’autorisations, de paiements ou de transactions exige d’examiner les échecs, les effets secondaires et les dépendances indirectes.</p>
+</section><section class="lesson-section"><h2>5. Valider la compréhension avant de proposer une modification</h2>
+<p>Avant d’éditer, écris une courte description du comportement actuel et cite les preuves : fichier et fonction, test exécuté, requête observée ou commit explicatif. Pour une modification risquée, recherche aussi les appelants, les consommateurs externes, les migrations et les tâches asynchrones. La recherche d’un nom ne suffit pas toujours : un comportement peut être déclenché par une configuration, un décorateur, un middleware ou une inscription d’événement.</p>
+<table><thead><tr><th>Affirmation</th><th>Preuve attendue</th></tr></thead><tbody><tr><td>« Cette route exige une authentification »</td><td>Middleware effectif, test non authentifié et configuration de montage de la route</td></tr><tr><td>« Cette fonction est sans effet secondaire »</td><td>Inspection des appels indirects et des accès aux systèmes externes</td></tr><tr><td>« Ce champ peut être supprimé »</td><td>Recherche des usages, contrats API, données persistées et consommateurs</td></tr><tr><td>« Le test couvre cette règle »</td><td>Assertion qui échouerait si la règle était retirée, idéalement vérifiée par une mutation simple</td></tr></tbody></table>
+<p>Lors d’une revue, formule les commentaires en termes de risque observable et de question précise. Distingue un défaut bloquant, une suggestion de lisibilité et une préférence personnelle. Si le contexte manque, demande la raison de la règle plutôt que de supposer qu’elle est inutile.</p>
+</section>
+<section class="lesson-section"><h2>Pièges et compromis</h2>
+<ul><li><strong>Lire les fichiers dans l’ordre alphabétique :</strong> pars d’une fonctionnalité observable.</li><li><strong>Déduire à partir des noms :</strong> vérifie les appels, les types et les tests.</li><li><strong>Tout lire avant d’agir :</strong> fixe une question précise puis élargis l’enquête.</li><li><strong>Faire confiance aux commentaires seuls :</strong> le code et les tests peuvent révéler une documentation obsolète.</li><li><strong>Modifier trop tôt :</strong> reproduis le comportement et localise les tests avant la correction.</li></ul><p>Un code étrange peut protéger un invariant peu visible ou être un ancien contournement. Cherche le contexte avant de supprimer une complexité apparente.</p>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Dans un dépôt d’exercice, trouve le parcours d’une page de détails : composant ou route d’entrée, appel réseau, traitement backend, source de données et un test lié. Écris le chemin en cinq à huit étapes et note deux hypothèses à confirmer.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Cartographie la création d’une commande : validations, permissions, écritures en base, erreurs et réponse renvoyée. Vérifie une partie de ton schéma en exécutant un test ou en utilisant le débogueur.</p><ul><li>Le point d’entrée et la commande de test sont identifiés.</li><li>Le flux de données peut être expliqué dans les deux sens.</li><li>Les validations et autorisations sont localisées sans supposition fondée sur le nom.</li><li>Un test pertinent est relié au comportement observé.</li><li>Faits, hypothèses et questions ouvertes sont séparés.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Utilise ces références pour approfondir les notions et vérifier les détails liés aux versions de tes outils.</p><ol><li><a href="https://developer.mozilla.org/fr/docs/Learn_web_development" target="_blank" rel="noopener noreferrer">MDN — Apprendre le développement Web</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/JavaScript" target="_blank" rel="noopener noreferrer">MDN — JavaScript</a></li><li><a href="https://nodejs.org/en/learn" target="_blank" rel="noopener noreferrer">Node.js — Learn</a></li><li><a href="https://docs.github.com/en/repositories" target="_blank" rel="noopener noreferrer">GitHub Docs — Repositories</a></li><li><a href="https://google.github.io/eng-practices/review/" target="_blank" rel="noopener noreferrer">Google Engineering Practices — Code Review</a></li></ol></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2>
+<label><input type="checkbox"> Je peux expliquer les concepts essentiels avec mes propres mots.</label>
+<label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+<label><input type="checkbox"> Je sais diagnostiquer les erreurs et expliquer les compromis.</label>
+<label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+<p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p></section>
+<nav class="lesson-nav"><a class="nav-link" href="refactoring.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="linux-terminal.html">Compétence suivante →</a></nav>
+</main><footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body></html>

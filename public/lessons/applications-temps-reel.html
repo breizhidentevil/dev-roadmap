@@ -1,0 +1,73 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Applications temps réel
+Domaine documentaire : graphql
+Références consultées pour vérifier l’existence et l’adéquation générale des ressources. Elles servent de base de travail, pas de classement absolu des cinq meilleures ressources.
+1. GraphQL — Apprendre GraphQL — https://graphql.org/learn/
+2. GraphQL — Spécification — https://spec.graphql.org/
+3. MDN — WebSocket API — https://developer.mozilla.org/en-US/docs/Web/API/WebSocket
+4. MDN — Server-sent events — https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events
+5. OWASP — Sécurité WebSocket — https://cheatsheetseries.owasp.org/cheatsheets/WebSocket_Security_Cheat_Sheet.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Approfondir la diffusion d’événements et la synchronisation des clients.">
+  <title>Applications temps réel — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">23. Spécialisations avancées</p>
+    <h1>Applications temps réel</h1>
+    <p class="lead">Approfondir la diffusion d’événements et la synchronisation des clients.</p>
+<div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 2 h</span></div>
+<section class="lesson-section"><h2>Objectifs</h2><ul><li>Choisir entre polling, Server-Sent Events et WebSocket.</li><li>Concevoir la reconnexion, la gestion des erreurs et l’autorisation.</li><li>Comprendre les limites des connexions longues en production.</li></ul></section>
+<section class="lesson-section"><h2>1. Définir le besoin temps réel</h2><p>Une interface est dite temps réel lorsqu’elle doit refléter rapidement un événement externe : notification, tableau de bord, chat, suivi de traitement ou collaboration. Le besoin réel est rarement une latence nulle. Définissez plutôt un objectif mesurable : par exemple, 95 % des mises à jour visibles en moins d’une seconde, avec un comportement acceptable en cas de perte réseau.</p><p>Évaluez la fréquence des événements, le nombre de clients connectés, le sens du flux, la tolérance aux retards et le besoin de conserver les événements manqués. Un indicateur qui change toutes les minutes n’a pas les mêmes besoins qu’un jeu multijoueur.</p></section>
+<section class="lesson-section"><h2>2. Comparer les stratégies</h2><table><thead><tr><th>Approche</th><th>Adaptée lorsque…</th><th>Limites</th></tr></thead><tbody><tr><td>Polling</td><td>Le client interroge périodiquement une API simple.</td><td>Requêtes inutiles et délai lié à l’intervalle.</td></tr><tr><td>Long polling</td><td>Le serveur répond quand un événement arrive ou qu’un délai expire.</td><td>Plus de complexité de gestion des requêtes en attente.</td></tr><tr><td>Server-Sent Events (SSE)</td><td>Le serveur pousse un flux d’événements unidirectionnel vers le navigateur.</td><td>Le client envoie ses commandes par HTTP séparément.</td></tr><tr><td>WebSocket</td><td>Les deux côtés doivent envoyer fréquemment des messages.</td><td>Protocole et cycle de vie plus complexes à exploiter.</td></tr></tbody></table><p>Choisissez la solution la plus simple qui respecte les exigences. Une connexion persistante n’est pas automatiquement meilleure : elle augmente le travail d’observabilité, de montée en charge, de déploiement et de gestion des clients inactifs.</p></section>
+<section class="lesson-section"><h2>3. Exemple SSE côté navigateur</h2><pre><code>const events = new EventSource("/api/events");
+
+events.addEventListener("task-updated", (event) => {
+  const update = JSON.parse(event.data);
+  renderTaskUpdate(update);
+});
+
+events.onerror = () => {
+  showConnectionStatus("Connexion interrompue, reconnexion en cours");
+};
+
+// À la fin de vie de l'écran :
+events.close();</code></pre><p>SSE utilise une réponse HTTP avec le type de contenu <code>text/event-stream</code>. Le serveur sépare les messages par une ligne vide. Prévoyez des commentaires périodiques ou des événements de maintien de connexion si l’infrastructure coupe les connexions silencieuses. Vérifiez aussi les limites de connexions du navigateur et du proxy.</p><p>Le navigateur sait généralement retenter une connexion SSE. Cela ne garantit pas que chaque événement sera reçu : si la reprise exacte est nécessaire, le serveur doit attribuer des identifiants d’événement et implémenter une stratégie de reprise compatible avec la durée de conservation.</p></section>
+<section class="lesson-section"><h2>4. Exemple WebSocket</h2><pre><code>const socket = new WebSocket("wss://example.test/ws");
+
+socket.addEventListener("open", () => {
+  socket.send(JSON.stringify({ type: "subscribe", channel: "tasks" }));
+});
+
+socket.addEventListener("message", (event) => {
+  const message = JSON.parse(event.data);
+  if (message.type === "task-updated") renderTaskUpdate(message.payload);
+});
+
+socket.addEventListener("close", () => showConnectionStatus("Déconnecté"));</code></pre><p>Dans une application réelle, validez chaque message reçu : taille maximale, type connu, schéma, autorisation et limites de fréquence. Ne faites jamais confiance au nom du canal fourni par le client. Le serveur doit vérifier que l’utilisateur peut s’abonner à ce canal et accéder aux données qu’il transporte.</p></section>
+<section class="lesson-section"><h2>5. Reconnexion, doublons et ordre</h2><p>Le réseau peut tomber pendant un échange. Une reconnexion ne dit pas si le dernier message a été appliqué. Pour les événements importants, ajoutez un identifiant unique, une version ou un curseur. Le client peut ignorer les doublons et détecter un trou dans la séquence. Pour les opérations de commande, utilisez une clé d’idempotence ou une commande dont l’application répétée est sans danger.</p><ul><li>Appliquez un délai exponentiel avec aléa pour éviter que tous les clients se reconnectent en même temps.</li><li>Limitez le nombre de tentatives ou adaptez-les à la durée de vie de l’écran.</li><li>Affichez l’état de connexion sans bloquer toute l’interface.</li><li>Rechargez un instantané après une longue déconnexion si le flux ne peut pas rejouer tous les événements.</li><li>Ne supposez pas que l’ordre est global entre plusieurs serveurs ou canaux.</li></ul></section>
+<section class="lesson-section"><h2>6. Architecture de production</h2><p>Les connexions longues consomment des ressources. Mesurez les connexions actives, la durée, les erreurs, les messages par seconde, la latence et les reconnexions. Configurez les délais du reverse proxy et de l’équilibreur de charge. Lorsqu’une application tourne sur plusieurs instances, un mécanisme de diffusion partagé peut être nécessaire pour que les événements publiés sur une instance atteignent les clients connectés aux autres.</p><p>Pour les événements métier importants, ne dépendez pas uniquement d’une diffusion en mémoire. Envisagez une file ou un journal d’événements durable, une stratégie de rétention et une procédure de rattrapage. Documentez ce qui se passe lorsqu’un client est hors ligne.</p></section>
+<section class="lesson-section"><h2>7. Sécurité</h2><ul><li>Utilisez TLS, donc <code>wss://</code> pour WebSocket sur un site sécurisé.</li><li>Vérifiez l’origine du navigateur au moment de l’établissement de la connexion.</li><li>Authentifiez la connexion et réévaluez les autorisations quand elles peuvent changer.</li><li>Ne placez pas de jetons secrets dans les URL, où ils risquent d’apparaître dans les journaux.</li><li>Limitez taille, fréquence et nombre de connexions par utilisateur.</li><li>Validez les messages et encodez correctement les données affichées.</li></ul></section>
+<section class="lesson-section"><h2>8. Tests et exercice</h2><p>Testez la perte réseau, les reconnexions répétées, les messages mal formés, les permissions révoquées, les doublons, les événements hors ordre et les clients lents. Simulez un grand nombre de connexions plutôt que de vous limiter à deux navigateurs.</p><p><strong>Exercice :</strong> concevez un tableau de suivi de tâches qui affiche les changements en moins de deux secondes. Justifiez SSE, WebSocket ou polling, définissez le format d’événement, la reconnexion, l’autorisation et les métriques opérationnelles.</p><h3>Critères de réussite</h3><ul><li>Le choix du transport découle du besoin et du sens du flux.</li><li>Les messages sont validés et autorisés côté serveur.</li><li>Les reconnexions et les événements manqués ont une stratégie définie.</li><li>La solution est observable et testée en conditions de panne.</li></ul></section>
+<section class="lesson-section"><h2>169 — Atelier de clôture : applications temps réel</h2>
+<p><strong>Objectif :</strong> Choisis un transport temps réel et conçois reconnexion, authentification, ordre des messages et retour à l’état cohérent.</p>
+<h3>Modèle mental et méthode</h3><p>WebSocket fournit un canal bidirectionnel ; Server-Sent Events diffuse des événements serveur vers client ; le polling est parfois suffisant et plus simple. Le transport ne remplace ni la persistance ni la gestion des états manquants. Utilise des identifiants de séquence ou curseurs pour reprendre après une coupure.</p>
+<h3>Exemple guidé</h3><p>Exemple : à la reconnexion, le client envoie le dernier curseur reçu ; le serveur rejoue les événements disponibles puis fournit un snapshot si la fenêtre de rétention est dépassée.</p>
+<h3>Pièges à éviter</h3><p>Pièges : supposer une connexion permanente, ne pas limiter le débit, oublier l’expiration des jetons, ou ne pas réconcilier les messages manqués.</p>
+<h3>Exercice de synthèse</h3><p>Exercice : choisis entre polling, SSE et WebSocket pour un tableau de bord, un chat et une progression de tâche ; justifie le choix et la stratégie de reconnexion.</p>
+<h3>Critères de réussite</h3><p>Réussite : transport justifié, authentification contrôlée, débit borné, reconnexion et resynchronisation testées.</p></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events">MDN — Server-Sent Events</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API">MDN — WebSocket API</a></li><li><a href="https://html.spec.whatwg.org/multipage/server-sent-events.html">WHATWG — Server-sent events</a></li><li><a href="https://websockets.spec.whatwg.org/">WHATWG — WebSockets</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/WebSocket_Security_Cheat_Sheet.html">OWASP — WebSocket Security Cheat Sheet</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je sais comparer polling, SSE et WebSocket.</label><label><input type="checkbox"> Je sais concevoir une reconnexion et traiter les doublons.</label><label><input type="checkbox"> Je sais sécuriser et mesurer des connexions persistantes.</label></section>
+    <nav class="lesson-nav"><a class="nav-link" href="architecture-evenementielle.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

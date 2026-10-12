@@ -1,0 +1,81 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Middlewares
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. Express — Middleware guide — https://expressjs.com/en/guide/using-middleware.html
+2. Fastify — Hooks — https://fastify.dev/docs/latest/Reference/Hooks/
+3. Koa — Documentation — https://koajs.com/
+4. NestJS — Middleware — https://docs.nestjs.com/middleware
+5. OWASP — Logging Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Organiser les traitements transverses d’une requête sans mélanger infrastructure et logique métier.">
+  <title>Middlewares — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">3. Backend</p>
+    <h1>Middlewares</h1>
+    <p class="lead">Centraliser les traitements transverses comme les logs et la gestion d’erreurs.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 11 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Comprendre le rôle d’un middleware dans le cycle HTTP.</li><li>Organiser l’ordre des traitements transverses.</li><li>Gérer continuation, réponse et erreurs selon le framework.</li><li>Éviter les effets de bord et les fuites de données sensibles.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Principe</h2>
+    <p>Un middleware est une fonction exécutée dans le pipeline de traitement d’une requête. Il peut inspecter ou enrichir le contexte, appliquer une politique, transmettre le contrôle au traitement suivant, ou terminer la réponse. Les usages courants comprennent la journalisation, l’authentification, la limitation de débit, la gestion des identifiants de corrélation et la gestion centralisée des erreurs.</p><p>Le middleware ne remplace pas la logique métier. Il doit traiter une responsabilité transversale clairement définie et rester réutilisable sur plusieurs routes.</p>
+    </section>
+    <section class="lesson-section"><h2>2. L’ordre est une partie du contrat</h2>
+    <p>Les middlewares s’exécutent généralement dans un ordre déterminé. Un middleware de journalisation placé trop tard peut ne pas voir certains rejets ; un parseur de corps doit être exécuté avant le validateur qui lit ce corps ; une authentification doit précéder une route protégée. Dessine le pipeline et précise où les erreurs sont interceptées.</p><pre><code>Requête
+  → identifiant de corrélation
+  → journalisation de début
+  → parsing du corps
+  → authentification
+  → autorisation
+  → route / logique métier
+  → gestionnaire d’erreurs
+  → réponse</code></pre><p>Ce schéma est illustratif : chaque framework possède ses conventions et certains traitements peuvent s’exécuter avant ou après la route.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Continuation et réponse</h2>
+    <p>Dans Express, un middleware appelle habituellement <code>next()</code> pour transmettre le contrôle, ou envoie une réponse. S’il ne fait ni l’un ni l’autre, la requête peut rester bloquée. Appeler plusieurs fois <code>next()</code> ou envoyer une réponse après la fin de la réponse provoque des erreurs difficiles à diagnostiquer.</p><pre><code>function requestId(req, res, next) {
+  const id = crypto.randomUUID();
+  req.requestId = id;
+  res.setHeader("X-Request-Id", id);
+  next();
+}</code></pre><p>Exemple Express simplifié : en production, transmets le contexte de corrélation aux logs et aux services appelés, sans faire confiance à un identifiant client arbitraire comme identifiant interne sans validation.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Gestion des erreurs et sécurité</h2>
+    <p>Centralise la conversion des erreurs connues en réponses HTTP cohérentes. Ne renvoie pas les traces de pile au client. Journalise les informations utiles au diagnostic en évitant mots de passe, tokens, cookies et données personnelles non nécessaires. Pour les opérations asynchrones, vérifie comment le framework courant propage les exceptions et rejets de promesses.</p><p>Un middleware d’authentification établit l’identité ; il ne suffit pas à autoriser chaque opération. Les contrôles de permission doivent être adaptés à la ressource et aux actions demandées, puis appliqués côté serveur.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Garder les middlewares simples</h2>
+    <ul><li>Une responsabilité principale par middleware.</li><li>Des entrées et sorties explicites dans le contexte de requête.</li><li>Pas de logique métier cachée dans une chaîne globale.</li><li>Des erreurs typées ou un contrat d’erreur commun.</li><li>Des tests pour le passage au suivant, le rejet, le refus et les délais.</li></ul><p>Un pipeline trop fragmenté est aussi difficile à comprendre qu’un gros contrôleur. Extrais un middleware quand la responsabilité est transversale, stable et suffisamment indépendante.</p>
+    </section>
+    <section class="lesson-section"><h2>6. Étude de cas : une requête traverse le pipeline</h2>
+<p>Supposons qu’une route <code>GET /api/projects/42</code> renvoie parfois une erreur 500, mais seulement lorsque le corps de la requête est mal formé. Pour diagnostiquer le problème, reconstitue la chaîne des traitements et note, pour chaque étape, si elle peut terminer la réponse, transmettre le contrôle ou produire une erreur. Ne pars pas du principe que tous les frameworks utilisent la même convention : Express, Fastify, Koa et NestJS n’ont ni la même signature de fonction ni exactement le même modèle de cycle de vie.</p>
+<ol><li><strong>Identifiant de corrélation :</strong> générer ou valider un identifiant, puis le propager dans les logs et la réponse.</li><li><strong>Journalisation :</strong> enregistrer la méthode, la route normalisée, la durée et le statut final, sans enregistrer le cookie, le jeton, le mot de passe ni tout le corps par défaut.</li><li><strong>Parsing :</strong> transformer le corps brut en donnée structurée. Une erreur de parsing doit être classée comme entrée invalide, pas comme erreur interne générique.</li><li><strong>Authentification puis autorisation :</strong> identifier l’acteur, puis vérifier son droit sur la ressource ciblée. L’ordre exact peut varier, mais aucune route protégée ne doit être atteignable sans ces contrôles.</li><li><strong>Route et gestionnaire d’erreurs :</strong> une seule couche doit traduire l’erreur en réponse publique stable ; le détail technique reste dans les journaux protégés.</li></ol>
+<p><strong>Invariant utile :</strong> une fois la réponse envoyée, aucun middleware ne doit tenter d’en envoyer une seconde. Dans Express, l’appel à <code>next()</code> transmet le contrôle et <code>next(err)</code> délègue à la chaîne d’erreurs ; dans d’autres frameworks, il faut suivre le mécanisme documenté. Une fonction asynchrone qui rejette doit être prise en charge par le modèle d’erreurs de la version utilisée.</p>
+<p><strong>Diagnostic reproductible :</strong> envoie un JSON valide, un JSON mal formé, une requête sans authentification et une requête autorisée. Vérifie le statut, le format d’erreur, l’identifiant de corrélation et l’absence de données sensibles dans les logs. Si le statut final est absent des journaux, vérifie que la mesure de durée est finalisée sur tous les chemins de réponse, y compris les erreurs.</p>
+<p><strong>Critère de réussite :</strong> tu peux dessiner le pipeline, indiquer pour chaque étape qui possède la responsabilité, et démontrer qu’une erreur n’entraîne ni réponse double ni fuite d’informations.</p></section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Oublier de poursuivre ou terminer la requête.</li><li>Placer un traitement dans le mauvais ordre.</li><li>Répéter la même journalisation ou transformation dans plusieurs couches.</li><li>Exposer des détails internes dans les réponses d’erreur.</li><li>Confondre authentification et autorisation.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Sur une API de tâches, conçois trois middlewares : un identifiant de requête, une authentification et un gestionnaire d’erreurs. Indique l’ordre, les données partagées et les réponses attendues si le jeton est absent, si la route lève une erreur ou si tout réussit.</p><h3>Critères de réussite</h3><ul><li>Le pipeline est ordonné et documenté.</li><li>Chaque middleware a une responsabilité précise.</li><li>Chaque chemin termine la requête ou transmet correctement le contrôle.</li><li>Les erreurs sont sûres et cohérentes.</li><li>Des tests couvrent succès, refus et exception.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><p>Références documentaires de départ pour approfondir les concepts et vérifier les détails propres aux outils utilisés.</p><ul>
+      <li><a href="https://expressjs.com/en/guide/using-middleware.html" target="_blank" rel="noopener noreferrer">Express — Middleware guide</a></li>
+      <li><a href="https://fastify.dev/docs/latest/Reference/Hooks/" target="_blank" rel="noopener noreferrer">Fastify — Hooks</a></li>
+      <li><a href="https://koajs.com/" target="_blank" rel="noopener noreferrer">Koa — Documentation</a></li>
+      <li><a href="https://docs.nestjs.com/middleware" target="_blank" rel="noopener noreferrer">NestJS — Middleware</a></li>
+      <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Logging Cheat Sheet</a></li>
+    </ul></section>
+        <nav class="lesson-nav"><a class="nav-link" href="openapi-swagger.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="validation-schema.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

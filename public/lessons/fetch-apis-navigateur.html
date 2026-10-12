@@ -1,0 +1,152 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Fetch et API navigateur
+Les références sont des ressources de référence à consulter pour approfondir les notions. Le tutoriel est une synthèse pédagogique originale.
+1. MDN — Using Fetch — https://developer.mozilla.org/fr/docs/Web/API/Fetch_API/Using_Fetch
+2. MDN — Fetch API — https://developer.mozilla.org/fr/docs/Web/API/Fetch_API
+3. MDN — AbortController — https://developer.mozilla.org/fr/docs/Web/API/AbortController
+4. MDN — CORS — https://developer.mozilla.org/fr/docs/Web/HTTP/CORS
+5. MDN — Response.ok — https://developer.mozilla.org/en-US/docs/Web/API/Response/ok
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Appeler des services HTTP et utiliser les capacités du navigateur.">
+  <title>Fetch et APIs du navigateur — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">2. Frontend</p>
+    <h1>Fetch et API navigateur</h1>
+    <p class="lead">Effectuer des requêtes HTTP depuis le navigateur, traiter les réponses et gérer les erreurs, l’annulation et les états de chargement.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 7 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Envoyer une requête HTTP avec <code>fetch</code>.</li><li>Distinguer erreur réseau et réponse HTTP non réussie.</li><li>Lire et valider le corps d’une réponse.</li><li>Gérer chargement, erreur, annulation et réponses obsolètes.</li><li>Comprendre les limites imposées par CORS et les identifiants.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Effectuer une requête</h2>
+    <p><code>fetch</code> renvoie une promesse qui se résout généralement dès que les en-têtes de réponse sont disponibles. La promesse ne rejette pas simplement parce que le serveur renvoie un statut comme 404 ou 500 : il faut vérifier <code>response.ok</code> ou <code>response.status</code>.</p><pre><code>async function chargerProduits() {
+      const response = await fetch("/api/produits");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    }</code></pre><p><code>response.json()</code> est lui-même asynchrone et peut échouer si le corps n’est pas un JSON valide. Le code appelant doit donc gérer aussi les erreurs de lecture ou de parsing.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Envoyer des données JSON</h2>
+    <pre><code>async function creerProduit(produit) {
+      const response = await fetch("/api/produits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(produit)
+      });
+    
+      if (!response.ok) {
+        throw new Error(`Création impossible : HTTP ${response.status}`);
+      }
+      return response.status === 204 ? null : response.json();
+    }</code></pre><p>Le serveur doit valider les données indépendamment de la validation de formulaire dans le navigateur. Vérifie le contrat de l’API : certaines réponses n’ont pas de corps (par exemple 204), et certaines erreurs utilisent un format JSON documenté. N’assume pas que chaque réponse peut être lue avec <code>json()</code>.</p>
+    </section>
+    <section class="lesson-section"><h2>3. États de chargement et erreurs</h2>
+    <p>Une interface doit distinguer au minimum chargement, succès vide, succès avec données et échec. Le message utilisateur doit rester compréhensible ; les détails techniques peuvent être journalisés sans exposer d’informations sensibles.</p><pre><code>try {
+      afficherEtat("chargement");
+      const produits = await chargerProduits();
+      afficherProduits(produits);
+    } catch (erreur) {
+      afficherErreur("Impossible de charger les produits.");
+      console.error("Chargement des produits échoué", erreur);
+    }</code></pre><p>Ne transforme pas toutes les erreurs en liste vide : l’utilisateur ne pourrait plus distinguer « aucun résultat » de « service indisponible ». Prévois une action de reprise lorsque cela a du sens.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Annuler une requête et éviter les courses</h2>
+    <p>Un changement de page ou de filtre peut rendre une requête inutile. <code>AbortController</code> permet de transmettre un signal à <code>fetch</code> et d’annuler la requête. Lors d’une recherche interactive, évite qu’une réponse ancienne arrive après la plus récente et remplace les résultats actuels.</p><pre><code>const controller = new AbortController();
+    
+    try {
+      const response = await fetch("/api/recherche?q=clavier", {
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const resultat = await response.json();
+    } catch (erreur) {
+      if (erreur instanceof DOMException && erreur.name === "AbortError") {
+        // Annulation attendue : ne pas afficher une erreur générique.
+      } else {
+        throw erreur;
+      }
+    }
+    
+    // Si la recherche n'est plus utile :
+    // controller.abort();</code></pre><p>Dans une application réelle, crée un contrôleur par opération annulable et conserve sa référence. Une annulation n’est pas nécessairement une erreur utilisateur.</p>
+    </section>
+    <section class="lesson-section"><h2>5. CORS, cookies et sécurité</h2>
+    <p>CORS est un mécanisme appliqué par le navigateur qui contrôle si un script d’une origine peut lire une réponse provenant d’une autre origine. Il doit être configuré sur le serveur qui fournit la ressource ; désactiver la sécurité du navigateur n’est pas une solution acceptable.</p><p>Les cookies d’authentification, les options <code>credentials</code>, les politiques SameSite et les protections CSRF doivent être conçus ensemble. N’inclus pas de secrets durables dans le JavaScript livré au navigateur : tout utilisateur peut inspecter ce code. N’envoie pas de jetons ou données personnelles dans les logs.</p>
+    </section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Oublier de vérifier <code>response.ok</code>.</li><li>Supposer que toutes les réponses ont un corps JSON.</li><li>Confondre erreur réseau, CORS et statut HTTP 4xx/5xx.</li><li>Afficher une liste vide quand la requête a échoué.</li><li>Laisser une réponse ancienne écraser les résultats plus récents.</li><li>Exposer des secrets dans le code client.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Analyse approfondie : réponses obsolètes et validation des données</h2>
+<p>Une requête peut réussir au niveau HTTP tout en renvoyant un contenu inutilisable pour l’application. Un statut 200 ne prouve ni que le corps est un JSON valide ni qu’il respecte le schéma attendu. Traite les données du réseau comme des entrées non fiables.</p>
+<h3>Vérifier le contrat minimal</h3><pre><code>async function chargerTaches(signal) {
+  const response = await fetch("/api/taches", { signal });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  const contenu = await response.json();
+  if (!Array.isArray(contenu) ||
+      !contenu.every(t => t && typeof t.id === "string" &&
+        typeof t.titre === "string")) {
+    throw new Error("Format de réponse inattendu");
+  }
+  return contenu;
+}</code></pre>
+<p>Adapte la validation au contrat réel : ce contrôle n’est qu’un exemple minimal et ne remplace pas un validateur complet lorsque le schéma est plus complexe. Prévois aussi les réponses sans corps, comme <code>204 No Content</code>, avant d’appeler <code>response.json()</code>.</p>
+<h3>Éviter qu’une ancienne recherche écrase la nouvelle</h3>
+<p>Quand une personne tape rapidement, la requête A peut terminer après la requête B. Il faut annuler l’opération précédente et vérifier qu’elle correspond toujours à la recherche courante avant de publier son résultat. L’annulation côté navigateur ne prouve pas que le serveur a interrompu son traitement.</p>
+<pre><code>let controleRechercheActif;
+let revisionRecherche = 0;
+
+async function rechercher(terme) {
+  const revision = ++revisionRecherche;
+  controleRechercheActif?.abort();
+
+  const controle = new AbortController();
+  controleRechercheActif = controle;
+
+  try {
+    const url = `/api/recherche?q=${encodeURIComponent(terme)}`;
+    const response = await fetch(url, { signal: controle.signal });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const resultats = await response.json();
+
+    // Une réponse arrivée en retard ne doit pas remplacer l’état courant.
+    if (revision !== revisionRecherche) return;
+    afficherResultats(resultats);
+  } catch (erreur) {
+    // Une annulation attendue ne doit pas devenir un message d’erreur.
+    if (controle.signal.aborted) return;
+    if (revision === revisionRecherche) {
+      afficherErreur("Recherche impossible. Réessayez.");
+    }
+  } finally {
+    // Ne pas effacer le contrôleur d’une recherche plus récente.
+    if (controleRechercheActif === controle) {
+      controleRechercheActif = undefined;
+    }
+  }
+}</code></pre>
+<p>Dans une application réelle, validez également la forme de <code>resultats</code> selon le contrat de l’API avant de l’afficher. Le compteur de révision reste utile même si le transport ne respecte pas immédiatement l’annulation.</p>
+<p>Enfin, ne place jamais une clé privée dans le JavaScript livré au navigateur. CORS se configure principalement sur le serveur qui répond et autorise la lecture par une origine ; il ne remplace ni l’authentification ni l’autorisation métier.</p></section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Crée un composant qui charge une liste depuis une API, affiche un état de chargement, un message d’erreur et un état vide. Ajoute un bouton de nouvelle tentative et une recherche annulable lorsque l’utilisateur change rapidement de terme.</p><h3>Critères de réussite</h3><ul><li>Les statuts HTTP non réussis sont traités explicitement.</li><li>Les erreurs de réseau et de parsing ne sont pas confondues avec une réponse vide.</li><li>L’interface affiche des états compréhensibles.</li><li>Les requêtes devenues inutiles peuvent être annulées.</li><li>La configuration CORS reste côté serveur et aucun secret n’est livré au navigateur.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Web/API/Fetch_API/Using_Fetch" target="_blank" rel="noopener noreferrer">MDN — Using Fetch</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/API/Fetch_API" target="_blank" rel="noopener noreferrer">MDN — Fetch API</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/API/AbortController" target="_blank" rel="noopener noreferrer">MDN — AbortController</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/CORS" target="_blank" rel="noopener noreferrer">MDN — CORS</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Response/ok" target="_blank" rel="noopener noreferrer">MDN — Response.ok</a></li></ul></section>
+        <nav class="lesson-nav"><a class="nav-link" href="javascript-dom.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="debug-frontend.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

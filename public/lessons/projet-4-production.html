@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spécification du projet pratique de mise en production : CI/CD, secrets, migrations, supervision, sauvegardes et retour arrière.">
+  <title>Projet 4 — Mise en production — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a>
+  <span class="topbar-note">Parcours d’apprentissage</span>
+</header>
+<main class="lesson">
+  <p class="eyebrow">Projets pratiques et validation des acquis</p>
+  <h1>Projet 4 — Mise en production</h1>
+  <p class="lead">Livrer l’application Full Stack de façon reproductible, sécurisée et observable, puis démontrer qu’une panne peut être détectée et qu’un retour à un état sain est possible.</p>
+
+  <section class="lesson-section">
+    <h2>1. Contexte, objectif et prérequis</h2>
+    <p>Ce projet reprend l’application définie au Projet 3. Le but n’est pas simplement de rendre une URL accessible : il faut rendre le processus de livraison répétable, limiter les changements risqués, protéger les secrets, suivre l’état du service et préparer la récupération après incident. Une mise en production n’est considérée comme réussie qu’après des contrôles post-déploiement.</p>
+    <p>Le résultat attendu est un environnement de démonstration exploitable avec une procédure écrite qu’une autre personne peut suivre. L’hébergement peut être un fournisseur cloud, une plateforme applicative ou un serveur maîtrisé. Les outils précis sont adaptables ; les preuves de fonctionnement et les mécanismes de sécurité ne le sont pas.</p>
+    <h3>Prérequis</h3>
+    <ul>
+      <li>Application frontend et API capables de fonctionner avec une configuration externe.</li>
+      <li>Tests automatisés de base, dépôt Git et stratégie de branches/revue de code.</li>
+      <li>Notions de HTTP, DNS, TLS, variables d’environnement, conteneurs et bases SQL.</li>
+      <li>Compréhension des migrations de schéma, des journaux et des codes de réponse HTTP.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>2. Périmètre et exigences</h2>
+    <h3>Inclus</h3>
+    <ul>
+      <li>Environnements distincts pour développement, validation et production, avec configuration documentée.</li>
+      <li>Pipeline automatisé qui lance les contrôles, construit un artefact identifiable et bloque la livraison si un contrôle obligatoire échoue.</li>
+      <li>Déploiement d’une version identifiée, avec vérification de santé et procédure de retour arrière.</li>
+      <li>Gestion des secrets hors du dépôt et limitation des permissions du pipeline.</li>
+      <li>Migrations de base de données contrôlées, sauvegarde et exercice de restauration.</li>
+      <li>Journaux exploitables, indicateurs de santé, alertes utiles et procédure d’incident minimale.</li>
+    </ul>
+    <h3>Hors périmètre initial</h3>
+    <ul>
+      <li>Cluster multi-région, orchestration Kubernetes obligatoire, infrastructure entièrement redondée ou astreinte 24/7.</li>
+      <li>Promesse de disponibilité contractuelle sans mesure, budget ni capacité d’exploitation.</li>
+      <li>Déploiement automatique de toute branche directement en production sans revue ni approbation adaptée.</li>
+    </ul>
+    <p class="note">Choisir le mécanisme le plus simple qui satisfait les exigences. Un conteneur ou un outil CI/CD ne rend pas à lui seul une application sécurisée, disponible ou restaurable.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>3. Architecture cible et configuration</h2>
+    <p>Architecture de référence, à adapter à l’hébergeur retenu :</p>
+    <pre><code>Utilisateur
+   |
+HTTPS / domaine / certificat TLS
+   |
+Frontend statique ou service web
+   |
+API (instance(s) de l’application)
+   |              \
+   |               \ journaux / métriques / alertes
+   |
+Base SQL managée ou service de base isolé
+   |
+Sauvegardes protégées, séparées de la base active</code></pre>
+    <p>Le service de base ne doit pas être exposé publiquement si l’architecture permet de l’éviter. Le frontend et l’API utilisent des adresses et permissions adaptées à leur rôle. Les règles réseau, certificats, limites de ressources et mécanismes de redémarrage dépendent de l’hébergement ; ils doivent être décrits dans le dossier de livraison.</p>
+    <h3>Configuration par environnement</h3>
+    <p>Le code et l’artefact doivent rester identiques entre les environnements autant que possible ; ce sont les paramètres qui changent. Documenter au minimum l’URL publique, l’origine autorisée, le niveau de journalisation, les paramètres de base, les limites de débit et les intégrations externes. Une configuration manquante ou invalide doit empêcher le démarrage plutôt que provoquer un comportement implicite dangereux.</p>
+    <p>Ne jamais committer de mot de passe, clé privée, jeton d’accès ou fichier de production. Utiliser le gestionnaire de secrets de la plateforme ou un mécanisme équivalent, limiter les personnes et processus autorisés à les lire, séparer les secrets de test et de production et prévoir leur rotation. Les journaux, captures d’écran et artefacts CI ne doivent pas contenir les valeurs secrètes.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>4. Pipeline CI/CD attendu</h2>
+    <p>Le pipeline doit produire des résultats vérifiables et s’arrêter en cas d’échec bloquant. Les étapes exactes dépendent du dépôt, mais l’ordre logique est le suivant :</p>
+    <ol>
+      <li>Récupérer le commit exact et installer les dépendances depuis le fichier de verrouillage.</li>
+      <li>Exécuter formatage ou lint, vérification de types, tests unitaires et tests d’intégration disponibles.</li>
+      <li>Construire le frontend et l’API ; vérifier que l’artefact peut être reproduit et identifier son commit.</li>
+      <li>Effectuer les contrôles de dépendances et de configuration de sécurité retenus par le projet.</li>
+      <li>Publier l’artefact dans un registre ou stockage avec un identifiant immuable, puis le déployer dans l’environnement de validation.</li>
+      <li>Exécuter des tests de fumée sur le service déployé et demander l’approbation requise avant la production.</li>
+      <li>Déployer l’artefact déjà validé, surveiller les indicateurs, puis confirmer le succès ou déclencher la procédure d’arrêt/retour arrière.</li>
+    </ol>
+    <p>Le pipeline doit échouer si un test obligatoire échoue, si un secret requis manque, si l’artefact n’est pas identifié ou si le contrôle de santé post-déploiement échoue. Les permissions doivent être minimales : un job qui compile le code n’a pas besoin d’un accès permanent aux secrets de production. Les actions et dépendances de pipeline doivent être épinglées ou contrôlées selon les mécanismes de la plateforme.</p>
+    <p>Ne pas reconstruire silencieusement un artefact différent au moment de la promotion en production. Promouvoir le même artefact validé, ou documenter les raisons et les contrôles qui rendent la reconstruction équivalente acceptable.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>5. Conteneurs, migrations et déploiement</h2>
+    <h3>Image et exécution</h3>
+    <ul>
+      <li>Utiliser une construction multi-étape lorsque cela réduit la taille et exclut les outils de développement de l’image finale.</li>
+      <li>Exécuter le processus avec un utilisateur non privilégié si la plateforme et l’application le permettent.</li>
+      <li>Ne pas intégrer de secrets dans les couches d’image, les arguments de construction ou les fichiers copiés.</li>
+      <li>Définir explicitement le port, la commande de démarrage, les limites de ressources et le comportement à l’arrêt.</li>
+      <li>Utiliser un contrôle de santé qui mesure réellement la disponibilité de l’application, sans révéler d’informations sensibles.</li>
+    </ul>
+    <h3>Migrations de base de données</h3>
+    <p>Les migrations sont versionnées et relues comme du code. Avant une modification risquée, vérifier la sauvegarde, la durée attendue, les verrous possibles et la compatibilité avec la version précédente de l’application. Pour un changement incompatible, privilégier une évolution en plusieurs étapes : ajouter la nouvelle structure, rendre le code compatible, migrer les données, puis retirer l’ancien champ lors d’une livraison ultérieure.</p>
+    <p>Le retour arrière de l’application ne restaure pas automatiquement le schéma ni les données. Une migration destructive peut rendre une ancienne version inutilisable. Décrire séparément le rollback applicatif et la récupération de base ; ne pas exécuter une migration irréversible sans plan de récupération et décision explicite.</p>
+    <h3>Stratégie de déploiement</h3>
+    <p>Pour un petit projet, un déploiement progressif avec fenêtre de maintenance documentée peut suffire. Si la plateforme le permet, un déploiement blue/green ou par étapes réduit l’exposition : démarrer la nouvelle version, vérifier sa santé, basculer le trafic, surveiller, puis conserver l’ancienne version pendant une durée définie. Le choix dépend des coûts, de la compatibilité des données et des capacités de l’hébergeur.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>6. Supervision et réponse aux incidents</h2>
+    <p>Définir des signaux simples qui permettent de répondre à trois questions : le service répond-il, fonctionne-t-il correctement pour les utilisateurs, et ses dépendances sont-elles disponibles ? Le minimum comprend :</p>
+    <ul>
+      <li>Des contrôles distincts lorsque la plateforme le permet : <em>liveness</em> pour vérifier que le processus doit continuer à tourner, et <em>readiness</em> pour indiquer s’il peut recevoir du trafic. La readiness tient compte des dépendances indispensables ; une panne temporaire de base ne doit pas, à elle seule, rendre la liveness négative et provoquer une boucle de redémarrages.</li>
+      <li>Un contrôle HTTP de santé sans exposer la configuration interne, avec des réponses et seuils documentés pour chaque sonde.</li>
+      <li>Des journaux structurés contenant horodatage, niveau, identifiant de requête et contexte utile, sans secrets ni données personnelles inutiles.</li>
+      <li>Des métriques adaptées : taux d’erreurs, latence, volume de requêtes et état des dépendances. Les seuils sont définis à partir d’un comportement de référence plutôt que choisis arbitrairement.</li>
+      <li>Une alerte actionnable avec gravité, condition, canal de notification et première procédure de diagnostic.</li>
+      <li>Un suivi des déploiements afin de corréler une régression à une version précise.</li>
+    </ul>
+    <p>Le runbook doit indiquer comment confirmer l’incident, consulter les journaux, vérifier la base et les dépendances, suspendre une livraison, revenir à la dernière version saine et communiquer l’état. Après incident, consigner la cause confirmée ou encore inconnue, l’impact, les actions et les mesures préventives. Ne pas transformer une hypothèse en cause racine sans preuve.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>7. Sauvegardes et restauration</h2>
+    <p>Définir les données à sauvegarder, la fréquence, la durée de conservation, le lieu de stockage, les permissions et le chiffrement. Les sauvegardes doivent être protégées contre la suppression accidentelle et, dans la mesure permise par le contexte, séparées du compte ou de l’environnement de production. Les fichiers d’upload et la configuration nécessaire à la restauration doivent être traités s’ils font partie des données de l’application.</p>
+    <p>Deux objectifs doivent être explicités :</p>
+    <ul>
+      <li><strong>RPO</strong> : quantité maximale de données que l’on accepte de perdre, exprimée en durée.</li>
+      <li><strong>RTO</strong> : durée cible maximale pour rétablir le service après l’incident considéré.</li>
+    </ul>
+    <p>Ces objectifs sont des engagements de conception à tester, pas des garanties. Réaliser une restauration dans un environnement isolé, vérifier l’intégrité des données, lancer les contrôles applicatifs et mesurer le temps réel. Une sauvegarde dont la restauration n’a jamais été essayée n’est pas une preuve suffisante de récupérabilité.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>8. Exigences de sécurité et de fiabilité</h2>
+    <ul>
+      <li>HTTPS actif, configuration de domaines et origines vérifiée, absence de secrets dans le dépôt et les journaux.</li>
+      <li>Permissions minimales pour l’application, le pipeline, le registre d’images, la base et les sauvegardes.</li>
+      <li>Dépendances verrouillées et contrôles de vulnérabilités intégrés au processus de livraison, avec règles documentées pour les alertes.</li>
+      <li>Compte de base de données de l’application limité aux opérations nécessaires ; droits de migration séparés si le contexte le permet.</li>
+      <li>Contrôles de santé et d’arrêt gracieux, limites de ressources et comportement défini lorsque la base est indisponible.</li>
+      <li>Procédures de rotation des secrets, de révocation des accès et de suppression des environnements temporaires.</li>
+    </ul>
+    <p>Une alerte de vulnérabilité n’est pas résolue par le simple fait de l’ignorer dans le pipeline. Si une exception temporaire est nécessaire, consigner le risque, le responsable, la mesure compensatoire et la date de réexamen.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>9. Étapes de réalisation</h2>
+    <ol>
+      <li>Choisir l’hébergement et dessiner l’architecture cible ; documenter coût, limites et accès nécessaires.</li>
+      <li>Externaliser la configuration, supprimer les secrets du dépôt et définir les permissions par environnement.</li>
+      <li>Créer le build reproductible et l’image ou l’artefact de production ; vérifier qu’aucun outil ou fichier de développement inutile n’est embarqué.</li>
+      <li>Écrire le pipeline CI, ses règles de blocage, la publication d’artefact et le déploiement en environnement de validation.</li>
+      <li>Préparer les migrations et la procédure de livraison, y compris les changements incompatibles et le retour arrière.</li>
+      <li>Mettre en place les contrôles de santé, journaux, métriques, alertes et runbook.</li>
+      <li>Configurer les sauvegardes et exécuter un exercice de restauration chronométré.</li>
+      <li>Effectuer une livraison de démonstration, contrôler les critères d’acceptation et archiver les preuves non sensibles.</li>
+    </ol>
+  </section>
+
+  <section class="lesson-section">
+    <h2>10. Critères d’acceptation mesurables</h2>
+    <ul>
+      <li>Un commit qui échoue à un test obligatoire ne peut pas être promu vers la production par le pipeline prévu.</li>
+      <li>Une livraison réussie identifie le commit et l’artefact exacts ; l’artefact promu est celui qui a passé les contrôles de validation.</li>
+      <li>Aucun secret réel n’est présent dans le dépôt, l’image publiée ou les journaux produits par le pipeline de démonstration.</li>
+      <li>Le service de production utilise HTTPS et les contrôles de santé permettent de distinguer un processus vivant d’un service prêt à recevoir du trafic. Lors d’une panne simulée de la base, la readiness devient négative tandis que la liveness ne provoque pas de redémarrage en cascade pour cette seule raison.</li>
+      <li>Une migration de démonstration est exécutée sur une base non productive, avec résultat vérifié et procédure de récupération documentée.</li>
+      <li>Une restauration de sauvegarde est effectuée dans un environnement isolé ; le rapport indique la durée, l’intégrité vérifiée et les écarts éventuels par rapport aux objectifs RPO/RTO.</li>
+      <li>Le runbook permet à une autre personne de trouver les journaux, identifier la version déployée et suivre la procédure de retour arrière sans inventer d’étapes critiques.</li>
+      <li>Un test de fumée post-déploiement vérifie au minimum la disponibilité de l’interface, l’API et une lecture représentative de données de test.</li>
+    </ul>
+  </section>
+
+  <section class="lesson-section">
+    <h2>11. Plan de tests et preuves</h2>
+    <table><thead><tr><th>Contrôle</th><th>Méthode</th><th>Preuve attendue</th></tr></thead><tbody>
+      <tr><td>Échec du pipeline</td><td>Introduire volontairement un test en échec sur une branche de test.</td><td>La promotion est bloquée et l’échec est lisible.</td></tr>
+      <tr><td>Configuration manquante</td><td>Démarrer le service dans un environnement isolé sans une variable obligatoire.</td><td>Démarrage refusé avec message utile, sans afficher de secret.</td></tr>
+      <tr><td>Contrôle de santé</td><td>Tester le service sain puis simuler une dépendance indisponible dans un environnement non productif.</td><td>Résultats distincts et diagnostic suffisant.</td></tr>
+      <tr><td>Retour arrière</td><td>Déployer une version de démonstration, déclencher la procédure documentée et vérifier le service.</td><td>Version active identifiée et test de fumée réussi.</td></tr>
+      <tr><td>Restauration</td><td>Restaurer une sauvegarde dans un environnement isolé.</td><td>Rapport d’intégrité, durée et limites.</td></tr>
+      <tr><td>Secrets et journaux</td><td>Rechercher des motifs de secrets connus de test dans les journaux et artefacts.</td><td>Aucune valeur de secret de test ne fuit ; méthode et périmètre consignés.</td></tr>
+    </tbody></table>
+    <p>Ne pas tester une panne destructive en production pour obtenir une preuve. Utiliser un environnement isolé et des données de test. Conserver des extraits expurgés, les identifiants de build et les résultats, jamais les secrets ou données personnelles réelles.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>12. Livrables et définition de terminé</h2>
+    <ul>
+      <li>Schéma d’architecture et tableau de configuration par environnement.</li>
+      <li>Pipeline versionné, instructions de construction et méthode d’identification des artefacts.</li>
+      <li>Procédure de déploiement, de validation post-déploiement et de retour arrière.</li>
+      <li>Inventaire des secrets par nom et propriétaire, sans valeur secrète, plus procédure de rotation.</li>
+      <li>Plan de migration, politique de sauvegarde, objectifs RPO/RTO et rapport d’exercice de restauration.</li>
+      <li>Tableau des indicateurs et alertes, runbook d’incident et limites connues.</li>
+      <li>Rapport de tests indiquant les commandes exécutées, les résultats, les preuves et les tests non effectués.</li>
+    </ul>
+    <p>Le projet est terminé lorsque les critères d’acceptation sont vérifiés, que les preuves sont consultables et expurgées, qu’une autre personne peut suivre les procédures et que les limites restantes sont explicitement consignées. Une checklist cochée sans exécution ne constitue pas une validation.</p>
+  </section>
+
+  <section class="lesson-section">
+    <h2>13. Sources documentaires</h2>
+    <ul>
+      <li><a href="https://docs.docker.com/build/building/best-practices/" rel="noopener noreferrer">Docker — bonnes pratiques de construction d’images</a></li>
+      <li><a href="https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions" rel="noopener noreferrer">GitHub Actions — durcissement de la sécurité</a></li>
+      <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html" rel="noopener noreferrer">OWASP — gestion des secrets</a></li>
+      <li><a href="https://www.postgresql.org/docs/current/backup.html" rel="noopener noreferrer">PostgreSQL — sauvegarde et restauration</a></li>
+      <li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" rel="noopener noreferrer">Google SRE — supervision de systèmes</a></li>
+      <li><a href="https://12factor.net/config" rel="noopener noreferrer">The Twelve-Factor App — configuration</a></li>
+    </ul>
+    <p class="note small">Ces ressources sont des points de référence documentaires. Leur présence n’atteste ni d’une consultation exhaustive ni de la vérification HTTP des URL durant cette exécution. Adapter les recommandations au contexte et à la documentation actuelle de la plateforme choisie.</p>
+  </section>
+
+  <section class="lesson-section checklist">
+    <h2>14. Checklist de validation du projet</h2>
+    <label><input type="checkbox"> Architecture, environnements et responsabilités documentés.</label>
+    <label><input type="checkbox"> Pipeline CI/CD avec blocages vérifiables et artefact identifié.</label>
+    <label><input type="checkbox"> Secrets hors du dépôt et permissions minimales vérifiées.</label>
+    <label><input type="checkbox"> Migration, déploiement, contrôle de santé et rollback testés en environnement adapté.</label>
+    <label><input type="checkbox"> Journaux, indicateurs, alertes et runbook vérifiés.</label>
+    <label><input type="checkbox"> Sauvegarde restaurée en environnement isolé et durée consignée.</label>
+    <label><input type="checkbox"> Critères d’acceptation et preuves de tests consignés.</label>
+    <p class="note small">Les cases sont locales à cette page et ne sont pas enregistrées après fermeture. Elles constituent un aide-mémoire, pas un registre de validation.</p>
+  </section>
+  <nav class="lesson-nav"><a class="nav-link" href="projet-3-application-fullstack.html">← Projet 3 — Application Full Stack</a><a class="nav-link" href="projet-5-application-professionnelle.html">Projet 5 — Application professionnelle →</a><a class="nav-link" href="../index.html#24-projets-pratiques">↑ Retour aux projets</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

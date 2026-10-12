@@ -1,0 +1,56 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Assistants de code
+Domaine documentaire : tutoriel spécialisé
+Références retenues comme points de départ documentaires ; vérifier leur actualité et leur adéquation au projet.
+1. GitHub Copilot — Responsible use — https://docs.github.com/en/copilot/responsible-use-of-github-copilot-features
+2. GitHub Copilot — Prompt engineering — https://docs.github.com/en/copilot/using-github-copilot/prompt-engineering-for-github-copilot
+3. OpenAI — Best practices for prompt engineering — https://help.openai.com/en/articles/6654000-best-practices-for-prompt-engineering-with-the-openai-api
+4. OWASP — Top 10 for LLM Applications — https://owasp.org/www-project-top-10-for-large-language-model-applications/
+5. NIST — AI Risk Management Framework — https://www.nist.gov/itl/ai-risk-management-framework
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Utiliser les assistants de programmation pour accélérer le travail sans déléguer son jugement technique.">
+  <title>Assistants de code — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">22. Intelligence artificielle appliquée au développement</p>
+    <h1>Assistants de code</h1>
+    <p class="lead">Utiliser l’IA pour explorer, générer et expliquer du code avec discernement.</p>
+    <div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 1 h 30</span></div>
+<section class="lesson-section"><h2>Objectifs pédagogiques</h2><ul><li>Formuler une demande précise et contextualisée à un assistant de code.</li><li>Vérifier le code proposé par rapport aux exigences, aux tests et à la sécurité.</li><li>Utiliser l’IA pour apprendre, explorer et refactoriser sans lui confier aveuglément la décision.</li></ul></section>
+<section class="lesson-section"><h2>1. Ce qu’un assistant de code fait — et ne fait pas</h2><p>Un assistant peut expliquer une fonction, proposer une implémentation, générer des tests, suggérer un refactoring ou aider à comprendre une erreur. Il prédit une réponse à partir du contexte fourni et de ses connaissances : il ne garantit ni la compilation, ni l’exactitude, ni la compatibilité avec la version exacte de vos dépendances.</p><p>Il peut inventer une API, ignorer une contrainte implicite, produire un test qui confirme son propre bug ou recommander une solution obsolète. Traitez toute proposition comme un changement de code écrit par un contributeur qu’il faut relire.</p></section>
+<section class="lesson-section"><h2>2. Construire une bonne demande</h2><p>Une demande utile précise le contexte, le résultat attendu, les contraintes, ce qui est hors périmètre et la façon de vérifier le résultat. Fournissez un extrait minimal reproductible plutôt qu’un dépôt entier si quelques fichiers suffisent.</p><pre><code>Contexte : API Node.js avec TypeScript.
+Objectif : valider le corps d’une requête de création de tâche.
+Contraintes :
+- ne pas modifier le contrat HTTP existant ;
+- distinguer erreur de validation et erreur interne ;
+- ne pas ajouter de dépendance ;
+- conserver les fonctions pures testables.
+Livrable : proposition, tests unitaires et limites connues.
+Ne modifie pas les autres fichiers.</code></pre></section>
+<section class="lesson-section"><h2>3. Travailler par petites boucles</h2><p>Évitez de demander une fonctionnalité complète en une seule instruction. Décomposez le travail : comprendre le code existant, proposer un plan, implémenter un changement limité, lancer les tests, inspecter le diff, puis traiter les erreurs. Cette approche rend les causes des régressions plus faciles à isoler.</p><ol><li>Énoncez le comportement attendu et les critères d’acceptation.</li><li>Demandez une explication ou un plan avant une modification importante.</li><li>Examinez le diff et supprimez tout changement hors sujet.</li><li>Lancez formatage, lint, tests et build.</li><li>Relisez manuellement les cas limites et les chemins de sécurité.</li></ol></section>
+<section class="lesson-section"><h2>4. Vérifier au lieu de croire</h2><p>La validation doit être indépendante de la réponse de l’assistant. Un test généré par le même assistant est utile, mais ne constitue pas à lui seul une preuve : ajoutez des cas tirés des exigences, des erreurs possibles et des limites d’entrée.</p><ul><li>Compilez avec les options strictes du projet.</li><li>Exécutez les tests pertinents et, si possible, la suite complète.</li><li>Contrôlez les dépendances ajoutées, leurs versions et leurs licences.</li><li>Examinez les accès aux fichiers, au réseau, aux secrets et à la base.</li><li>Vérifiez les hypothèses factuelles dans la documentation officielle.</li></ul></section>
+<section class="lesson-section"><h2>5. Confidentialité et responsabilité</h2><p>Ne transmettez pas de mots de passe, clés API, données personnelles, code propriétaire ou données clients à un service sans autorisation explicite et compréhension de ses conditions. Utilisez des exemples anonymisés et des variables factices. Les règles de votre employeur ou de votre projet priment sur la commodité de l’outil.</p><p>Le développeur reste responsable du code fusionné : l’assistant ne connaît pas nécessairement les exigences métier, les contraintes de production ni les conséquences d’une faille.</p></section>
+<section class="lesson-section"><h2>6. Exercice</h2><p>Demandez à un assistant de proposer une fonction TypeScript qui valide un identifiant de tâche et cinq tests. Comparez ensuite le résultat avec vos propres critères : chaîne vide, espaces, type incorrect, longueur excessive et valeur valide. Corrigez les oublis et notez les hypothèses que la demande initiale ne précisait pas.</p><h3>Critères de réussite</h3><ul><li>La demande inclut contexte, contraintes et résultat attendu.</li><li>Le diff est limité et compréhensible.</li><li>Les tests ont été exécutés et complétés indépendamment.</li><li>Aucun secret ni donnée sensible n’a été exposé.</li></ul></section>
+<section class="lesson-section"><h2>162 — Atelier de clôture : assistants de code</h2>
+<p><strong>Objectif :</strong> Utilise un assistant de code comme outil de proposition, jamais comme source d’autorité.</p>
+<h3>Modèle mental et méthode</h3><p>Fournis un contexte minimal mais suffisant : objectif, contraintes, versions, conventions, exemples d’entrée/sortie et critères d’acceptation. Demande une modification limitée, lisible et testable. Examine le diff avant de l’intégrer.</p>
+<h3>Exemple guidé</h3><p>Exemple de flux : reproduire le bug, demander une hypothèse et un test ciblé, appliquer le changement dans une branche, lancer tests et analyse statique, puis relire les effets secondaires.</p>
+<h3>Pièges à éviter</h3><p>Pièges : partager des secrets, accepter des dépendances sans examen, générer un gros refactoring non demandé, confondre code plausible et code correct.</p>
+<h3>Exercice de synthèse</h3><p>Exercice : demande une fonction de validation avec tests, puis vérifie les cas limites et compare le résultat à une implémentation de référence.</p>
+<h3>Critères de réussite</h3><p>Réussite : contexte maîtrisé, changements petits, tests indépendants, revue humaine et traçabilité.</p></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://docs.github.com/en/copilot/responsible-use-of-github-copilot-features" target="_blank" rel="noopener noreferrer">GitHub Copilot — Responsible use</a></li><li><a href="https://docs.github.com/en/copilot/using-github-copilot/prompt-engineering-for-github-copilot" target="_blank" rel="noopener noreferrer">GitHub Copilot — Prompt engineering</a></li><li><a href="https://help.openai.com/en/articles/6654000-best-practices-for-prompt-engineering-with-the-openai-api" target="_blank" rel="noopener noreferrer">OpenAI — Best practices for prompt engineering</a></li><li><a href="https://owasp.org/www-project-top-10-for-large-language-model-applications/" target="_blank" rel="noopener noreferrer">OWASP — Top 10 for LLM Applications</a></li><li><a href="https://www.nist.gov/itl/ai-risk-management-framework" target="_blank" rel="noopener noreferrer">NIST — AI Risk Management Framework</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je sais rédiger une demande contextualisée et testable.</label><label><input type="checkbox"> Je vérifie le code proposé indépendamment de l’assistant.</label><label><input type="checkbox"> Je protège les secrets et les données confidentielles.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="priorisation-produit.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="verification-code-ia.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!-- SOURCES DOCUMENTAIRES
+- OpenAPI Specification: https://spec.openapis.org/oas/latest.html
+- MDN — HTTP response status codes: https://developer.mozilla.org/fr/docs/Web/HTTP/Status
+- OWASP API Security Top 10: https://owasp.org/www-project-api-security/
+- Zod documentation: https://zod.dev/
+- JSON Schema: https://json-schema.org/learn/getting-started-step-by-step
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Définir des contrats explicites entre client et serveur, valider les données à l’exécution et gérer les erreurs de manière prévisible.">
+<title>Contrats d’API et validation des réponses — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Contrats d’API et validation des réponses</h1>
+<p class="lead">Définir des contrats explicites entre client et serveur, valider les données à l’exécution et gérer les erreurs de manière prévisible.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Une API est un contrat entre des composants qui peuvent évoluer séparément. Ce contrat précise les opérations disponibles, les entrées, les réponses, les erreurs et les règles de compatibilité. À la fin, vous saurez documenter une route, distinguer les types statiques de la validation réelle, structurer les erreurs et tester les cas valides et invalides. Il faut connaître HTTP, JSON, les fonctions et les types TypeScript.</p>
+<h2>2. Décrire le contrat avant l’implémentation</h2>
+<p>Pour chaque endpoint, précisez la méthode HTTP, le chemin, l’authentification attendue, les paramètres, le corps de requête, les statuts de réponse et les effets de bord. Par exemple, <code>POST /reservations</code> doit décrire les champs obligatoires, les limites de longueur, les formats, la règle métier empêchant deux réservations incompatibles et la réponse renvoyée en cas de conflit.</p>
+<p>Un contrat ne se limite pas au schéma JSON. Il inclut la sémantique : l’opération est-elle idempotente ? Une requête échouée a-t-elle pu produire un effet partiel ? Quelles erreurs peuvent être corrigées par l’appelant ? Une documentation OpenAPI permet de décrire les opérations et leurs schémas dans un format exploitable par des outils, mais elle doit rester alignée avec le comportement réel.</p>
+<h2>3. Types TypeScript et validation runtime</h2>
+<p>Une interface TypeScript n’est pas présente dans le JavaScript produit. Elle ne vérifie donc pas un JSON reçu du réseau. Ce code est dangereux s’il se contente d’affirmer que la réponse a une forme attendue :</p>
+<pre><code>const response = await fetch("/api/user");
+const user = await response.json() as User;</code></pre>
+<p>L’assertion <code>as User</code> ne contrôle pas le contenu. Si le serveur renvoie <code>{}</code>, le compilateur ne le détectera pas. Traitez les données entrantes comme inconnues et vérifiez leur structure avec une fonction dédiée, un schéma partagé ou une bibliothèque de validation.</p>
+<pre><code>type User = { id: string; name: string };
+
+function isUser(value: unknown): value is User {
+  if (typeof value !== "object" || value === null) return false;
+  if (!("id" in value) || !("name" in value)) return false;
+  return typeof value.id === "string"
+    && typeof value.name === "string";
+}
+
+async function fetchUser(): Promise&lt;User&gt; {
+  const response = await fetch("/api/user");
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const payload: unknown = await response.json();
+  if (!isUser(payload)) throw new Error("Réponse utilisateur invalide");
+  return payload;
+}</code></pre>
+<p>Cet exemple montre le principe. En production, prévoyez aussi les erreurs de réseau, le JSON invalide, les délais, l’annulation et la stratégie de présentation des erreurs. Le message d’exception doit être utile au diagnostic sans exposer de données sensibles.</p>
+<h2>4. Valider les entrées côté serveur</h2>
+<p>Le serveur doit considérer toute entrée client comme non fiable, même si le frontend utilise TypeScript et un formulaire qui vérifie les champs. Un appel peut venir d’un script, d’un navigateur modifié ou d’un autre client. Validez le type, la longueur, le format, les limites numériques et les règles métier avant de déclencher des effets de bord.</p>
+<p>La validation de forme et la validation métier sont distinctes. Une date peut être au bon format mais appartenir au passé ; un identifiant peut être une chaîne valide mais désigner une ressource inaccessible à cet utilisateur. Vérifiez aussi l’autorisation pour chaque ressource. Une validation réussie ne signifie pas que l’opération est autorisée.</p>
+<h2>5. Statuts HTTP et structure des erreurs</h2>
+<p>Choisissez un statut qui reflète la situation : <code>400</code> pour une requête mal formée ou invalide selon le contrat, <code>401</code> lorsque l’authentification manque ou est invalide, <code>403</code> lorsque l’accès est interdit, <code>404</code> lorsque la ressource n’est pas trouvée, <code>409</code> pour un conflit d’état et une famille <code>5xx</code> pour les erreurs serveur. La convention exacte doit être documentée et appliquée de manière cohérente.</p>
+<pre><code>{
+  "error": {
+    "code": "RESERVATION_CONFLICT",
+    "message": "Le créneau n’est plus disponible",
+    "requestId": "req-abc123"
+  }
+}</code></pre>
+<p>Le champ <code>code</code> permet au client de réagir de manière stable ; le message est destiné à l’humain et peut être localisé. Le <code>requestId</code> aide à retrouver l’événement dans les journaux. Ne renvoyez pas de stack trace, de requête SQL ou de secrets dans une réponse publique. Journalisez le détail nécessaire côté serveur avec des contrôles d’accès appropriés.</p>
+<h2>6. Évolution et compatibilité</h2>
+<p>Modifier une API peut casser des clients qui ne sont pas déployés en même temps que le serveur. Ajouter un champ facultatif est généralement moins risqué que renommer ou supprimer un champ existant, mais cela dépend aussi des générateurs de clients et de la manière dont les schémas sont validés. Supprimer une valeur d’une union d’états peut casser les consommateurs qui la traitent explicitement.</p>
+<p>Avant une modification, identifiez les consommateurs, les champs réellement utilisés, la politique de versionnement et la durée de coexistence nécessaire. Une dépréciation progressive peut laisser le temps de migrer. Les tests de contrat automatisés peuvent vérifier que le serveur et les clients respectent les attentes partagées.</p>
+<h2>7. Tests du contrat</h2>
+<p>Testez les succès, les erreurs attendues, les valeurs limites, les champs absents, les types incorrects, les autorisations et les changements de schéma. Un test qui vérifie seulement le statut <code>200</code> ne prouve pas que la réponse respecte sa forme ni sa sémantique. Ajoutez des tests négatifs et vérifiez qu’aucun effet de bord ne survient lorsqu’une requête est refusée.</p>
+<p>Pour les réponses de grande taille, la pagination et les limites doivent faire partie du contrat. Pour les opérations sensibles ou répétées, précisez les règles d’idempotence et les mécanismes de protection contre les doubles soumissions. Les contrats sont plus utiles lorsqu’ils répondent aux questions qui apparaissent en situation réelle, pas seulement au scénario heureux.</p>
+<h2>8. Erreurs fréquentes</h2>
+<ul>
+<li>Considérer une interface TypeScript comme une validation des données reçues.</li>
+<li>Valider uniquement dans le frontend et faire confiance au client côté serveur.</li>
+<li>Utiliser le même statut HTTP pour des erreurs de nature différente sans convention.</li>
+<li>Renvoyer des détails internes ou des données sensibles dans les erreurs.</li>
+<li>Modifier un contrat sans identifier ses consommateurs.</li>
+<li>Tester uniquement le scénario de réussite.</li>
+</ul>
+<h2>9. Exercice</h2>
+<p>Définissez le contrat d’un endpoint <code>POST /reservations</code> avec un identifiant de créneau et une date. Écrivez les réponses attendues pour une requête valide, une entrée invalide, un utilisateur non authentifié et un conflit de réservation. Implémentez ou simulez une validation runtime et ajoutez des tests pour un champ absent, une date invalide et une réponse serveur mal formée côté client.</p>
+<h2>10. Critères de réussite</h2>
+<ul class="checklist">
+<li>Je peux décrire les entrées, sorties, erreurs et effets de bord d’un endpoint.</li>
+<li>Je distingue les types TypeScript de la validation à l’exécution.</li>
+<li>Je valide les entrées côté serveur et vérifie l’autorisation.</li>
+<li>Je choisis des statuts et des erreurs cohérents et documentés.</li>
+<li>Je teste les cas limites et pense à la compatibilité lors de l’évolution.</li>
+</ul>
+
+<section class="sources"><h2>Sources documentaires</h2><p>Consultez ces références pour approfondir les concepts et vérifier les détails liés aux versions.</p><ul><li><a href="https://spec.openapis.org/oas/latest.html" target="_blank" rel="noopener noreferrer">OpenAPI Specification</a></li>
+<li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Status" target="_blank" rel="noopener noreferrer">MDN — HTTP response status codes</a></li>
+<li><a href="https://owasp.org/www-project-api-security/" target="_blank" rel="noopener noreferrer">OWASP API Security Top 10</a></li>
+<li><a href="https://zod.dev/" target="_blank" rel="noopener noreferrer">Zod documentation</a></li>
+<li><a href="https://json-schema.org/learn/getting-started-step-by-step" target="_blank" rel="noopener noreferrer">JSON Schema</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="api-pagination-filtrage.html">← Précédent : Pagination, tri et filtrage</a><a rel="next" href="api-erreurs-coherentes.html">Suivant : Gestion cohérente des erreurs d’API →</a></nav>
+
+<section class="lesson-workshop"><h2>Atelier approfondi — Faire respecter un contrat à la frontière HTTP</h2><h3>Objectifs opérationnels</h3><ul><li>Expliquer les garanties et les limites du mécanisme présenté.</li><li>Choisir une stratégie adaptée à un cas réaliste et justifier ses compromis.</li><li>Vérifier le comportement avec des tests reproductibles plutôt que par intuition.</li></ul><h3>Explications et exemple guidé</h3><p>Un type TypeScript disparaît à l’exécution : il ne valide ni un JSON reçu d’un client ni une réponse reçue d’un fournisseur. Traitez toute donnée externe comme inconnue, validez-la à la frontière et convertissez-la ensuite vers un modèle interne fiable.</p><pre><code>import { z } from 'zod';
+const CreateUser = z.object({
+  email: z.string().email(),
+  displayName: z.string().trim().min(1).max(80)
+}).strict();
+
+const parsed = CreateUser.safeParse(request.body);
+if (!parsed.success) {
+  return response.status(400).json({ code: 'INVALID_REQUEST' });
+}
+const command = parsed.data; // valeur validée et normalisée</code></pre><p>Le contrat doit préciser champs obligatoires, nullabilité, formats, limites, codes HTTP et compatibilité des évolutions. La validation des requêtes et celle des réponses de fournisseurs sont deux frontières différentes. Évitez de renvoyer les détails internes de validation au client si cela expose des informations sensibles.</p><h3>Pièges et limites</h3><ul><li>Piège : croire qu’une interface TypeScript remplace la validation runtime.</li><li>Piège : accepter des propriétés inconnues sans stratégie claire de compatibilité.</li><li>Piège : utiliser le même schéma interne comme réponse publique et exposer des champs privés.</li><li>Piège : modifier silencieusement des données sans décider si la normalisation fait partie du contrat.</li></ul><h3>Exercice</h3><p>Décrivez le contrat d’une création de commande : schéma d’entrée, erreurs de validation, réponse réussie et schéma de réponse. Ajoutez un test où le fournisseur renvoie un JSON malformé ou un champ de type inattendu.</p><h3>Critères de réussite</h3><ul><li>Les données externes sont validées à l’exécution.</li><li>Les erreurs ont un format stable sans fuite de détails internes.</li><li>Le contrat distingue entrée, modèle métier et sortie publique.</li><li>Les tests couvrent champs manquants, types incorrects, valeurs limites et réponse fournisseur invalide.</li></ul></section>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Moteurs de recherche
+Domaine documentaire : spécialisations avancées
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. Elasticsearch — What is Elasticsearch? — https://www.elastic.co/guide/en/elasticsearch/reference/current/elasticsearch-intro.html
+2. OpenSearch — Search your data — https://opensearch.org/docs/latest/search-plugins/
+3. PostgreSQL — Full Text Search — https://www.postgresql.org/docs/current/textsearch.html
+4. Meilisearch — Getting started — https://www.meilisearch.com/docs/learn/getting_started/what_is_meilisearch
+5. Lucene — Core concepts — https://lucene.apache.org/core/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Découvrir indexation, pertinence, analyse du texte et architecture d’une recherche dédiée.">
+<title>Moteurs de recherche — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">spécialisations avancées</p>
+<h1>Moteurs de recherche</h1>
+<p class="lead">Découvrir indexation, pertinence, analyse du texte et architecture d’une recherche dédiée.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un contexte réel et justifier tes décisions en fonction des contraintes et des risques.</p><ul><li>Comprendre les notions essentielles et le problème qu’elles permettent de résoudre.</li><li>Appliquer une méthode concrète et vérifier son résultat.</li><li>Identifier les limites, les compromis et les erreurs fréquentes.</li></ul></section>
+
+<section class="lesson-section"><h2>1. Recherche textuelle et base transactionnelle</h2>
+<p>Une requête SQL de type <code>LIKE '%mot%'</code> peut suffire à une petite application, mais elle ne répond pas toujours aux attentes d’une recherche produit : fautes de frappe, synonymes, accents, pertinence, facettes, surlignage ou résultats rapides sur un corpus volumineux. Un moteur dédié construit un index optimisé pour retrouver les documents qui correspondent à une requête.</p>
+<p>La base transactionnelle reste généralement la source de vérité. Le moteur de recherche contient une représentation indexée et parfois légèrement en retard des données. Cette séparation accélère les lectures complexes, mais introduit une synchronisation à gérer : une modification peut être visible dans la base avant de l’être dans les résultats de recherche.</p>
+<p>Avant de choisir un moteur, observe les besoins : volume de documents, langue, tolérance aux fautes, filtres, fréquence de mise à jour, exigences de fraîcheur, coût opérationnel et sensibilité des données. Une recherche plein texte intégrée au SGBD peut être suffisante et réduit le nombre de systèmes à exploiter. Un moteur séparé devient utile lorsque la pertinence et l’expérience de recherche justifient cette complexité.</p></section>
+<section class="lesson-section"><h2>2. Indexation et analyse des termes</h2>
+<p>Un index inversé associe des termes aux documents dans lesquels ils apparaissent. À l’indexation, le texte peut être découpé en tokens, normalisé en minuscules, débarrassé de certains mots courants et transformé selon les règles de langue. Une recherche pour « courir » peut ainsi être rapprochée de « course » si l’analyseur et la configuration le prévoient. Les choix linguistiques influencent fortement les résultats.</p>
+<p>Le document indexé doit contenir les champs nécessaires : titre, description, catégorie, identifiant et attributs filtrables. Tous les champs n’ont pas besoin d’être traités de la même manière. Un identifiant exact, un prix numérique et une description libre nécessitent des types et des comportements de recherche différents.</p>
+<p>Les données structurées servent aux filtres et aux facettes. Par exemple, une recherche de chaussures peut permettre de filtrer par taille, marque ou prix, tandis que le texte sert à ordonner les résultats par pertinence. Les facettes doivent respecter les règles d’autorisation : un filtre côté client ne suffit pas à protéger les documents auxquels l’utilisateur ne devrait pas accéder.</p></section>
+<section class="lesson-section"><h2>3. Pertinence et classement</h2>
+<p>La pertinence est une fonction du produit, pas une propriété universelle du moteur. Un classement peut combiner correspondance exacte, poids du titre, fréquence des termes, popularité, fraîcheur et règles métier. Une recherche de documentation technique peut privilégier le titre et les versions ; une recherche de catalogue peut privilégier disponibilité, catégorie et qualité de correspondance.</p>
+<p>Commence avec un ensemble de requêtes représentatives et des résultats attendus, parfois appelé jeu de référence. Mesure si les bons documents apparaissent en haut de la liste, et inspecte les cas où le classement échoue. Un réglage qui améliore quelques exemples peut dégrader les requêtes rares ; conserve donc des cas de régression.</p>
+<p>La tolérance aux fautes et les synonymes améliorent souvent l’expérience, mais peuvent aussi créer de faux positifs. Un moteur qui corrige « Java » vers « JavaScript » sans précaution peut frustrer un utilisateur cherchant un langage précis. Fournis une stratégie de repli compréhensible, et laisse la possibilité de rechercher une expression exacte lorsque c’est utile.</p>
+<p>Pour comparer deux réglages, prépare un jeu de référence : une liste de requêtes représentatives et, pour chacune, les documents jugés pertinents par une personne métier. Évalue toujours le même jeu après une modification afin de détecter les régressions.</p>
+<table><thead><tr><th>Mesure</th><th>Question à laquelle elle répond</th><th>Exemple</th></tr></thead><tbody>
+<tr><td>Précision@k</td><td>Parmi les <em>k</em> premiers résultats, quelle proportion est pertinente ?</td><td>2 résultats pertinents dans les 5 premiers : précision@5 = 2/5 = 0,40.</td></tr>
+<tr><td>Rappel@k</td><td>Quelle proportion des documents pertinents connus apparaît dans les <em>k</em> premiers ?</td><td>2 retrouvés sur 3 pertinents connus : rappel@5 ≈ 0,67.</td></tr>
+<tr><td>nDCG@k</td><td>Le classement place-t-il les résultats les plus pertinents avant les moins pertinents ?</td><td>Utile lorsque les jugements ont plusieurs niveaux, par exemple pertinent ou très pertinent.</td></tr>
+</tbody></table>
+<p>Ces métriques ne remplacent pas l’examen qualitatif : segmente les requêtes (exactes, fautes, synonymes, filtres, zéro résultat) et surveille aussi la latence. Un score moyen peut masquer une régression grave sur une catégorie ou une langue.</p></section>
+<section class="lesson-section"><h2>4. Synchronisation et cohérence</h2>
+<p>Le chemin le plus simple consiste parfois à mettre à jour l’index après chaque modification. Cependant, si l’écriture en base réussit puis que l’indexation échoue, les systèmes divergent. Une approche robuste utilise un mécanisme de reprise : outbox transactionnelle, événements fiables, file de messages ou réindexation périodique. La bonne option dépend du volume et du niveau de fraîcheur exigé.</p>
+<p>Les consommateurs d’événements doivent tolérer les répétitions et les événements arrivés dans le désordre. Un événement ancien ne doit pas nécessairement écraser un document indexé plus récent. Utilise une version, un horodatage fiable ou un mécanisme de lecture de la source de vérité pour déterminer l’état à indexer. Les suppressions doivent aussi être propagées, faute de quoi un document supprimé peut continuer à apparaître dans les résultats.</p>
+<p>Prévois une réindexation complète ou partielle, une mesure du retard d’indexation et des alertes en cas d’échec. Un index est souvent reconstructible, mais cela ne signifie pas que sa reconstruction est gratuite : mesure la durée, la charge et les coûts de stockage.</p></section>
+<section class="lesson-section"><h2>5. Performance, sécurité et confidentialité</h2>
+<p>Limite la taille des requêtes, la pagination profonde et les filtres trop coûteux. Pour les grands ensembles, une pagination par curseur ou par point de reprise peut être préférable à un grand décalage. Le détail dépend du moteur choisi et de ses garanties d’ordre. Mesure la latence au percentile pertinent, pas seulement la moyenne.</p>
+<p>Ne considère pas l’index comme moins sensible que la base d’origine. Il peut contenir des copies de données personnelles ou confidentielles. Applique les permissions, la séparation des tenants, les règles de rétention et la suppression. Si les droits changent, la recherche doit cesser de retourner les documents concernés sans délai incompatible avec la politique de sécurité.</p>
+<p>Évite de mettre directement en évidence une recherche dans une chaîne HTML non échappée. Le surlignage et les extraits doivent être rendus avec les mécanismes adaptés au contexte. Journalise les requêtes avec prudence si elles peuvent contenir des informations personnelles.</p></section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Imagine un catalogue de 50 000 livres. Définis les champs indexés, les champs filtrables, les règles de pertinence et trois requêtes représentatives. Décris comment synchroniser les modifications et suppressions depuis la base, comment détecter un retard d’indexation et comment empêcher qu’un utilisateur voie un document d’un autre compte. Justifie si la recherche intégrée à la base suffirait au départ.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je distingue la source de vérité et l’index de recherche.</li><li>Je comprends l’index inversé, l’analyse des termes et les facettes.</li><li>Je peux évaluer la pertinence avec des requêtes de référence.</li><li>Je prévois reprises, suppressions, retard d’indexation et réindexation.</li><li>Je traite les permissions et les données indexées comme des enjeux de sécurité.</li></ul></section>
+<section class="lesson-section"><h2>166 — Atelier de clôture : recherche et indexation</h2>
+<p><strong>Objectif :</strong> Construis une recherche utile en séparant ingestion, indexation, requête, classement et présentation.</p>
+<h3>Modèle mental et méthode</h3><p>Un moteur de recherche n’est pas la source de vérité : l’index est une représentation optimisée, potentiellement en retard. Définis le schéma indexé, l’analyse linguistique, la pertinence, les filtres, la pagination et la stratégie de réindexation.</p>
+<h3>Exemple guidé</h3><p>Exemple : après modification d’un produit, un événement déclenche la mise à jour de l’index. Un traitement périodique compare ensuite les documents source et les documents indexés pour détecter les écarts.</p>
+<h3>Pièges à éviter</h3><p>Pièges : supposer l’index toujours à jour, accepter des requêtes non bornées, ignorer les accents, la langue, les synonymes ou les droits d’accès.</p>
+<h3>Exercice de synthèse</h3><p>Exercice : spécifie une recherche de produits : champs indexés, filtres, classement, tolérance aux fautes, latence cible et mécanisme de reprise.</p>
+<h3>Critères de réussite</h3><p>Réussite : pertinence évaluée sur un jeu de requêtes, index réconciliable, accès contrôlé, latence mesurée.</p></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les points de la leçon. Vérifie les détails qui dépendent des versions, des outils ou du contexte du projet.</p><ol><li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/elasticsearch-intro.html" target="_blank" rel="noopener noreferrer">Elasticsearch — What is Elasticsearch?</a></li>
+<li><a href="https://opensearch.org/docs/latest/search-plugins/" target="_blank" rel="noopener noreferrer">OpenSearch — Search your data</a></li>
+<li><a href="https://www.postgresql.org/docs/current/textsearch.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Full Text Search</a></li>
+<li><a href="https://www.meilisearch.com/docs/learn/getting_started/what_is_meilisearch" target="_blank" rel="noopener noreferrer">Meilisearch — Getting started</a></li>
+<li><a href="https://lucene.apache.org/core/" target="_blank" rel="noopener noreferrer">Lucene — Core concepts</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="graphql.html">← GraphQL</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link" href="systemes-distribues.html">Systèmes distribués →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

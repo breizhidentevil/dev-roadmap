@@ -1,0 +1,67 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Jointures et agrégations SQL
+Références documentaires proposées comme points d’entrée ; cela ne signifie pas que chaque source a été intégralement étudiée.
+1. PostgreSQL — Joins between tables — https://www.postgresql.org/docs/current/tutorial-join.html
+2. PostgreSQL — Aggregate functions — https://www.postgresql.org/docs/current/functions-aggregate.html
+3. PostgreSQL — Table expressions — https://www.postgresql.org/docs/current/queries-table-expressions.html
+4. SQLBolt — Multi-table queries — https://sqlbolt.com/lesson/select_queries_with_joins
+5. SQLBolt — Aggregate queries — https://sqlbolt.com/lesson/select_queries_with_aggregates
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Assembler plusieurs tables sans fausser les résultats, puis calculer des indicateurs fiables." name="description"/>
+<title>Jointures et agrégations SQL — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">4. Bases de données et modélisation</p>
+<h1>Jointures et agrégations SQL</h1>
+<p class="lead">Assembler plusieurs tables sans fausser les résultats, puis calculer des indicateurs fiables.</p>
+<div class="lesson-meta"><span>Seconde passe pédagogique</span><span>Base de données</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2><ul><li>Choisir entre INNER JOIN et LEFT JOIN.</li><li>Anticiper la cardinalité et les doublons d’une jointure.</li><li>Utiliser GROUP BY, les agrégats et HAVING.</li></ul></section>
+<section class="lesson-section"><h2>1. Relier des tables</h2><p>Une jointure associe des lignes selon une condition, souvent une clé primaire et une clé étrangère. <code>INNER JOIN</code> conserve uniquement les correspondances. <code>LEFT JOIN</code> conserve toutes les lignes de gauche et met <code>NULL</code> dans les colonnes de droite lorsqu’aucune correspondance n’existe.</p><pre><code>SELECT c.id, c.nom, o.id AS commande_id
+FROM clients AS c
+LEFT JOIN commandes AS o ON o.client_id = c.id
+ORDER BY c.id, o.id;</code></pre><p>Cette requête inclut les clients sans commande. Attention : un filtre sur la table droite placé dans <code>WHERE</code> peut éliminer les lignes nulles et annuler l’effet attendu du LEFT JOIN. Selon le besoin, place ce filtre dans la condition de jointure.</p></section>
+<section class="lesson-section"><h2>2. Comprendre la multiplication des lignes</h2><p>Une jointure produit une ligne par combinaison correspondante. Si un client a 3 commandes et chaque commande 4 lignes, joindre clients, commandes et lignes produit jusqu’à 12 lignes pour ce client. Sommer le total de commande après cette jointure répète chaque total autant de fois qu’il y a de lignes de détail.</p><p>Avant la requête, annonce la granularité attendue : une ligne par client, par commande ou par article. Agrège au niveau correct avant de joindre les résultats, ou utilise des sous-requêtes distinctes pour des mesures indépendantes.</p><pre><code>WITH totaux AS (
+  SELECT client_id, COUNT(*) AS nb_commandes,
+         SUM(total) AS chiffre_affaires
+  FROM commandes
+  GROUP BY client_id
+)
+SELECT c.id, c.nom,
+       COALESCE(t.nb_commandes, 0) AS nb_commandes,
+       COALESCE(t.chiffre_affaires, 0) AS chiffre_affaires
+FROM clients c
+LEFT JOIN totaux t ON t.client_id = c.id;</code></pre><p><code>COUNT(DISTINCT ...)</code> peut être pertinent pour compter des identifiants distincts, mais ne corrige pas un montant déjà multiplié par une jointure incorrecte.</p></section>
+<section class="lesson-section"><h2>3. Agréger avec précision</h2><p><code>WHERE</code> filtre les lignes avant le regroupement ; <code>HAVING</code> filtre les groupes après calcul des agrégats. Avec un <code>LEFT JOIN</code>, <code>COUNT(o.id)</code> vaut zéro lorsqu’aucune commande ne correspond, tandis que <code>COUNT(*)</code> compte la ligne conservée côté gauche. Les agrégats comme <code>SUM</code> et <code>AVG</code> ignorent généralement les valeurs <code>NULL</code> : décide si l’absence doit être présentée comme zéro ou rester inconnue.</p><p>Teste toujours au moins trois cas : aucun enfant, un seul enfant, plusieurs enfants. Ajoute un cas où les montants sont distincts afin de détecter les doubles comptages. Vérifie enfin le tri et l’ordre des résultats : sans <code>ORDER BY</code>, SQL ne garantit pas un ordre stable.</p></section>
+<section class="lesson-section"><h2>4. Distinguer filtre de lignes et filtre de groupes</h2>
+<pre><code>SELECT client_id,
+       COUNT(*) AS nb_commandes,
+       SUM(total) AS chiffre_affaires
+FROM commandes
+WHERE cree_le &gt;= $1
+GROUP BY client_id
+HAVING COUNT(*) &gt;= 2
+ORDER BY chiffre_affaires DESC;</code></pre>
+<p>Dans PostgreSQL, <code>$1</code> représente un paramètre lié fourni par le pilote, ici la date de début. <code>WHERE</code> retire les commandes avant le regroupement ; <code>HAVING</code> retire les groupes après calcul des agrégats. Ne déplace pas un filtre de date dans <code>HAVING</code> sans raison : cela change le niveau auquel il s’applique. Vérifie le résultat avec zéro, une et plusieurs commandes par client, ainsi qu’avec des totaux distincts.</p></section>
+<section class="lesson-section"><h2>Erreurs fréquentes</h2><ul><li>Oublier une condition de jointure et produire un produit cartésien.</li><li>Compter les lignes jointes au lieu des entités distinctes.</li><li>Filtrer dans WHERE une colonne droite qui devrait laisser subsister les lignes sans correspondance.</li><li>Omettre une colonne non agrégée du GROUP BY alors que le SGBD l’exige.</li></ul></section>
+<section class="lesson-section"><h2>Exercice</h2><p>Avec <code>clients(id, nom)</code> et <code>commandes(id, client_id, total, cree_le)</code>, affiche tous les clients, leur nombre de commandes et leur chiffre d’affaires total, y compris les clients sans commande.</p><h3>Critères de réussite</h3><ul><li>Un client sans commande reste présent.</li><li>Son nombre de commandes vaut zéro.</li><li>Le chiffre d’affaires absent est traité explicitement, par exemple avec COALESCE.</li><li>Les montants ne sont pas multipliés par une jointure inutile.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://www.postgresql.org/docs/current/tutorial-join.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Joins between tables</a></li>
+<li><a href="https://www.postgresql.org/docs/current/functions-aggregate.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Aggregate functions</a></li>
+<li><a href="https://www.postgresql.org/docs/current/queries-table-expressions.html" rel="noopener noreferrer" target="_blank">PostgreSQL — Table expressions</a></li>
+<li><a href="https://sqlbolt.com/lesson/select_queries_with_joins" rel="noopener noreferrer" target="_blank">SQLBolt — Multi-table queries</a></li>
+<li><a href="https://sqlbolt.com/lesson/select_queries_with_aggregates" rel="noopener noreferrer" target="_blank">SQLBolt — Aggregate queries</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"/> Je sais expliquer INNER JOIN et LEFT JOIN.</label><label><input type="checkbox"/> Je sais anticiper la cardinalité d’une jointure.</label><label><input type="checkbox"/> Je sais distinguer WHERE et HAVING.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="normalisation.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="index-performances.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

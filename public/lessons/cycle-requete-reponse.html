@@ -1,0 +1,64 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Cycle requête-réponse d’une application Web
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. MDN — Vue d’ensemble de HTTP — https://developer.mozilla.org/fr/docs/Web/HTTP/Overview
+2. MDN — Méthodes de requête HTTP — https://developer.mozilla.org/fr/docs/Web/HTTP/Methods
+3. MDN — Codes de statut HTTP — https://developer.mozilla.org/fr/docs/Web/HTTP/Status
+4. Node.js — Documentation HTTP — https://nodejs.org/api/http.html
+5. OWASP — Logging Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Comprendre comment un serveur reçoit, traite et renvoie une requête." name="description"/>
+<title>Serveur et cycle requête/réponse — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">3. Backend</p>
+<h1>Cycle requête-réponse d’une application Web</h1>
+<p class="lead">Suivre une requête depuis le navigateur jusqu’à la réponse, en distinguant transport, logique métier, accès aux données et gestion des échecs.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 10 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Décrire les étapes d’une requête Web.</li><li>Distinguer client, serveur applicatif et base de données.</li><li>Identifier les points où traiter validation, erreurs et autorisations.</li><li>Diagnostiquer un échec en suivant le trajet de la requête.</li></ul>
+</section><section class="lesson-section"><h2>Fil conducteur</h2><p>Pour chaque requête, identifie successivement qui l’a reçue, quelles validations ont eu lieu, quelle règle métier a été appliquée, quelles dépendances ont été appelées et quelle réponse a été produite.</p></section>
+<section class="lesson-section"><h2>1. Du navigateur au serveur</h2>
+<p>Lorsqu’un utilisateur ouvre une page ou déclenche une action, le navigateur prépare une requête HTTP. Elle contient notamment une méthode, une cible, des en-têtes et parfois un corps. La résolution DNS permet de trouver l’adresse du serveur ; une connexion réseau est ensuite établie, généralement protégée par TLS pour HTTPS. Des caches, proxies ou réseaux de distribution peuvent intervenir avant l’application.</p><p>La réponse contient un statut HTTP, des en-têtes et éventuellement un corps. Une réponse <code>200</code> indique un succès selon la sémantique de la requête, tandis que <code>404</code> indique qu’une ressource n’a pas été trouvée. Un statut de succès ne garantit pas à lui seul que le contenu métier est correct.</p>
+</section>
+<section class="lesson-section"><h2>2. Traitement côté serveur</h2>
+<p>Le serveur reçoit la requête et la fait passer par une chaîne de traitement : routage, middleware, authentification, autorisation, validation, logique métier et accès aux données. L’ordre compte. Par exemple, une mutation protégée doit vérifier l’identité et les droits avant d’effectuer l’opération sensible.</p><pre><code>Requête HTTP
+      → routage
+      → authentification
+      → autorisation
+      → validation
+      → logique métier
+      → base de données
+      → réponse HTTP</code></pre><p>Cette séquence est illustrative : une application peut ajouter un cache, une file de tâches, un service tiers ou une transaction. Les vérifications de sécurité doivent rester côté serveur, même si l’interface masque déjà les actions interdites.</p>
+</section>
+<section class="lesson-section"><h2>3. Accès aux données et cohérence</h2>
+<p>La logique métier transforme une demande utilisateur en opération du domaine : créer une commande, modifier un profil ou rechercher des produits. Elle appelle ensuite un dépôt ou une couche d’accès aux données. Une base relationnelle peut appliquer contraintes et transactions pour protéger la cohérence en cas d’erreur ou d’accès concurrent.</p><p>Ne conserve pas une transaction ouverte pendant une longue opération réseau sans nécessité. Définis ce qui doit réussir ou échouer ensemble, et traite explicitement les conflits, les données absentes et les indisponibilités. Pour une opération longue, une tâche asynchrone peut être préférable à une requête HTTP qui reste ouverte.</p>
+</section>
+<section class="lesson-section"><h2>4. Construire la réponse</h2>
+<p>Le serveur transforme le résultat en réponse adaptée au contrat de l’API : statut, en-têtes et représentation JSON ou HTML. Les erreurs doivent avoir une structure cohérente, ne pas exposer les traces internes et permettre au client de comprendre quoi faire ensuite. Les détails techniques restent dans les journaux protégés.</p><p>Le navigateur interprète la réponse, met à jour l’interface et peut déclencher d’autres requêtes. Un seul clic visible peut donc provoquer plusieurs échanges. Dans les outils de développement, observe méthode, URL, statut, durée, taille et initiateur avant de conclure à un problème frontend ou backend.</p>
+</section>
+<section class="lesson-section"><h2>5. Diagnostiquer par étapes</h2>
+<p>Commence par reproduire le problème et noter la requête concernée. Vérifie ensuite si elle part du navigateur, si elle atteint le serveur, à quelle étape elle échoue et si une dépendance est impliquée. Un identifiant de corrélation peut relier les journaux du serveur, les appels aux services et les opérations en base sans journaliser de données sensibles.</p><p>Mesure séparément les temps réseau, applicatif et base de données. Un délai global élevé ne prouve pas que le SQL est lent : l’attente peut provenir d’un service tiers, d’un verrou, d’un pool de connexions saturé ou d’un transfert volumineux.</p>
+</section>
+
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Trace une requête de connexion ou de recherche depuis le navigateur jusqu’à une source de données simulée. Pour chaque étape, indique les entrées, les contrôles, les erreurs possibles et les informations à journaliser. Simule un statut 400, un statut 401, une erreur serveur et une dépendance lente.</p><h3>Critères de réussite</h3><ul><li>Le trajet complet de la requête est documenté.</li><li>Validation et autorisation sont exécutées côté serveur.</li><li>Les erreurs sont traduites en statuts cohérents.</li><li>Les journaux permettent de corréler les étapes sans exposer de secrets.</li><li>Le diagnostic distingue réseau, application et dépendances.</li></ul>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Diagnostiquer uniquement à partir du message visible dans l’interface.</li><li>Confondre statut HTTP réussi et résultat métier correct.</li><li>Faire confiance à la validation côté navigateur.</li><li>Exposer une trace de pile ou un secret dans la réponse.</li><li>Journaliser des mots de passe, jetons ou données personnelles inutiles.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Overview" rel="noopener noreferrer" target="_blank">MDN — Vue d’ensemble de HTTP</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Methods" rel="noopener noreferrer" target="_blank">MDN — Méthodes de requête HTTP</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/HTTP/Status" rel="noopener noreferrer" target="_blank">MDN — Codes de statut HTTP</a></li><li><a href="https://nodejs.org/api/http.html" rel="noopener noreferrer" target="_blank">Node.js — Documentation HTTP</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html" rel="noopener noreferrer" target="_blank">OWASP — Logging Cheat Sheet</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="nodejs-typescript.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="framework-backend.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html><p><strong>Repère pratique. </strong>Une requête peut échouer avant d’atteindre l’application : résolution DNS, connexion, TLS, proxy ou délai réseau. Si aucun identifiant de requête côté serveur n’existe, commence par vérifier les journaux du proxy et les métriques de transport avant d’attribuer l’échec au code métier.</p><p><strong>Repère pratique. </strong>La base de données est une frontière de fiabilité : une requête peut être lente, échouer ou retourner zéro ligne. Définis les délais d’attente, les limites de résultats et les transactions selon l’invariant métier ; ne transforme pas un délai dépassé en succès supposé.</p><p><strong>Repère pratique. </strong>Corrèle les traces avec un identifiant de requête non sensible et mesure séparément le temps total, le temps de traitement et celui des dépendances. Ne place ni jeton d’accès ni données personnelles dans cet identifiant ou dans les logs.</p>

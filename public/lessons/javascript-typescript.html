@@ -1,0 +1,130 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : JavaScript puis TypeScript
+Domaine documentaire : apprentissage ciblé
+Les références ci-dessous sont des ressources de référence à étudier pour approfondir et vérifier les notions. Le tutoriel est une synthèse originale et ne prétend pas reproduire intégralement chaque source.
+1. TypeScript Handbook — Everyday Types — https://www.typescriptlang.org/docs/handbook/2/everyday-types.html
+2. TypeScript Handbook — Narrowing — https://www.typescriptlang.org/docs/handbook/2/narrowing.html
+3. TypeScript — TSConfig Reference — https://www.typescriptlang.org/tsconfig/
+4. MDN — JavaScript — https://developer.mozilla.org/fr/docs/Web/JavaScript
+5. javascript.info — Types de données — https://fr.javascript.info/types
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Comprendre les bases d’un langage et ajouter progressivement le typage statique.">
+  <title>JavaScript puis TypeScript — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">1. Fondamentaux de la programmation et du Web</p>
+    <h1>JavaScript puis TypeScript</h1>
+    <p class="lead">Passer d’un JavaScript maîtrisé aux types statiques pour sécuriser les données et les contrats d’une application.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 5 · 2026</span></div>
+    <section class="lesson-section">
+    <h2>Objectifs d’apprentissage</h2>
+    <ul><li>Expliquer la différence entre JavaScript, TypeScript et le contrôle à l’exécution.</li><li>Choisir entre types primitifs, unions, interfaces, alias et génériques.</li><li>Réduire les valeurs inconnues avec le narrowing plutôt que masquer les erreurs.</li><li>Définir une configuration TypeScript stricte et compiler un petit module.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. JavaScript s’exécute, TypeScript vérifie</h2>
+    <p>JavaScript est le langage exécuté par le navigateur ou Node.js. TypeScript ajoute une analyse statique : le compilateur détecte certaines incohérences avant l’exécution, puis le code est transformé en JavaScript. Les types TypeScript ne valident pas automatiquement les données reçues d’un serveur à l’exécution.</p>
+    <pre><code>function prixTTC(prixHT: number, taux: number): number {
+      return prixHT * (1 + taux);
+    }
+    const total = prixTTC(20, 0.2); // 24
+    // prixTTC("20", 0.2); // erreur de compilation</code></pre>
+    <p>Une annotation décrit le contrat attendu. Elle ne convertit pas la valeur : une chaîne contenant « 20 » ne devient pas un nombre parce qu’on lui attribue un type.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Les types courants</h2>
+    <pre><code>let nom: string = "Ada";
+    let tentatives: number = 3;
+    let actif: boolean = true;
+    let identifiant: string | number = "u-42";
+    
+    type Utilisateur = {
+      id: string;
+      nom: string;
+      email?: string;
+      roles: ("lecteur" | "admin")[];
+    };
+    
+    function saluer(personne: Utilisateur): string {
+      return `Bonjour ${personne.nom}`;
+    }</code></pre>
+    <p>Utilise <code>type</code> pour nommer un type, notamment les unions et compositions ; <code>interface</code> convient aussi aux contrats d’objets et peut être étendue. Le choix importe moins que la cohérence de l’équipe. Le suffixe <code>?</code> signifie qu’une propriété peut être absente : le code doit donc traiter ce cas.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Unions et narrowing</h2>
+    <pre><code>function afficherId(id: string | number): string {
+      if (typeof id === "number") {
+        return id.toFixed(0);
+      }
+      return id.toUpperCase();
+    }</code></pre>
+    <p>Le narrowing réduit les possibilités à partir d’un test fiable : <code>typeof</code>, vérification de propriété, comparaison d’un discriminant ou fonction de garde. Préfère cette approche à <code>as string</code>, qui demande au compilateur de faire confiance au développeur sans vérifier la réalité de la donnée.</p>
+    <pre><code>type Resultat =
+      | { ok: true; valeur: string }
+      | { ok: false; erreur: string };
+    
+    function presenter(r: Resultat) {
+      return r.ok ? r.valeur : r.erreur;
+    }</code></pre>
+    </section>
+    <section class="lesson-section"><h2>4. Données externes et configuration</h2>
+    <p>Une réponse HTTP, un fichier JSON ou une valeur de stockage local doit être considérée comme non fiable. Le type statique ne remplace pas une validation d’exécution. Commence par <code>unknown</code>, vérifie la structure, puis transforme la valeur en objet métier valide.</p>
+    <pre><code>function estUtilisateur(v: unknown): v is Utilisateur {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return false;
+  const x = v as Record&lt;string, unknown&gt;;
+  const rolesValides = Array.isArray(x.roles)
+    &amp;&amp; x.roles.every(
+      (role: unknown) =&gt; role === "lecteur" || role === "admin"
+    );
+
+  return typeof x.id === "string"
+    &amp;&amp; typeof x.nom === "string"
+    &amp;&amp; (x.email === undefined || typeof x.email === "string")
+    &amp;&amp; rolesValides;
+}</code></pre>
+    <p>Dans un projet, active notamment <code>strict: true</code> dans <code>tsconfig.json</code>. Corrige les erreurs à la source et évite de multiplier <code>any</code>, les assertions forcées et les non-null assertions (<code>!</code>).</p>
+    </section>
+    <section class="lesson-section"><h2>5. Erreurs fréquentes et compromis</h2>
+    <ul><li><strong>Tout annoter :</strong> les types sont souvent inférés ; ajoute-les surtout aux frontières et aux contrats publics.</li><li><strong>Employer <code>any</code> partout :</strong> cela désactive une partie des protections ; préfère <code>unknown</code> et une validation.</li><li><strong>Confondre compilation et validation :</strong> les données d’API peuvent être invalides malgré un type déclaré.</li><li><strong>Sur-modéliser :</strong> un type complexe n’est utile que s’il clarifie les invariants réels.</li><li><strong>Ignorer la configuration :</strong> une compilation non stricte peut laisser passer des valeurs nulles dangereuses.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Crée un type <code>Produit</code> avec un identifiant, un nom, un prix et une disponibilité. Écris une fonction qui calcule le prix après remise, en refusant une remise hors de l’intervalle 0–1. Ajoute une union pour représenter un succès ou une erreur et traite chaque branche.</p>
+    <h3>Exercice autonome</h3><p>Écris une fonction qui reçoit <code>unknown</code> et vérifie qu’il s’agit d’une liste de produits valides. Ne considère aucun champ externe comme fiable avant contrôle.</p>
+    </section>
+    <section class="lesson-section checklist"><h2>Critères de réussite</h2>
+    <ul><li>Le projet compile en mode strict sans recourir à <code>any</code> pour contourner les erreurs.</li><li>Les fonctions ont des entrées et sorties cohérentes.</li><li>Les unions sont réduites avant d’utiliser leurs valeurs.</li><li>Les données externes sont validées à l’exécution.</li><li>Les cas limites (valeur absente, type incorrect, remise invalide) sont testés.</li></ul></section>
+        <section class="lesson-section"><h2>Approfondissement — faire coïncider le type annoncé et les données réelles</h2>
+    <p>Une fonction de garde de type (<em>type guard</em>) n’est pas seulement un test pratique : lorsqu’elle retourne <code>true</code>, TypeScript fait confiance à son affirmation. Si elle vérifie uniquement qu’une propriété est un tableau sans contrôler ses éléments, elle peut certifier à tort un objet qui ne respecte pas le type déclaré. Une garde doit donc vérifier chaque invariant nécessaire au code qui consommera la valeur.</p>
+    <pre><code>const casDeTest: Array&lt;{
+  nom: string;
+  valeur: unknown;
+  attendu: boolean;
+}&gt; = [
+  { nom: "valide", valeur: { id: "u-1", nom: "Ada", roles: ["admin"] }, attendu: true },
+  { nom: "rôle inconnu", valeur: { id: "u-2", nom: "Lin", roles: ["owner"] }, attendu: false },
+  { nom: "email numérique", valeur: { id: "u-3", nom: "Sam", email: 42, roles: [] }, attendu: false },
+  { nom: "rôle non textuel", valeur: { id: "u-4", nom: "Jo", roles: ["admin", 7] }, attendu: false },
+  { nom: "identifiant absent", valeur: { nom: "Noa", roles: ["lecteur"] }, attendu: false },
+];
+
+for (const cas of casDeTest) {
+  if (estUtilisateur(cas.valeur) !== cas.attendu) {
+    throw new Error(`Échec du cas : ${cas.nom}`);
+  }
+}</code></pre>
+    <p><code>JSON.parse</code> ne valide pas le schéma métier : il transforme du texte JSON valide en valeur JavaScript, qui peut être un objet incomplet ou contenir des champs inattendus. La garde de la section précédente vérifie l’identifiant, le nom, l’email optionnel et chaque rôle avant de certifier le type. Pour un modèle plus complexe, une bibliothèque de validation peut réduire le code répétitif, mais ses règles doivent elles aussi être testées. Les cas ci-dessus rendent visibles les entrées qui doivent être acceptées ou refusées.</p>
+    <p>Il faut également distinguer trois opérations : <strong>décrire</strong> une valeur avec un type, <strong>vérifier</strong> statiquement le code et <strong>valider</strong> une donnée à l’exécution. Une assertion comme <code>valeur as Utilisateur</code> ne réalise que la première opération du point de vue du compilateur ; elle ne transforme ni ne contrôle la valeur.</p>
+    <h3>Procédure de contrôle</h3><ol><li>Active <code>strict: true</code> dans <code>tsconfig.json</code>.</li><li>Traite toute donnée externe comme <code>unknown</code> à la frontière du système.</li><li>Valide les propriétés utilisées ensuite, y compris les éléments des tableaux et les valeurs d’union.</li><li>Convertis la donnée validée vers un modèle interne si le format externe est différent.</li><li>Teste les entrées valides, les propriétés absentes, les types incorrects et les valeurs d’énumération inconnues.</li></ol>
+    <h3>Exercice de vérification</h3><p>Ajoute une propriété <code>actif: boolean</code> au type, puis écris des tests pour un utilisateur valide, un rôle inconnu, un email numérique, un tableau de rôles contenant un nombre et une propriété obligatoire absente. La garde doit refuser chacun des cas invalides.</p>
+    <h3>Critères de réussite</h3><ul><li>Aucune assertion de type ne remplace la validation des données externes.</li><li>La garde vérifie les types des éléments internes aux tableaux.</li><li>Les tests couvrent au moins un cas valide et quatre cas invalides.</li><li>Les erreurs TypeScript sont corrigées plutôt que masquées par <code>any</code>.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://www.typescriptlang.org/docs/handbook/2/everyday-types.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Everyday Types</a></li><li><a href="https://www.typescriptlang.org/docs/handbook/2/narrowing.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Narrowing</a></li><li><a href="https://www.typescriptlang.org/tsconfig/" target="_blank" rel="noopener noreferrer">TypeScript — TSConfig Reference</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/JavaScript" target="_blank" rel="noopener noreferrer">MDN — JavaScript</a></li><li><a href="https://fr.javascript.info/types" target="_blank" rel="noopener noreferrer">javascript.info — Types de données</a></li></ul></section>
+    <nav class="lesson-nav"><a class="nav-link" href="terminal-shell-bash.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="structures-donnees-algorithmes.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

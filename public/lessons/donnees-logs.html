@@ -1,0 +1,84 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Données sensibles et journaux
+Les références sont des points de départ pertinents ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. OWASP — Logging Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
+2. OWASP — Logging Vocabulary Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Logging_Vocabulary_Cheat_Sheet.html
+3. OWASP — User Privacy Protection Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html
+4. CNIL — Sécurité des données personnelles — https://www.cnil.fr/fr/securite-des-donnees
+5. 12-Factor App — Logs — https://12factor.net/logs
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Journaliser les événements utiles sans exposer de données personnelles ni de secrets.">
+  <title>Données sensibles et journaux — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">5. Sécurité applicative</p>
+    <h1>Données sensibles et journaux</h1>
+    <p class="lead">Journaliser les événements utiles sans exposer de données personnelles ni de secrets.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Qualité et tests</span></div>
+    <section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Cette leçon suppose que tu sais déjà manipuler les requêtes HTTP et les exceptions d’un backend. À la fin, tu dois pouvoir définir ce qu’il faut journaliser, structurer les événements, masquer les données à risque et contrôler l’accès ainsi que la durée de conservation des logs.</p><ul><li>Distinguer logs applicatifs, audit de sécurité et métriques.</li><li>Choisir des champs utiles au diagnostic sans collecter tout le contexte utilisateur.</li><li>Définir une politique de rétention, d’accès et de protection.</li></ul>
+</section><section class="lesson-section"><h2>1. Les logs sont une donnée à protéger</h2>
+<p>Les journaux sont utiles pour diagnostiquer une panne, comprendre un comportement et enquêter sur un incident. Mais ils deviennent eux-mêmes une source de fuite lorsqu’ils contiennent des mots de passe, des tokens, des cookies, des données de paiement ou le contenu intégral de formulaires.</p><p>Applique le principe de minimisation : collecte les informations nécessaires à une finalité explicite. « Tout enregistrer au cas où » augmente le volume, le coût, les risques d’accès abusif et la difficulté à respecter une durée de conservation limitée.</p><p>Une donnée personnelle peut être identifiable même sans nom explicite : adresse IP, identifiant de compte, identifiant de requête associé à d’autres données ou détails d’un événement rare peuvent permettre une corrélation.</p>
+</section><section class="lesson-section"><h2>2. Structurer les événements</h2>
+<p>Préférer des événements structurés à des phrases libres facilite la recherche et l’agrégation. Exemple JSON :</p><pre><code>{
+  "timestamp": "2026-10-10T12:30:00Z",
+  "level": "warn",
+  "event": "login_failed",
+  "request_id": "req_abc123",
+  "actor_id": "usr_42",
+  "reason_code": "invalid_credentials"
+}</code></pre><p>Les identifiants ci-dessus sont fictifs. L’événement ne stocke ni mot de passe, ni token, ni corps de requête. Le champ <code>reason_code</code> utilise une valeur contrôlée plutôt qu’un message libre qui pourrait contenir des données fournies par l’utilisateur.</p><p>Les champs utiles varient selon l’événement : horodatage, niveau, nom stable de l’événement, identifiant de corrélation et contexte technique minimal. Ne confonds pas identifiant de requête et identité de l’utilisateur ; chacun répond à une question différente.</p>
+</section><section class="lesson-section"><h2>3. Masquer ou exclure les champs dangereux</h2>
+<p>Évite de journaliser par défaut les en-têtes <code>Authorization</code>, les cookies, les paramètres de requête susceptibles de contenir des tokens, les mots de passe, les clés d’API et les corps de requêtes entiers. Mets en place une liste explicite de champs autorisés plutôt qu’une tentative de détecter après coup tous les secrets possibles.</p><pre><code>const safeEvent = {
+  event: "password_reset_requested",
+  requestId,
+  outcome: "accepted"
+};
+// Ne pas inclure req.headers, req.body ou le token de réinitialisation.</code></pre><p>Si une valeur doit exceptionnellement apparaître pour un diagnostic, définis une justification, une durée très courte, un accès restreint et une méthode de masquage. Le hachage d’un identifiant ne garantit pas l’anonymat : une valeur prévisible ou un espace de recherche réduit peut être retrouvé.</p>
+</section><section class="lesson-section"><h2>4. Logs, audit et métriques : ne pas confondre</h2>
+<ul><li><strong>Logs opérationnels :</strong> aident à comprendre les événements et les erreurs d’un service.</li><li><strong>Journaux d’audit :</strong> enregistrent les actions importantes avec des exigences plus fortes de complétude, d’intégrité et de contrôle d’accès.</li><li><strong>Métriques :</strong> agrègent des mesures numériques, par exemple le taux d’erreur ou la latence, sans nécessiter une ligne détaillée par utilisateur.</li></ul><p>Un échec de connexion peut mériter un événement de sécurité, mais le mot de passe tenté ne doit jamais être enregistré. Une modification de droits peut nécessiter un audit avec l’acteur, la cible, l’action et le résultat, sans stocker le secret utilisé pour authentifier l’acteur.</p>
+</section><section class="lesson-section"><h2>5. Contrôle d’accès, rétention et intégrité</h2>
+<p>Limite qui peut lire les logs : développeurs, opérateurs et équipes de sécurité n’ont pas nécessairement besoin des mêmes accès. Chiffre les transferts et le stockage lorsque c’est adapté, protège les exports et évite que les logs soient accessibles publiquement via un serveur statique. Les journaux d’audit critiques doivent être protégés contre les modifications et suppressions non autorisées.</p><p>Définis une durée de conservation par catégorie, puis automatise la purge. Une durée indéfinie n’est pas une stratégie. Les besoins opérationnels, contractuels et réglementaires peuvent différer : documente la finalité et les règles retenues, en lien avec les responsables concernés.</p><p>Attention aussi à l’injection de logs : les retours à la ligne ou caractères de contrôle fournis par un utilisateur peuvent falsifier la lecture d’un fichier texte. Utilise un sérialiseur structuré et échappe correctement les valeurs non fiables.</p>
+</section><section class="lesson-section"><h2>Vérifier la journalisation par tests négatifs</h2>
+<p>La protection des logs doit être testée en injectant des valeurs sentinelles factices dans les entrées sensibles. Provoque ensuite les parcours normaux et les exceptions, puis recherche ces sentinelles dans les logs applicatifs, les traces, les outils de monitoring et les rapports CI. Les masques de secrets doivent fonctionner dans les chemins d’erreur autant que dans le chemin nominal.</p><pre><code>const event = {
+  event: 'payment_failed',
+  requestId,
+  orderId,
+  reasonCode: 'provider_timeout'
+};
+logger.warn(event); // Pas de corps HTTP, cookie, token ou numéro de paiement
+</code></pre><p>Privilégie une liste de champs autorisés et des codes d’événement stables. Évite la concaténation directe de valeurs non fiables, qui peut permettre l’injection de retours à la ligne ou la falsification d’événements. Les journaux d’audit nécessitent en plus une politique de complétude, d’intégrité, de contrôle d’accès et de conservation documentée.</p><ul><li>Vérifier que les identifiants de corrélation ne contiennent pas de données personnelles et ne sont pas acceptés sans validation.</li><li>Tester la purge automatisée et les droits d’accès aux exports.</li><li>Définir qui reçoit une alerte si un secret est détecté dans un journal.</li></ul>
+<h2>Erreurs fréquentes</h2>
+<ul><li>Journaliser l’objet complet de la requête ou de l’utilisateur.</li><li>Inclure les tokens de session dans les URL ou les messages d’erreur.</li><li>Mettre des identifiants personnels dans les noms de métriques, créant une cardinalité énorme.</li><li>Accorder à toute l’équipe un accès permanent aux logs de production.</li><li>Conserver tous les logs sans échéance de suppression.</li><li>Construire des lignes de log par concaténation sans neutraliser les caractères de contrôle.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Prends trois événements d’une API : échec de connexion, création d’une commande et erreur serveur. Pour chacun, définis les champs à enregistrer et ceux à exclure. Écris ensuite un exemple de log structuré sans secret ni contenu personnel superflu.</p><p>Simule un corps de requête contenant un mot de passe et un en-tête Authorization fictif. Vérifie qu’aucune valeur n’apparaît dans les logs générés, y compris en cas d’exception.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Rédige une politique de journalisation d’une page : événements essentiels, schéma commun, champs interdits, accès, durée de conservation et réponse en cas de fuite.</p><p><strong>Réussite :</strong> les événements sont recherchables ; aucun mot de passe, cookie ou token n’est enregistré ; les valeurs contrôlées remplacent les messages arbitraires ; l’accès est limité ; la purge est définie ; l’injection de logs et la collecte excessive ont été prises en compte.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Ces références permettent d’approfondir les choix d’implémentation et de confronter les exemples au framework et à la version utilisés dans ton projet.</p>
+      <ol><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Logging Cheat Sheet</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Vocabulary_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Logging Vocabulary Cheat Sheet</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — User Privacy Protection Cheat Sheet</a></li><li><a href="https://www.cnil.fr/fr/securite-des-donnees" target="_blank" rel="noopener noreferrer">CNIL — Sécurité des données personnelles</a></li><li><a href="https://12factor.net/logs" target="_blank" rel="noopener noreferrer">12-Factor App — Logs</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer le problème traité et les garanties recherchées.</label>
+      <label><input type="checkbox"> Je peux appliquer la méthode sur un cas concret.</label>
+      <label><input type="checkbox"> Je sais identifier les limites et les cas non couverts.</label>
+      <label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="autorisations-serveur.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="upload-fichiers.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

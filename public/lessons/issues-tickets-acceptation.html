@@ -1,0 +1,88 @@
+<!-- SOURCES DOCUMENTAIRES
+- GitHub Docs — About issues: https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues
+- Atlassian — User stories: https://www.atlassian.com/agile/project-management/user-stories
+- Atlassian — Acceptance criteria: https://www.atlassian.com/work-management/project-management/acceptance-criteria
+- GOV.UK — Agile delivery: https://www.gov.uk/service-manual/agile-delivery
+- GitHub Docs — Projects: https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects
+Références ciblées servant de points d’entrée documentaires ; leur présence ne signifie pas que chaque ressource a été intégralement lue.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Issues, tickets et critères d’acceptation — tutoriel de la roadmap Full Stack 2026.">
+<title>Issues, tickets et critères d’acceptation — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Roadmap Full Stack 2026</a></header>
+<main class="lesson">
+<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="/" target="_top">Accueil</a> / Tutoriel</nav>
+<article>
+<header class="lesson-header"><h1>Issues, tickets et critères d’acceptation</h1><p>Les issues, tickets et critères d’acceptation transforment un besoin parfois vague en travail compréhensible, priorisable et vérifiable. Un bon ticket n’est ni un roman ni une simple phrase : il donne assez de contexte pour décider, implémenter et valider sans enfermer inutilement la solution technique. Le but est de réduire les interprétations contradictoires et de rendre visible la définition du travail terminé.</p></header>
+<section><h2>Objectifs pédagogiques</h2><ul><li>Distinguer besoin, tâche technique, anomalie et question ouverte.</li><li>Rédiger un ticket avec contexte, résultat attendu et périmètre.</li><li>Formuler des critères d’acceptation observables et testables.</li><li>Découper le travail, gérer les dépendances et maintenir un historique utile.</li></ul></section>
+<section><h2>Prérequis</h2><p>Connaître les bases du HTML, du CSS et du JavaScript, savoir inspecter une page dans les outils de développement du navigateur et pouvoir modifier un exemple simple. Les notions propres à ce sujet sont introduites progressivement. Il n’est pas nécessaire de maîtriser tous les outils cités avant de commencer.</p></section>
+<section><h2>1. Choisir le bon type de ticket</h2><p>Une issue peut représenter une fonctionnalité, un défaut, une tâche technique, une dette à réduire ou une question à trancher. Le type importe parce qu’il détermine la manière de prouver que le travail est terminé. Pour une anomalie, décrivez le comportement observé, le comportement attendu, les étapes de reproduction et l’environnement pertinent. Pour une fonctionnalité, partez du besoin et du résultat attendu, sans prescrire trop tôt tous les détails d’implémentation.</p><p>Un ticket doit expliquer pourquoi le travail est utile. « Ajouter un champ » décrit une solution ; « permettre de filtrer les factures par période pour retrouver plus vite une dépense » expose le besoin. Le contexte aide l’équipe à arbitrer lorsque la solution initiale est coûteuse ou incompatible avec d’autres contraintes. Ajoutez les liens vers les maquettes, spécifications, incidents ou décisions déjà existants plutôt que de recopier des informations qui divergeront ensuite.</p></section><section><h2>2. Structurer le ticket pour qu’il soit actionnable</h2><p>Une structure légère peut contenir : titre précis, contexte, résultat attendu, périmètre, critères d’acceptation, dépendances et éléments utiles pour reproduire ou vérifier. Un titre doit identifier l’objet et le changement, pas seulement « problème » ou « amélioration ». Évitez les paragraphes vagues tels que « rendre cela plus propre ». Si le ticket est trop long, séparez la description du besoin des détails techniques qui appartiennent à une proposition d’implémentation.</p><p>Indiquez ce qui est hors périmètre lorsque la confusion est probable. Précisez les contraintes importantes : droits d’accès, compatibilité, migration, accessibilité, performance ou comportement en cas d’erreur. N’ajoutez pas des listes de vérification génériques qui ne servent pas à ce ticket. Le but est de permettre à un autre développeur de comprendre le problème sans devoir reconstruire une conversation entière depuis le chat.</p></section><section><h2>3. Écrire des critères d’acceptation testables</h2><p>Un critère d’acceptation décrit une condition observable qui doit être vraie pour considérer le besoin satisfait. « Le filtre est intuitif » est subjectif ; « lorsqu’une période est sélectionnée, seules les factures dont la date appartient à cette période sont affichées » peut être testé. Les critères peuvent couvrir le scénario nominal, les limites, les permissions, les erreurs et l’accessibilité lorsqu’ils sont pertinents.</p><p>Le format « Étant donné / Quand / Alors » aide parfois à expliciter le contexte, l’action et le résultat. Il ne doit pas devenir une cérémonie obligatoire pour chaque petite tâche. Plusieurs critères courts sont préférables à un unique paragraphe qui mélange des exigences indépendantes. N’écrivez pas les critères en fonction d’un détail interne qui n’a pas d’importance pour l’utilisateur, sauf si ce détail est lui-même une contrainte contractuelle ou opérationnelle.</p></section><section><h2>4. Découper et prioriser</h2><p>Une issue trop large cache le risque et retarde le retour d’information. Découpez-la en unités qui peuvent être implémentées et validées séparément, tout en conservant le lien avec le résultat final. Une découpe par couches techniques — base de données, API, interface — peut être nécessaire, mais elle n’est pas toujours la meilleure unité de livraison. Lorsque c’est possible, préférez une tranche verticale qui apporte un comportement vérifiable.</p><p>La priorité doit refléter la valeur, l’urgence, le risque et les dépendances, pas seulement la personne qui demande le plus fort. Identifiez les blocages réels et distinguez-les des simples souhaits d’ordre. Les estimations sont des outils de planification, pas des promesses exactes. Une issue prête à démarrer devrait avoir un objectif compréhensible, des critères suffisants et les décisions bloquantes résolues ou explicitement assignées.</p></section><section><h2>5. Maintenir l’historique et clôturer proprement</h2><p>Le ticket doit évoluer lorsque le périmètre change. Documentez les décisions importantes et reliez les commits ou pull requests associés. Évitez de transformer l’issue en journal de chaque micro-action ; les échanges doivent préserver le contexte utile, les choix et les questions non résolues. Quand un ticket est fermé, indiquez comment les critères ont été vérifiés, notamment si certains tests sont manuels.</p><p>Si le travail n’est que partiellement terminé, créez une issue de suivi et reliez-la au ticket initial au lieu de fermer silencieusement le périmètre restant. Pour une anomalie, conservez les informations permettant de comprendre la version corrigée et les conditions du problème. La traçabilité aide à diagnostiquer les régressions et à expliquer pourquoi une décision a été prise plusieurs semaines plus tôt.</p></section>
+<section><h2>Exemple pratique</h2><p>Le fragment suivant illustre une décision de conception à tester dans le contexte complet du produit.</p><pre><code>Titre : Filtrer les factures par période
+
+Contexte : les utilisateurs doivent retrouver une facture parmi plusieurs années.
+Résultat attendu : filtrer la liste selon une date de début et une date de fin.
+Critères :
+- Étant donné une période valide, seules les factures comprises dans cette période sont affichées.
+- Si aucune facture ne correspond, un état vide explique la situation.
+- Si la date de début dépasse la date de fin, une erreur de validation est affichée.
+- Réinitialiser le filtre restaure la liste complète.</code></pre><p>Ces critères décrivent des résultats vérifiables sans imposer une bibliothèque ou une structure de composants. Ils couvrent le scénario nominal, le vide, une limite de validation et le retour à l’état initial. L’équipe peut ajouter des précisions techniques après avoir choisi l’implémentation, mais elle ne devrait pas remplacer les résultats attendus par une simple liste de fichiers à modifier.</p></section>
+<section><h2>Pièges fréquents et compromis</h2><ul><li>Écrire un titre trop vague pour retrouver l’issue plus tard.</li><li>Confondre besoin métier et solution technique présupposée.</li><li>Employer des critères subjectifs comme « rapide » sans mesure ni contexte.</li><li>Oublier les états vides, erreurs et droits d’accès.</li><li>Fermer le ticket sans expliquer comment le résultat a été vérifié.</li></ul><p>Une recommandation générale est un point de départ, pas une preuve de qualité. Vérifiez le parcours complet, les états moins fréquents et les contraintes du produit avant de conclure qu’une solution est appropriée.</p></section>
+<section><h2>Exercice pratique</h2><p>Transformez une demande vague, par exemple « améliorer la recherche », en ticket actionnable. Rédigez le contexte, le résultat attendu, le périmètre, deux éléments hors périmètre et au moins quatre critères d’acceptation observables. Faites relire le ticket par une autre personne et notez les questions qu’elle doit encore poser avant de commencer.</p></section>
+<section><h2>Critères de réussite</h2><ul><li>Le besoin et sa valeur sont compréhensibles sans conversation orale.</li><li>Les critères peuvent être vérifiés objectivement.</li><li>Le périmètre et les dépendances importantes sont visibles.</li><li>Les scénarios d’erreur pertinents sont couverts.</li><li>La clôture prévoit une preuve de validation ou une issue de suivi.</li></ul><p>Considérez l’exercice terminé lorsque chaque critère peut être démontré avec un exemple reproductible. Expliquez vos choix, les tests réalisés et les limites restantes ; l’absence d’erreur visible ne suffit pas à prouver qu’une interface est accessible, compréhensible ou rapide.</p></section>
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — seconde passe</h2>
+<h3>Objectifs opérationnels</h3>
+<ul>
+  <li>Décrire un problème de manière reproductible et orientée résultat.</li>
+  <li>Séparer le besoin utilisateur, les critères d’acceptation et la proposition technique.</li>
+  <li>Rendre le périmètre et les cas limites vérifiables avant de commencer le développement.</li>
+</ul>
+<h3>Explications et méthode</h3>
+<p>Un ticket efficace réduit les interprétations divergentes. Il décrit le contexte, le comportement actuel, le comportement attendu, les étapes de reproduction, l’impact et les éléments de preuve utiles. Une capture seule est rarement suffisante si elle ne précise ni l’environnement ni les étapes.</p>
+<p>Les critères d’acceptation définissent les conditions observables qui permettent de décider si le besoin est satisfait. Le format Given/When/Then aide à rendre explicites le contexte, l’action et le résultat, mais il n’est pas obligatoire pour chaque tâche technique.</p>
+<p>La sévérité décrit les conséquences d’un défaut ; la priorité décrit l’ordre de traitement. Elles peuvent être différentes : un défaut grave mais extrêmement rare peut être trié autrement qu’un blocage fréquent d’un parcours critique, selon le risque accepté.</p>
+
+<h3>Exemple commenté</h3>
+<pre><code>Titre : Conserver les filtres lors du retour à la liste
+
+Contexte : catalogue de 2 000 produits, utilisateur connecté.
+Critères d’acceptation :
+- Étant donné une liste filtrée par catégorie et triée par prix,
+  quand j’ouvre un produit puis reviens à la liste,
+  alors les filtres, le tri et la position sont restaurés.
+- Si le filtre ne retourne aucun élément, un état vide explicite apparaît.
+- Le comportement fonctionne au clavier et sur petit écran.
+
+Hors périmètre : mémorisation entre deux sessions distinctes.</code></pre>
+<h3>Pièges à éviter</h3>
+<ul>
+  <li>Écrire une solution imposée sans expliquer le problème à résoudre.</li>
+  <li>Utiliser « fonctionne correctement » ou « interface intuitive » comme seul critère d’acceptation.</li>
+  <li>Mélanger sévérité, priorité, estimation et urgence sans définir ce que chaque champ signifie.</li>
+</ul>
+<h3>Exercice d’application</h3>
+<p>Transforme une demande vague — « améliorer la recherche » — en ticket. Ajoute un contexte, des étapes reproductibles, au moins trois critères d’acceptation couvrant succès, absence de résultat et erreur, puis indique ce qui est explicitement hors périmètre.</p>
+<h3>Critères de réussite</h3>
+<ul>
+  <li>Une autre personne peut reproduire le problème ou comprendre le résultat attendu sans demander le contexte essentiel.</li>
+  <li>Les critères sont observables, testables et couvrent au moins un cas limite important.</li>
+  <li>Les hypothèses, la priorité et le périmètre sont distingués des choix d’implémentation.</li>
+</ul>
+</section>
+<section class="sources-documentaires"><h2>Sources documentaires</h2><p>Ces ressources permettent d’approfondir les notions et de vérifier les recommandations. Consultez les pages de référence adaptées à la version et au contexte de votre projet.</p><ul><li><a href="https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues" target="_blank" rel="noopener noreferrer">GitHub Docs — About issues</a></li><li><a href="https://www.atlassian.com/agile/project-management/user-stories" target="_blank" rel="noopener noreferrer">Atlassian — User stories</a></li><li><a href="https://www.atlassian.com/work-management/project-management/acceptance-criteria" target="_blank" rel="noopener noreferrer">Atlassian — Acceptance criteria</a></li><li><a href="https://www.gov.uk/service-manual/agile-delivery" target="_blank" rel="noopener noreferrer">GOV.UK — Agile delivery</a></li><li><a href="https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects" target="_blank" rel="noopener noreferrer">GitHub Docs — Projects</a></li></ul></section>
+</article>
+<nav class="lesson-navigation" aria-label="Navigation entre les tutoriels">
+<a rel="prev" href="core-web-vitals.html">← Tutoriel précédent</a>
+<a href="/" target="_top">Sommaire</a>
+<a rel="next" href="pull-requests-revue-code.html">Tutoriel suivant →</a>
+</nav>
+</main>
+</body>
+</html>

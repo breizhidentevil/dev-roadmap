@@ -1,0 +1,68 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Cache et compromis de performance
+Domaine documentaire : tutoriel spécialisé
+Références retenues comme points de départ documentaires ; vérifier leur actualité et leur adéquation au projet.
+1. AWS — Caching Best Practices — https://aws.amazon.com/caching/best-practices/
+2. Redis — Cache-aside pattern — https://redis.io/learn/howtos/solutions/microservices/caching
+3. Cloudflare — Cache concepts — https://developers.cloudflare.com/cache/
+4. MDN — HTTP caching — https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching
+5. Google Cloud — Caching overview — https://cloud.google.com/architecture/best-practices-for-caching
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Réduire le travail répété grâce au cache tout en maîtrisant la fraîcheur, l’invalidation et les risques de cohérence.">
+  <title>Cache et compromis de performance — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">8. Architecture et conception logicielle</p>
+    <h1>Cache et compromis de performance</h1>
+    <p class="lead">Évaluer latence, fraîcheur des données et complexité opérationnelle.</p>
+    <div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 1 h 45</span></div>
+<section class="lesson-section"><h2>Objectifs pédagogiques</h2><ul><li>Identifier les couches où un cache peut réduire le coût.</li><li>Choisir une stratégie d’expiration et d’invalidation cohérente.</li><li>Évaluer les risques de données périmées, de cache stampede et de fuite entre utilisateurs.</li></ul></section>
+<section class="lesson-section"><h2>1. Pourquoi mettre en cache ?</h2><p>Un cache conserve temporairement un résultat coûteux afin d’éviter de le recalculer ou de le relire. Il peut réduire la latence, la charge de la base de données et les coûts d’un service distant. Il ajoute toutefois un second endroit où une représentation de la donnée existe : le problème central devient la cohérence entre la source et le cache.</p><p>Commencez par mesurer le goulot d’étranglement. Mettre en cache une opération déjà rapide peut ajouter de la complexité sans bénéfice mesurable.</p></section>
+<section class="lesson-section"><h2>2. Les couches de cache</h2><p>Le navigateur peut réutiliser des ressources statiques ; un CDN peut servir des réponses proches des utilisateurs ; l’application peut conserver des résultats en mémoire ou dans Redis ; la base de données possède aussi ses propres caches. Chaque couche a une portée, une politique d’expiration et des règles de partage différentes.</p><p>Un cache client améliore les chargements répétés. Un cache partagé côté serveur peut réduire la charge pour plusieurs utilisateurs, mais exige une clé correcte et une stratégie stricte pour les données privées.</p></section>
+<section class="lesson-section"><h2>3. Cache-aside et expiration</h2><p>Avec le modèle cache-aside, l’application cherche d’abord la valeur dans le cache, lit la source en cas d’absence, puis remplit le cache. Une durée de vie (TTL) borne la durée pendant laquelle une valeur peut rester disponible sans nouvelle lecture.</p><pre><code>async function getProduct(id) {
+  const key = `product:${id}`;
+  const cached = await cache.get(key);
+  if (cached !== null) return JSON.parse(cached);
+
+  const product = await repository.findById(id);
+  if (!product) return null;
+
+  await cache.set(key, JSON.stringify(product), { EX: 60 });
+  return product;
+}</code></pre><p>Exemple schématique : adaptez l’API du client Redis utilisé. Définissez aussi le traitement des erreurs du cache. Si le cache est un accélérateur non critique, une panne peut parfois entraîner une lecture directe de la source, sous réserve de ne pas la surcharger.</p></section>
+<section class="lesson-section"><h2>4. Invalidation et cohérence</h2><p>Quand une donnée change, il faut décider comment le cache est actualisé : suppression de la clé après écriture, mise à jour de la valeur, invalidation par version, ou expiration courte. La stratégie dépend de la tolérance aux données périmées. Une valeur de stock ou de droits d’accès peut nécessiter des garanties plus strictes qu’une image de profil.</p><ul><li>Écrivez d’abord dans la source de vérité, puis invalidez le cache.</li><li>Documentez ce qui se passe si l’invalidation échoue.</li><li>Évitez de supposer que supprimer une clé suffit quand plusieurs clés représentent la même donnée.</li><li>Ne mettez pas en cache une réponse privée avec une clé qui omet l’identité ou le périmètre d’accès.</li></ul></section>
+<section class="lesson-section"><h2>5. Cache stampede, limites et observabilité</h2><p>Lorsqu’une clé populaire expire, de nombreuses requêtes peuvent recalculer simultanément la même valeur. Ce phénomène est appelé cache stampede. Des mécanismes de coalescence des requêtes, un verrou à durée limitée, une expiration avec jitter ou une actualisation en arrière-plan peuvent réduire ce risque. Chaque technique introduit ses propres compromis.</p><p>Mesurez le taux de succès du cache, la latence, le nombre de lectures à la source, les erreurs et la mémoire consommée. Un taux de succès élevé n’est pas une fin en soi si les données servies sont incorrectes ou si l’invalidation coûte trop cher.</p></section>
+<section class="lesson-section"><section class="lesson-section"><h2>Approfondissement pratique : décider si un cache vaut son coût</h2>
+<p>Un cache n’est pas une optimisation gratuite : il échange du calcul, des lectures ou de la latence contre de la mémoire, une politique de fraîcheur et une nouvelle source possible d’incidents. Avant de l’ajouter, formulez une hypothèse mesurable : « cette lecture représente 35 % du temps de réponse et peut être réutilisée pendant 30 secondes ». Sans hypothèse, le cache risque de masquer le vrai goulot.</p>
+<h3>Mesurer le bénéfice réel</h3><p>Suivez au minimum le taux de succès (hits / total), la latence des lectures, le coût de calcul ou de requête évité, la taille mémoire et l’âge des valeurs servies. Un taux de succès élevé ne prouve pas à lui seul une amélioration : les requêtes restantes peuvent être très coûteuses, ou l’invalidation peut ralentir les écritures. Comparez les percentiles p50, p95 et p99 avant et après, sur une charge comparable.</p>
+<pre><code>// Pseudocode : le cache ne remplace pas la source de vérité
+async function getProduct(id) {
+  const key = `product:${id}`;
+  const cached = await cache.get(key);
+  if (cached !== null) return JSON.parse(cached);
+  const product = await database.findProduct(id);
+  if (!product) return null;
+  await cache.set(key, JSON.stringify(product), { ttlSeconds: 60 });
+  return product;
+}</code></pre>
+<p>Ce modèle cache-aside suppose que l’absence de valeur en cache est détectable sans confondre « clé absente » et valeur métier nulle. En production, traitez explicitement les erreurs du cache : selon la criticité, la lecture peut retomber sur la base de données, mais il faut éviter qu’une panne du cache fasse subitement exploser sa charge.</p>
+<h3>Deux pièges opérationnels</h3><ul><li><strong>Cache stampede :</strong> une clé populaire expire et des centaines de requêtes interrogent simultanément la base. Mitigations possibles : verrou court, rafraîchissement anticipé, jitter sur le TTL et limitation de concurrence.</li><li><strong>Données partagées entre utilisateurs :</strong> une clé qui omet le tenant, la langue ou les droits peut servir une réponse à la mauvaise personne. Toute dimension qui modifie le résultat doit être prise en compte dans la clé ou exclue du cache.</li></ul>
+<h3>Exercice de décision</h3><p>Sur un endpoint qui lit un catalogue mis à jour toutes les cinq minutes, proposez une clé, un TTL, une stratégie d’invalidation et un comportement en cas d’indisponibilité du cache. Ajoutez un scénario où le résultat doit être immédiatement frais, puis expliquez pourquoi le cache n’est alors pas adapté ou doit être contourné.</p>
+<p><strong>Critères de réussite :</strong> la proposition nomme la source de vérité, définit une fraîcheur acceptable, évite le mélange de données entre utilisateurs et prévoit au moins une métrique permettant de vérifier le bénéfice.</p></section>
+<h2>6. Exercice</h2><p>Ajoutez un cache de 60 secondes à la lecture d’un catalogue. Lors d’une modification de produit, invalidez la clé correspondante. Testez une lecture répétée, une mise à jour, une clé absente, une panne du cache et deux utilisateurs avec des droits différents.</p><h3>Critères de réussite</h3><ul><li>La source de vérité reste clairement identifiée.</li><li>La politique de fraîcheur et d’invalidation est documentée.</li><li>Les clés ne mélangent pas les périmètres de sécurité.</li><li>Des métriques permettent de vérifier le bénéfice réel.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://aws.amazon.com/caching/best-practices/" target="_blank" rel="noopener noreferrer">AWS — Caching Best Practices</a></li><li><a href="https://redis.io/learn/howtos/solutions/microservices/caching" target="_blank" rel="noopener noreferrer">Redis — Cache-aside pattern</a></li><li><a href="https://developers.cloudflare.com/cache/" target="_blank" rel="noopener noreferrer">Cloudflare — Cache concepts</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching" target="_blank" rel="noopener noreferrer">MDN — HTTP caching</a></li><li><a href="https://cloud.google.com/architecture/best-practices-for-caching" target="_blank" rel="noopener noreferrer">Google Cloud — Caching overview</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je peux justifier le cache par une mesure.</label><label><input type="checkbox"> Je sais expliquer TTL et invalidation.</label><label><input type="checkbox"> Je prends en compte les données périmées, les pannes et l’isolation des utilisateurs.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="api-evolutives.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="monolithe-microservices.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

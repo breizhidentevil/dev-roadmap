@@ -1,0 +1,146 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Tests de charge
+Domaine documentaire : testing
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. Grafana k6 — Documentation — https://grafana.com/docs/k6/latest/
+2. Apache JMeter — User Manual — https://jmeter.apache.org/usermanual/
+3. Locust — Documentation — https://docs.locust.io/
+4. Google SRE — Load Balancing and Capacity — https://sre.google/sre-book/load-balancing-frontend/
+5. OWASP — Testing Guide — https://owasp.org/www-project-web-security-testing-guide/
+
+Note : les cinq références documentaires ci-dessous sont reprises dans la liste visible de la page.-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Évaluer le comportement d’un système sous trafic représentatif, détecter les limites de capacité et interpréter les résultats sans conclusions hâtives.">
+  <title>Tests de charge — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">Architecture et ingénierie Full Stack</p>
+    <h1>Tests de charge</h1>
+    <p class="lead">Évaluer le comportement d’un système sous trafic représentatif, détecter les limites de capacité et interpréter les résultats sans conclusions hâtives.</p>
+    <div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+    <section class="lesson-section">
+      <h2>Objectifs d’apprentissage</h2>
+      <p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un besoin réel, et justifier tes choix à partir de contraintes observables.</p>
+      <ul>
+        <li>Définir le vocabulaire essentiel et le problème que la compétence résout.</li>
+        <li>Appliquer les principes dans un exemple pratique et identifier les limites.</li>
+        <li>Vérifier le résultat avec des critères explicites plutôt qu’une impression subjective.</li>
+      </ul>
+    </section>
+    
+<section class="lesson-section">
+<h2>1. Définir ce que le test doit apprendre</h2>
+<p>Un test de charge mesure comment une application se comporte lorsque plusieurs utilisateurs ou requêtes sollicitent le système. Il peut servir à vérifier une capacité cible, comparer deux versions, identifier un point de saturation ou observer la stabilité pendant une durée prolongée. Il ne suffit pas de lancer un grand nombre de requêtes et de noter le débit : il faut définir le scénario métier, les conditions de réussite et les limites de sécurité avant de commencer.</p>
+<p>Choisis des objectifs quantifiables : par exemple, maintenir un certain nombre de requêtes par seconde avec un p95 inférieur à une cible et un taux d’erreur sous un seuil. Les objectifs doivent venir des besoins de service et du comportement attendu, pas d’une valeur choisie parce qu’elle paraît ambitieuse. Mesure les réponses fonctionnelles, pas seulement les codes HTTP : une API qui renvoie rapidement une erreur métier ne constitue pas un succès.</p>
+<p>Précise aussi l’environnement : version de l’application, taille des instances, configuration de base, cache froid ou chaud, jeu de données, emplacement du générateur de charge et dépendances utilisées. Une expérience ne permet de conclure que sur les conditions qu’elle représente. Ne lance pas un test intensif sur un service tiers ou une production sans autorisation et sans plan de réduction du trafic.</p>
+</section>
+<section class="lesson-section">
+<h2>2. Comprendre les profils de charge</h2>
+<p>Les termes décrivent des questions différentes. Un test de charge observe le système au niveau de trafic attendu. Un test de stress augmente la pression au-delà de la capacité nominale pour comprendre le mode de dégradation. Un test d’endurance ou soak maintient une charge pendant longtemps afin de détecter les fuites mémoire, les connexions non libérées ou les dégradations progressives. Un test de pic vérifie la réaction à une montée soudaine. Un test de capacité cherche le volume maximal qui respecte les objectifs.</p>
+<p>La charge peut être définie par un nombre d’utilisateurs virtuels ou par un débit cible. Les utilisateurs virtuels reproduisent souvent des parcours avec des temps de réflexion et des durées variables ; le débit cible permet de maintenir une pression définie. Ces modèles ne sont pas interchangeables. Si le système ralentit, un modèle où chaque utilisateur attend la réponse avant d’envoyer la requête suivante peut naturellement réduire le débit généré, ce qui masque parfois la saturation. Choisis le modèle selon la question à tester.</p>
+<p>Un scénario réaliste comprend plusieurs parcours, des proportions de lecture et d’écriture, des identifiants valides, des erreurs plausibles et des pauses. Répéter une seule requête extrêmement cacheable peut mesurer le CDN plutôt que le parcours réel d’un utilisateur. À l’inverse, utiliser des données aléatoires sans contrôle peut créer un coût artificiel en base de données.</p>
+</section>
+<section class="lesson-section">
+<h2>3. Mesurer les bonnes métriques</h2>
+<p>Le débit indique combien d’opérations réussissent par unité de temps. La latence doit être examinée par percentiles : p50 décrit le milieu de la distribution, p95 et p99 exposent une partie des expériences lentes. Le taux d’erreur doit distinguer erreurs serveur, timeouts, erreurs réseau et réponses métier attendues. Surveille simultanément CPU, mémoire, garbage collection, connexions de base, files d’attente, temps SQL, bande passante et limites du générateur de charge.</p>
+<p>La loi de Little donne un lien utile entre le nombre moyen de requêtes en cours, le débit et le temps de séjour : <code>L = λ × W</code>, lorsque les conditions sont suffisamment stables. Si la latence augmente alors que le débit reste plafonné, la file d’attente peut grossir. Une forte utilisation CPU n’est pas nécessairement un défaut si le service respecte ses objectifs ; une faible utilisation peut masquer une attente sur la base ou le réseau.</p>
+<p>Les percentiles deviennent instables lorsque le nombre d’échantillons est faible. Exécute suffisamment longtemps pour observer un comportement stable et plusieurs périodes de trafic. Note la période de chauffe, les erreurs de préparation et la façon dont les résultats sont agrégés. Ne supprime pas silencieusement les timeouts : ils font partie de l’expérience utilisateur.</p>
+</section>
+<section class="lesson-section">
+<h2>4. Construire et exécuter un scénario</h2>
+<p>Avec un outil comme k6, le script décrit les requêtes et les seuils de validation. Exemple simplifié :</p>
+<pre><code>import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+export const options = {
+  vus: 10,
+  duration: '2m',
+  thresholds: {
+    http_req_failed: ['rate&lt;0.01'],
+    http_req_duration: ['p(95)&lt;500'],
+  },
+};
+
+export default function () {
+  const res = http.get('https://test.example.invalid/api/items');
+  let body = null;
+  try {
+    body = res.json();
+  } catch (_) {
+    // Une réponse non JSON doit faire échouer le contrôle de contrat.
+  }
+
+  check(res, {
+    'statut 200': (r) =&gt; r.status === 200,
+    'type de contenu JSON': (r) =&gt; String(
+      r.headers['Content-Type'] || r.headers['content-type'] || ''
+    ).toLowerCase().includes('application/json'),
+    'corps conforme au contrat': () =&gt; body !== null &amp;&amp; Array.isArray(body.data),
+  });
+  sleep(1);
+}</code></pre>
+<p>Ce fragment suppose que l’API renvoie un objet JSON contenant un tableau <code>data</code> ; adapte ce contrôle au contrat réel. L’adresse est fictive et doit être remplacée par un environnement que tu es autorisé à tester. Les seuils sont des exemples, pas des objectifs universels. Un script de test doit gérer l’authentification de test, éviter les secrets dans le dépôt, créer ou nettoyer ses données et vérifier les réponses métier.</p>
+<p>Commence par une charge faible afin de valider le script et d’établir une référence. Augmente ensuite la pression par paliers et laisse le système se stabiliser à chaque palier. Arrête le test si les erreurs ou la charge sur une dépendance dépassent les limites convenues. Le générateur lui-même peut devenir le goulot ; surveille ses ressources et, si nécessaire, distribue la charge.</p>
+</section>
+<section class="lesson-section">
+<h2>5. Lire les résultats et choisir la suite</h2>
+<p>Quand la latence se dégrade, compare sa chronologie à celle des métriques système. Si le CPU est saturé et que les profils montrent une fonction dominante, le travail peut porter sur le calcul ou le parallélisme. Si les connexions SQL sont épuisées, examine les durées de requêtes, la taille du pool et les transactions longues. Si le service dépend d’une API externe, vérifie ses délais et les limites de débit. Ne conclus pas à un manque de serveurs avant d’avoir identifié la ressource limitante.</p>
+<p>Répète le test après un changement avec le même scénario et les mêmes conditions. Compare débit, percentiles, erreurs et consommation des ressources. Une hausse du débit accompagnée d’un p99 beaucoup plus élevé peut ne pas être acceptable. Documente les limites connues, les écarts entre test et production et les hypothèses non vérifiées.</p>
+<ul>
+<li>Ne confonds pas utilisateurs virtuels et requêtes par seconde.</li>
+<li>Ne tire pas de conclusion d’un seul lancement non reproductible.</li>
+<li>Ne teste pas une production sans autorisation et coordination.</li>
+<li>Ne mesure pas uniquement le temps moyen ou le taux de réussite HTTP.</li>
+<li>Ne néglige pas le générateur, le réseau ou les systèmes tiers.</li>
+</ul>
+</section>
+<section class="lesson-section">
+<h2>6. Exercice pratique</h2>
+<p>Crée un scénario de lecture sur un environnement de test, avec un palier de chauffe puis trois paliers de charge. Fixe un objectif de p95 et de taux d’erreur. Enregistre les métriques applicatives et système, identifie le premier signe de saturation, puis propose une seule hypothèse d’amélioration. Après correction, rejoue le même test et rédige une conclusion chiffrée. Si aucun goulot n’apparaît, indique jusqu’à quelle charge les objectifs restent respectés au lieu d’inventer une limite.</p>
+</section>
+<section class="lesson-section checklist">
+<h2>Critères de réussite</h2>
+<ul>
+<li>Je sais formuler une hypothèse et un objectif mesurable avant le test.</li>
+<li>Je distingue charge nominale, stress, endurance, pic et capacité.</li>
+<li>Je surveille latence par percentiles, débit, erreurs et ressources.</li>
+<li>Je contrôle la sécurité et l’autorisation de l’environnement testé.</li>
+<li>Je compare les versions avec des scénarios reproductibles et des conclusions nuancées.</li>
+</ul>
+</section>
+
+    <section class="lesson-section">
+      <h2>Sources documentaires</h2>
+      <p>Les ressources ci-dessous sont des références pour poursuivre l’apprentissage. Elles servent de points de départ ciblés ; consulte les sections pertinentes et vérifie les détails qui dépendent de la version des outils ou de ton environnement.</p>
+      <ol><li><a href="https://grafana.com/docs/k6/latest/" target="_blank" rel="noopener noreferrer">Grafana k6 — Documentation</a></li>
+<li><a href="https://jmeter.apache.org/usermanual/" target="_blank" rel="noopener noreferrer">Apache JMeter — User Manual</a></li>
+<li><a href="https://docs.locust.io/" target="_blank" rel="noopener noreferrer">Locust — Documentation</a></li>
+<li><a href="https://sre.google/sre-book/load-balancing-frontend/" target="_blank" rel="noopener noreferrer">Google SRE — Load Balancing and Capacity</a></li>
+<li><a href="https://owasp.org/www-project-web-security-testing-guide/" target="_blank" rel="noopener noreferrer">OWASP — Testing Guide</a></li></ol>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="cache-http-cdn.html">← Cache HTTP et CDN</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="goulots-etranglement.html">Identification des goulots d’étranglement →</a></nav>
+  
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — concevoir un test de charge exploitable</h2>
+<h3>Objectifs pédagogiques</h3>
+<ul><li>Définir un profil de trafic réaliste plutôt qu’un simple nombre de requêtes.</li><li>Distinguer montée en charge, palier stable, pic, endurance et test de capacité.</li><li>Relier latence, débit, taux d’erreur et saturation à un objectif de service.</li></ul>
+<h3>Profil de test</h3><p>Décrire les parcours, proportions de requêtes, authentification, données et think time. Utiliser un environnement isolé et des données représentatives.</p>
+<h3>Protocole</h3><p>Établir une ligne de base, échauffer le système, augmenter progressivement la charge, tenir un palier, puis revenir à la normale.</p>
+<h3>Mesures</h3><p>Enregistrer p50/p95/p99, débit, erreurs, CPU, mémoire, pool de connexions et latence SQL. Une moyenne seule masque les queues de distribution.</p>
+<h3>Interprétation</h3><p>Le générateur ne doit pas être le goulot. Vérifier ses ressources, la concurrence réellement atteinte et les limites du réseau.</p>
+<h3>Décision</h3><p>Définir à l’avance les seuils d’arrêt et les critères de réussite; documenter la version, la configuration et les données du test.</p>
+<h3>Exercice pratique</h3><p>Exécuter un test sur une API de catalogue : 20 utilisateurs virtuels au départ, puis paliers progressifs. Produire un rapport reproductible et expliquer pourquoi le p99 se dégrade.</p>
+<h3>Critères de réussite</h3><ul><li>Le profil reflète des parcours métier et pas seulement une boucle uniforme.</li><li>Le rapport contient p50/p95/p99, débit et erreurs.</li><li>La capacité du générateur est contrôlée.</li><li>Les seuils d’arrêt et la conclusion sont explicites.</li></ul>
+</section>
+</main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

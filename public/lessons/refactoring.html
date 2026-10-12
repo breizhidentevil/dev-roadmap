@@ -1,0 +1,76 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Refactoring et maintenabilité
+Les références sont des points de départ pertinents ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. Martin Fowler — Refactoring — https://refactoring.com/
+2. Martin Fowler — Refactoring: Improving the Design of Existing Code — https://martinfowler.com/books/refactoring.html
+3. Google Engineering Practices — Code Review — https://google.github.io/eng-practices/review/
+4. Microsoft — .NET Application Architecture Guides — https://learn.microsoft.com/en-us/dotnet/architecture/
+5. Refactoring.Guru — Refactoring Techniques — https://refactoring.guru/refactoring/techniques
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Améliorer la structure interne d’un code sans modifier son comportement observable.">
+  <title>Refactoring et maintenabilité — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">6. Tests, débogage et qualité</p>
+    <h1>Refactoring et maintenabilité</h1>
+    <p class="lead">Améliorer la structure interne d’un code sans modifier son comportement observable.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Qualité et tests</span></div>
+    <section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Le refactoring consiste à modifier la structure interne du code tout en conservant son comportement observable. Il vise à rendre le code plus facile à comprendre, tester et faire évoluer. Ce n’est ni une réécriture complète, ni une occasion d’ajouter en même temps de nouvelles fonctionnalités.</p><ul><li>Repérer un code difficile à maintenir à partir de symptômes concrets.</li><li>Procéder par transformations petites et vérifiables.</li><li>Utiliser les tests, la revue et le contrôle de version pour réduire le risque.</li></ul>
+</section><section class="lesson-section"><h2>1. Quand refactorer ?</h2>
+<p>Des signes fréquents sont la duplication de règles métier, une fonction qui fait plusieurs choses, des noms vagues, des conditions imbriquées, des modules trop couplés ou des changements qui obligent à modifier de nombreux fichiers sans raison fonctionnelle claire. La présence d’un motif inhabituel ne suffit pas : le coût de compréhension et de modification doit être réel.</p><p>Le bon moment est souvent juste avant ou après une modification fonctionnelle, lorsque la zone est déjà comprise. Si le code est stable, peu modifié et bien isolé, une refonte esthétique peut coûter plus qu’elle ne rapporte. Le refactoring doit servir un besoin de maintenance, pas la recherche abstraite d’une architecture parfaite.</p>
+</section><section class="lesson-section"><h2>2. Séparer comportement et structure</h2>
+<p>Avant de commencer, définis le comportement à préserver. Ajoute ou vérifie des tests qui couvrent les cas importants. Ensuite, fais une petite transformation, lance les tests et inspecte le diff. Cette boucle courte permet d’identifier rapidement la modification responsable d’une régression.</p><p>Exemple : si une fonction calcule un prix, vérifie d’abord les remises, les montants nuls et les entrées invalides. Extraire une partie du calcul dans une fonction nommée peut améliorer la lisibilité, mais la nouvelle fonction doit conserver les mêmes règles d’arrondi et de validation.</p><pre><code>// Avant : une expression métier noyée dans le traitement
+const finalPrice = price - price * discount;
+
+// Après : une règle nommée, testable séparément
+function applyDiscount(price: number, discount: number) {
+  return price - price * discount;
+}
+const finalPrice = applyDiscount(price, discount);</code></pre><p>Cet exemple n’est volontairement qu’une extraction minimale : en code réel, documente les contraintes, notamment les bornes de remise et la représentation des montants. Un simple déplacement de code n’améliore pas automatiquement la conception si le nom ou la responsabilité reste flou.</p>
+</section><section class="lesson-section"><h2>3. Techniques courantes</h2>
+<ul><li><strong>Extraire une fonction :</strong> donner un nom à un bloc cohérent et réduire la complexité locale.</li><li><strong>Renommer :</strong> exprimer l’intention métier plutôt que le mécanisme d’implémentation.</li><li><strong>Remplacer un nombre magique par une constante nommée :</strong> clarifier une règle et éviter les incohérences.</li><li><strong>Réduire la duplication :</strong> centraliser une règle réellement commune, sans créer une abstraction prématurée.</li><li><strong>Déplacer une responsabilité :</strong> rapprocher une règle des données ou du module qui en est responsable.</li><li><strong>Remplacer des conditions complexes par des fonctions explicites :</strong> rendre les décisions métier lisibles et testables.</li></ul><p>Choisis la transformation la plus petite qui améliore la compréhension. Un refactoring ne nécessite pas toujours un nouveau patron de conception ou une couche supplémentaire.</p>
+</section><section class="lesson-section"><h2>4. Maîtriser le risque et la portée</h2>
+<p>Les changements de structure peuvent casser des contrats implicites : ordre des effets secondaires, gestion des exceptions, transactions, timing asynchrone ou compatibilité des données sérialisées. Les tests ne couvrent pas nécessairement tout ; la revue de code et la vérification des appels externes restent nécessaires.</p><p>Évite de mélanger dans un même diff un renommage massif, un changement d’architecture, une mise à jour de dépendances et une nouvelle fonctionnalité. Des changements petits, cohérents et réversibles sont plus faciles à relire. Si une modification doit changer le comportement, sépare-la clairement du refactoring pur.</p><p>Pour une API publique, un changement de nom interne peut être sans conséquence, alors qu’un changement de signature, de format ou de sémantique est une évolution du contrat. Dans ce cas, documente la compatibilité et prévois une migration plutôt que de présenter le changement comme un simple nettoyage.</p>
+</section><section class="lesson-section"><h2>5. Refactoring guidé par les symptômes</h2>
+<p>Une fonction trop longue n’est pas toujours mauvaise si elle décrit un processus linéaire et clair. À l’inverse, une fonction courte peut être difficile à comprendre si elle déclenche des effets cachés. Évalue la cohésion, le nommage, la duplication réelle, la stabilité des règles et la facilité des tests.</p><p>Une bonne abstraction capture une règle qui a du sens pour le domaine. Une mauvaise abstraction rassemble des éléments qui se ressemblent aujourd’hui mais évolueront différemment. Si deux morceaux de code ne changent pas pour les mêmes raisons, les forcer dans une seule fonction générique peut rendre les futurs changements plus complexes.</p><p>Mesure également les compromis : une abstraction peut améliorer les tests mais ajouter une indirection ; un module peut réduire le couplage mais introduire une interface trop générale ; une optimisation peut accélérer un chemin mais diminuer la lisibilité. La maintenabilité est un équilibre, pas une quantité directement mesurable par le nombre de lignes.</p>
+</section><section class="lesson-section"><h2>6. Utiliser des étapes petites et réversibles</h2>
+<p>Un refactoring sûr forme une séquence de transformations dont chacune conserve le comportement observable. Avant de commencer, identifie les entrées, sorties, effets secondaires et invariants de la zone. Lance les tests de référence, puis effectue une seule transformation et relance les tests ciblés. Termine par la suite complète, le lint et le contrôle de types quand ils existent.</p>
+<ol><li>Ajouter ou préciser un test pour le comportement qui doit rester stable.</li><li>Extraire une fonction sans changer son contrat.</li><li>Renommer les concepts pour refléter leur responsabilité.</li><li>Éliminer la duplication uniquement si les règles métier sont réellement identiques.</li><li>Comparer le diff et vérifier les appels externes, les permissions et les transactions.</li></ol>
+<p>Si une étape échoue, annule-la ou corrige-la avant d’empiler d’autres changements. Un refactoring n’est pas une occasion de modifier en même temps la règle métier, le format d’API, les dépendances et le style. Si le changement de comportement est nécessaire, formule-le explicitement et couvre-le par des tests distincts.</p>
+<h3>Signaux à mesurer</h3><p>Le nombre de lignes n’est pas un indicateur de qualité suffisant. Observe plutôt la facilité à nommer les responsabilités, le nombre de chemins conditionnels, le couplage, la duplication des règles métier et la capacité des tests à isoler un échec. Ne crée pas d’abstraction générique pour une seule occurrence hypothétique.</p>
+</section>
+<section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Réécrire un module entier sans tests ni étapes intermédiaires.</li><li>Changer le comportement et la structure dans le même diff sans les distinguer.</li><li>Créer une abstraction générique avant d’avoir plusieurs cas réellement similaires.</li><li>Extraire des fonctions dont les noms n’expriment pas une intention claire.</li><li>Supprimer une duplication qui correspond en réalité à deux règles différentes.</li><li>Considérer une suite de tests verte comme une preuve absolue d’absence de régression.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Choisis une fonction de ton projet qui combine validation, calcul et formatage. Écris d’abord quelques tests sur son comportement actuel. Puis effectue une seule transformation : extraire la validation ou renommer une règle ambiguë. Lance les tests et examine le diff avant de poursuivre.</p><p>Explique en quelques lignes quel coût de maintenance cette transformation réduit et quel coût elle introduit éventuellement. Si tu ne peux pas nommer le bénéfice, annule la modification.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Identifie une zone du code qui évolue souvent ou génère des bugs. Prépare un plan de refactoring en étapes petites, avec les tests qui sécurisent chacune d’elles. Sépare les modifications structurelles des changements fonctionnels.</p><p><strong>Réussite :</strong> le comportement attendu est documenté par des tests ; chaque étape reste petite et réversible ; les responsabilités et les noms deviennent plus explicites ; le diff est relisible ; les compromis sont identifiés ; les tests et la revue sont réalisés avant fusion.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Ces références permettent d’approfondir les méthodes et de confronter les exemples à la version des outils utilisés dans ton projet.</p>
+      <ol><li><a href="https://refactoring.com/" target="_blank" rel="noopener noreferrer">Martin Fowler — Refactoring</a></li><li><a href="https://martinfowler.com/books/refactoring.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Refactoring: Improving the Design of Existing Code</a></li><li><a href="https://google.github.io/eng-practices/review/" target="_blank" rel="noopener noreferrer">Google Engineering Practices — Code Review</a></li><li><a href="https://learn.microsoft.com/en-us/dotnet/architecture/" target="_blank" rel="noopener noreferrer">Microsoft — .NET Application Architecture Guides</a></li><li><a href="https://refactoring.guru/refactoring/techniques" target="_blank" rel="noopener noreferrer">Refactoring.Guru — Refactoring Techniques</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer les concepts et les objectifs de cette compétence.</label>
+      <label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+      <label><input type="checkbox"> Je sais reconnaître les limites et les compromis.</label>
+      <label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="lint-formatage.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="lecture-code.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

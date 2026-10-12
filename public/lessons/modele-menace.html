@@ -1,0 +1,92 @@
+ <!-- SOURCES DOCUMENTAIRES
+- OWASP — Threat Modeling: https://owasp.org/www-community/Threat_Modeling
+- Microsoft — Threat Modeling: https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool
+- NIST SP 800-154 — Guide to Data-Centric System Threat Modeling: https://csrc.nist.gov/pubs/sp/800/154/ipd
+- OWASP — Application Security Verification Standard: https://owasp.org/www-project-application-security-verification-standard/
+- OWASP — Top 10: https://owasp.org/www-project-top-ten/
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Cartographier les actifs, les frontières de confiance et les scénarios d’attaque afin de prioriser les mesures de sécurité d’une application.">
+<title>Modèle de menace et analyse des risques — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Modèle de menace et analyse des risques</h1>
+<p class="lead">Cartographier les actifs, les frontières de confiance et les scénarios d’attaque afin de prioriser les mesures de sécurité d’une application.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Un modèle de menace décrit ce que l’application protège, qui pourrait l’attaquer, par quels chemins et avec quelles conséquences. Il ne s’agit pas de prévoir chaque attaque imaginable, mais de rendre les hypothèses explicites et de prioriser les contrôles qui réduisent les risques importants. À la fin, vous saurez dessiner les flux principaux, identifier les frontières de confiance, formuler des scénarios d’attaque et relier les risques à des mesures vérifiables.</p>
+<h2>2. Partir des actifs et des conséquences</h2>
+<p>Commencez par lister les actifs qui ont une valeur pour l’organisation ou les utilisateurs : données personnelles, identifiants, jetons de session, paiements, disponibilité du service, intégrité des commandes, code et secrets de déploiement. Pour chaque actif, décrivez les conséquences d’une divulgation, d’une modification, d’une indisponibilité ou d’une destruction. Les impacts peuvent être financiers, opérationnels, juridiques ou réputationnels.</p>
+<p>La criticité ne dépend pas uniquement du caractère secret d’une donnée. Une valeur publique peut être sensible à l’intégrité : un prix affiché publiquement peut ne pas être confidentiel, mais une modification non autorisée du prix facturé peut être grave. De même, une interruption courte d’un site vitrine n’a pas le même impact qu’une interruption d’un système de réservation ou de paiement.</p>
+<h2>3. Dessiner l’architecture et les frontières de confiance</h2>
+<p>Tracez les composants importants et les flux de données : navigateur, API, base de données, stockage de fichiers, fournisseur d’identité, services tiers, file de messages et système de déploiement. Marquez les frontières où changent les privilèges ou le niveau de confiance. Les données venant d’un navigateur, d’un webhook ou d’un fichier importé doivent être considérées comme non fiables jusqu’à validation.</p>
+<p>Le diagramme n’a pas besoin d’être parfait ni exhaustif au premier passage. Son objectif est de révéler les points où une entrée traverse une frontière, où un secret est utilisé ou où un composant possède un privilège élevé. Notez les flux qui sortent du système, car une fuite peut aussi se produire vers un outil de journalisation, un service analytique ou un prestataire externe.</p>
+<h2>4. Formuler des menaces concrètes</h2>
+<p>Une menace doit décrire un scénario, pas simplement nommer une catégorie. « Injection SQL » est un thème ; « un utilisateur non authentifié fournit un filtre malveillant à l’endpoint de recherche et lit des enregistrements d’autres comptes » décrit une cible, un chemin et une conséquence. Cette formulation aide à identifier le contrôle nécessaire et à écrire un test qui vérifie son efficacité.</p>
+<p>Le modèle STRIDE peut aider à structurer la recherche : usurpation d’identité, altération, répudiation, divulgation d’information, déni de service et élévation de privilèges. Ce cadre est une aide-mémoire, pas une preuve que tous les risques ont été couverts. Il doit être adapté au système et complété par les scénarios métier spécifiques.</p>
+<h2>5. Évaluer et prioriser</h2>
+<p>Pour chaque scénario, estimez la vraisemblance et l’impact, en tenant compte des contrôles déjà présents. Une matrice simple peut servir à trier les sujets, mais ses chiffres ne sont pas des mesures scientifiques précises. La priorité doit aussi prendre en compte l’exposition, la facilité d’exploitation, la détectabilité et les conséquences sur les utilisateurs.</p>
+<p>Évitez de traiter chaque menace comme urgente. Si toutes les lignes sont critiques, le modèle ne permet plus de choisir. Notez les hypothèses et les incertitudes, puis priorisez les risques les plus importants et les mesures dont le coût est proportionné. Un risque accepté doit être explicite, attribué à un responsable et réévalué si l’architecture change.</p>
+<h2>6. Relier les menaces aux contrôles</h2>
+<p>Pour chaque scénario prioritaire, associez un ou plusieurs contrôles concrets. Une lecture non autorisée de données peut nécessiter des contrôles d’accès côté serveur et des tests d’isolation entre comptes. Une injection SQL appelle des requêtes paramétrées et des tests sur les chemins de données. L’abus d’un endpoint coûteux peut nécessiter une limite de débit, des budgets de temps et des limites de taille. Une fuite de secrets de CI peut demander une séparation des droits, une rotation et des contrôles de journalisation.</p>
+<p>Un contrôle doit être vérifiable. « Sécuriser l’API » est trop vague ; « chaque requête de lecture vérifie l’appartenance de la ressource au compte authentifié, avec un test négatif pour un autre compte » donne une condition observable. Précisez qui implémente la mesure, comment elle est testée et quelles traces permettent de détecter un échec.</p>
+<h2>7. Sécurité par conception et défense en profondeur</h2>
+<p>La défense en profondeur évite de dépendre d’un seul contrôle. Une validation de formulaire améliore l’expérience utilisateur, mais ne remplace pas la validation côté serveur. Un pare-feu peut réduire l’exposition, mais ne corrige pas une autorisation métier incorrecte. Le chiffrement protège certains scénarios de divulgation, mais ne prévient pas un utilisateur autorisé de consulter trop de données.</p>
+<p>Il faut aussi limiter les privilèges. Un compte de service qui n’a besoin que de lire certaines tables ne devrait pas pouvoir supprimer toute la base. Les secrets doivent être fournis au runtime, limités dans leur portée et renouvelables. Les journaux doivent aider à détecter les incidents sans stocker les mots de passe, jetons ou payloads sensibles par défaut.</p>
+<h2>8. Maintenir le modèle dans le temps</h2>
+<p>Le modèle de menace n’est pas un document créé une fois puis oublié. Révisez-le lorsqu’un nouveau fournisseur est ajouté, qu’un endpoint public apparaît, que le modèle d’authentification change, qu’une nouvelle catégorie de données est collectée ou que le système se déploie dans un nouvel environnement. Les incidents et les tests de sécurité doivent aussi alimenter la liste des scénarios.</p>
+<p>Gardez le modèle suffisamment concis pour qu’il soit relu. Une table de scénarios, un diagramme de flux, les décisions de risque et les contrôles associés peuvent être plus utiles qu’un document volumineux non maintenu. Chaque élément doit avoir un propriétaire et une manière de vérifier son statut.</p>
+<h2>9. Erreurs fréquentes</h2>
+<ul>
+<li>Commencer par une liste générique de vulnérabilités sans comprendre l’architecture.</li>
+<li>Oublier les frontières de confiance et les services tiers.</li>
+<li>Confondre un nom de vulnérabilité avec un scénario de risque précis.</li>
+<li>Attribuer des scores sans expliciter les hypothèses ni les conséquences.</li>
+<li>Écrire des mesures vagues impossibles à tester.</li>
+<li>Ne jamais mettre à jour le modèle après une évolution majeure.</li>
+</ul>
+<h2>10. Exercice et critères de réussite</h2>
+<p>Modélisez une application de gestion de comptes avec navigateur, API, base de données, stockage de fichiers et fournisseur d’identité. Identifiez les actifs, dessinez les flux et marquez les frontières de confiance. Formulez cinq scénarios concrets, estimez leur priorité, associez un contrôle vérifiable et rédigez un test ou une procédure de détection pour chaque risque important.</p>
+<ul class="checklist">
+<li>Je peux nommer les actifs et décrire les conséquences d’une compromission.</li>
+<li>Je sais dessiner les flux et repérer les frontières de confiance.</li>
+<li>Je formule des scénarios concrets plutôt que des catégories vagues.</li>
+<li>Je relie chaque risque prioritaire à un contrôle testable.</li>
+<li>Je sais quand réviser le modèle et comment documenter les risques acceptés.</li>
+</ul>
+    <section class="lesson-workshop">
+<h2>Atelier approfondi — Transformer une menace en contrôle vérifiable</h2>
+<h3>Objectifs opérationnels</h3>
+<ul><li>Décrire un scénario d’attaque avec actif, acteur, frontière de confiance et conséquence.</li><li>Prioriser les risques à partir de leur vraisemblance et de leur impact.</li><li>Associer chaque contrôle à un test ou à une preuve d’efficacité.</li></ul>
+<h3>Explications et exemple guidé</h3>
+<p>Un modèle de menace est une hypothèse structurée sur la manière dont un système peut être attaqué ; ce n’est pas une liste générique de vulnérabilités. Pour chaque flux de données, identifie qui peut le contrôler, où la confiance change, quelles données sont sensibles et quel dommage serait possible. Une taxonomie telle que STRIDE aide à chercher des catégories d’attaque, mais elle ne remplace pas le contexte métier.</p>
+<p>Exemple : une application accepte des fichiers PDF. Actifs : documents privés, comptes et disponibilité du service. Frontières : navigateur vers API, API vers stockage, API vers outil d’analyse. Scénario : un utilisateur authentifié téléverse un fichier construit pour exploiter le parseur ; conséquence possible, exécution de code ou indisponibilité. Contrôles possibles : limites de taille et de fréquence, stockage hors du répertoire exécutable, analyse dans un environnement isolé, mises à jour du parseur et tests de fichiers malformés.</p>
+<p>Écris le risque comme une chaîne causale : « Si un acteur X peut faire Y via le point Z, alors la conséquence C devient possible, car le contrôle K manque ou peut être contourné ». Cette formulation rend l’hypothèse testable. La priorité peut combiner vraisemblance, impact, exposition et facilité de détection ; explicite les critères plutôt que de prétendre qu’une note est une mesure objective.</p>
+<h3>Pièges et limites</h3>
+<ul><li>Recopier une liste de menaces sans tracer les flux ni les actifs réels.</li><li>Confondre présence d’un contrôle avec preuve qu’il résiste au scénario visé.</li><li>Classer tous les risques par une note unique sans expliquer l’impact ou les hypothèses.</li><li>Oublier les abus de fonctions légitimes, les erreurs de configuration et les comptes internes compromis.</li></ul>
+<h3>Exercice</h3>
+<p>Modélise un parcours de partage de documents. Dessine les composants et frontières, formule au moins cinq scénarios distincts, note l’actif et l’impact, puis choisis les trois risques prioritaires. Pour chacun, définis un contrôle préventif et une vérification automatisée ou manuelle.</p>
+<h3>Critères de réussite</h3>
+<ul><li>Les actifs, flux, acteurs et frontières de confiance sont explicitement représentés.</li><li>Les scénarios décrivent une cause et une conséquence plausibles, pas seulement un nom de vulnérabilité.</li><li>La priorité est justifiée par des hypothèses visibles.</li><li>Chaque contrôle prioritaire possède une preuve ou un test associé et un responsable.</li></ul>
+</section>
+    
+
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://owasp.org/www-community/Threat_Modeling" target="_blank" rel="noopener noreferrer">OWASP — Threat Modeling</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool" target="_blank" rel="noopener noreferrer">Microsoft — Threat Modeling</a></li>
+<li><a href="https://csrc.nist.gov/pubs/sp/800/154/ipd" target="_blank" rel="noopener noreferrer">NIST SP 800-154 — Guide to Data-Centric System Threat Modeling</a></li>
+<li><a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener noreferrer">OWASP — Application Security Verification Standard</a></li>
+<li><a href="https://owasp.org/www-project-top-ten/" target="_blank" rel="noopener noreferrer">OWASP — Top 10</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="recherche-textuelle-pagination.html">← Précédent : Recherche textuelle et pagination efficace</a><a rel="next" href="rbac-abac-controle-acces.html">Suivant : Contrôle d’accès par rôle et par ressource →</a></nav>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

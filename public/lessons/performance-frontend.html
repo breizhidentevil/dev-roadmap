@@ -1,0 +1,48 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Performance frontend
+Les références sont des ressources de référence à consulter pour approfondir les notions. Le tutoriel est une synthèse pédagogique originale.
+1. web.dev — Learn Performance — https://web.dev/learn/performance/
+2. web.dev — Core Web Vitals — https://web.dev/articles/vitals
+3. Chrome DevTools — Performance — https://developer.chrome.com/docs/devtools/performance/
+4. MDN — Optimisation des performances — https://developer.mozilla.org/fr/docs/Web/Performance
+5. web.dev — Optimize LCP — https://web.dev/articles/optimize-lcp
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Mesurer et améliorer le chargement et la réactivité d’une page." name="description"/>
+<title>Performance frontend — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">2. Frontend</p>
+<h1>Performance frontend</h1>
+<p class="lead">Mesurer les temps de chargement et d’interaction, identifier les goulots d’étranglement et optimiser sans dégrader l’expérience utilisateur.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 7 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Distinguer chargement, réactivité et stabilité visuelle.</li><li>Mesurer avant et après une optimisation.</li><li>Identifier ressources lourdes, tâches longues et rendus coûteux.</li><li>Prioriser les optimisations en fonction de leur impact utilisateur.</li><li>Éviter les optimisations prématurées ou sans preuve.</li></ul>
+</section><section class="lesson-section"><h2>Fil directeur</h2><p>La performance est une propriété de l’expérience utilisateur, pas seulement un score de build. Il faut d’abord déterminer quel aspect est lent, établir une mesure comparable, puis agir sur le goulot d’étranglement démontré.</p></section><section class="lesson-section"><h2>1. Distinguer les dimensions de performance</h2><p>Le chargement concerne l’apparition du contenu important ; la réactivité concerne le délai entre une action et la réponse de l’interface ; la stabilité visuelle concerne les déplacements inattendus. Les Core Web Vitals associés sont LCP, INP et CLS. Une page peut être rapide à afficher mais pénible à utiliser si son JavaScript bloque les interactions.</p><p>Les données de laboratoire permettent de reproduire un scénario contrôlé. Les données de terrain montrent la variabilité des appareils, réseaux et usages réels. Elles se complètent et ne doivent pas être confondues.</p></section><section class="lesson-section"><h2>2. Construire une mesure de référence</h2><p>Choisis un parcours utilisateur concret, une métrique, un appareil ou profil réseau, un état de cache et plusieurs répétitions. Note la version du code et les conditions de mesure. Compare ensuite le même scénario après chaque changement ; une mesure isolée peut être perturbée par le réseau ou les processus concurrents.</p><p>Utilise les outils Performance et Network du navigateur, puis Lighthouse ou les données de terrain si la question le justifie. Fixe un objectif lié à l’usage, par exemple afficher plus tôt le contenu principal, plutôt qu’un score abstrait.</p></section><section class="lesson-section"><h2>3. Localiser le coût dominant</h2><p>Dans Network, trie par taille et durée, distingue les ressources bloquantes et examine les images, polices et scripts. Dans Performance, cherche les tâches longues, les fonctions coûteuses, les recalculs de style et les mises en page répétées. Relie chaque optimisation envisagée à une observation.</p><p>Les images doivent avoir des dimensions adaptées et des variantes responsives. Le chargement différé est utile hors écran, mais peut retarder le LCP si on l’applique à l’image principale. Le découpage du JavaScript n’aide que s’il réduit le travail ou le transfert du chemin critique.</p></section><section class="lesson-section"><h2>4. Optimiser puis mesurer les effets secondaires</h2><p>Réduis le travail inutile, évite d’alterner lectures de géométrie et écritures de styles dans une grande boucle, et réserve l’espace des médias avec des dimensions ou un ratio. Le cache HTTP peut réduire les transferts répétés si les directives et le versionnement sont corrects.</p><p>Un Web Worker n’est pas automatiquement préférable : sérialisation, transferts et complexité peuvent dépasser le coût du calcul. Après chaque changement, répète le protocole initial et vérifie LCP, INP et CLS, pas seulement la métrique visée.</p></section><section class="lesson-section"><h2>5. Interpréter les Core Web Vitals</h2>
+<p>Pour les données de terrain, les seuils « bon » sont évalués au 75e percentile des visites, séparément selon les types d’appareils lorsque l’échantillon le permet. Les repères usuels sont :</p>
+<ul><li><strong>LCP :</strong> au plus 2,5 secondes pour l’affichage du contenu principal.</li><li><strong>INP :</strong> au plus 200 millisecondes pour la réactivité aux interactions.</li><li><strong>CLS :</strong> au plus 0,1 pour les déplacements inattendus de mise en page.</li></ul>
+<p>Un résultat au 75e percentile signifie qu’au moins 75 % des expériences mesurées se situent à cette valeur ou en dessous. Une mesure Lighthouse isolée n’établit pas à elle seule le statut terrain d’une page : elle sert surtout à diagnostiquer un scénario contrôlé. Si les données de terrain sont insuffisantes, indique cette limite au lieu de conclure que la page est conforme.</p></section>
+<section class="lesson-section"><h2>Erreurs fréquentes et diagnostic</h2><ul><li>Optimiser avant d’avoir mesuré le problème.</li><li>Comparer des mesures prises dans des conditions différentes.</li><li>Appliquer lazy-loading à une ressource essentielle au LCP.</li><li>Minifier sans réduire le coût dominant.</li><li>Améliorer le chargement en dégradant la réactivité ou la stabilité.</li></ul></section><section class="lesson-section"><h2>Exercice guidé</h2><p>Choisis une page comportant plusieurs images et du JavaScript. Décris un parcours, fixe les conditions de mesure et relève une référence. Identifie un coût dominant dans Network ou Performance, effectue une seule optimisation, puis compare plusieurs mesures avant/après et consigne les effets secondaires.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul><li>Le scénario et les conditions de mesure sont reproductibles.</li><li>L’optimisation répond à un goulot observé.</li><li>Les mesures avant/après sont comparables et répétées.</li><li>La stabilité visuelle et la réactivité sont contrôlées.</li><li>La décision finale explique le gain et les compromis.</li></ul></section>
+
+
+
+
+
+
+
+<section class="lesson-section"><h2>Validation des acquis</h2><ul><li>Je sais relever LCP, INP et CLS dans un scénario reproductible.</li><li>Je sais distinguer une mesure de laboratoire d’une mesure de terrain au 75e percentile.</li><li>Je peux justifier une optimisation par une observation et vérifier ses effets secondaires.</li></ul></section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://web.dev/learn/performance/" rel="noopener noreferrer" target="_blank">web.dev — Learn Performance</a></li><li><a href="https://web.dev/articles/vitals" rel="noopener noreferrer" target="_blank">web.dev — Core Web Vitals</a></li><li><a href="https://developer.chrome.com/docs/devtools/performance/" rel="noopener noreferrer" target="_blank">Chrome DevTools — Performance</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/Performance" rel="noopener noreferrer" target="_blank">MDN — Optimisation des performances</a></li><li><a href="https://web.dev/articles/optimize-lcp" rel="noopener noreferrer" target="_blank">web.dev — Optimize LCP</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="debug-frontend.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="react-composants.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

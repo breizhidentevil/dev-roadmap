@@ -1,0 +1,103 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Docker et conteneurs
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. Docker Docs — Get started — https://docs.docker.com/get-started/
+2. Docker Docs — Dockerfile reference — https://docs.docker.com/reference/dockerfile/
+3. Docker Docs — Compose — https://docs.docker.com/compose/
+4. Docker Docs — Build best practices — https://docs.docker.com/build/building/best-practices/
+5. OWASP — Docker Security Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Images, conteneurs, Dockerfile, ports, volumes, réseaux et sécurité de base.">
+<title>Docker et conteneurs — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">7. Environnement, livraison et exploitation</p>
+<h1>Docker et conteneurs</h1>
+<p class="lead">Construire une image reproductible et exécuter l’application dans un conteneur avec ses ports, volumes et dépendances.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Une image est un modèle immuable contenant fichiers et métadonnées ; un conteneur est une instance en cours d’exécution avec processus, réseau, variables et couche inscriptible. Les conteneurs Linux partagent le noyau de l’hôte ou de la machine virtuelle qui héberge Docker ; ils ne sont pas des machines virtuelles complètes.</p><ul><li>Différencier image, conteneur, registre, volume et réseau.</li><li>Écrire un Dockerfile et exploiter le cache de construction.</li><li>Publier un port et conserver des données persistantes.</li><li>Utiliser Compose pour plusieurs services.</li><li>Réduire taille et risques de l’image.</li></ul>
+</section><section class="lesson-section"><h2>1. Image et conteneur</h2>
+<p>Supprimer un conteneur n’est pas supprimer son image. En revanche, les données écrites uniquement dans la couche éphémère du conteneur peuvent disparaître à sa recréation. Les données importantes doivent être placées dans un volume ou un service externe.</p><pre><code>docker pull node:22-alpine
+docker image ls
+docker ps -a
+docker run --rm node:22-alpine node --version</code></pre><p>Choisis un tag de version explicite plutôt que <code>latest</code>, qui peut changer. Pour une reproductibilité forte, épingler le digest d’une image permet d’identifier précisément son contenu.</p>
+</section><section class="lesson-section"><h2>2. Construire un Dockerfile</h2>
+<p>L’ordre des instructions influence le cache. Les manifestes de dépendances changent souvent moins que le code ; les copier avant le reste permet de réutiliser l’installation lorsque seuls les fichiers source changent.</p><pre><code>FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+ENV NODE_ENV=production
+EXPOSE 3000
+CMD ["node", "dist/server.js"]</code></pre><p>Adapte le point d’entrée, le script de build et le gestionnaire de paquets au projet. <code>npm ci</code> attend un lockfile cohérent. Cet exemple simple peut encore embarquer les dépendances de développement et les sources ; une construction multi-étape peut créer une image finale plus légère.</p><p><code>EXPOSE 3000</code> documente le port attendu mais ne le publie pas sur l’hôte. Le mapping s’effectue au lancement ou dans Compose.</p>
+</section><section class="lesson-section"><h2>3. Lancer et diagnostiquer</h2>
+<pre><code>docker build -t exemple-api:dev .
+docker run --rm -p 3000:3000 --name exemple-api exemple-api:dev
+docker logs exemple-api
+docker inspect exemple-api
+docker exec -it exemple-api sh</code></pre><p>Le mapping <code>-p 3000:3000</code> relie généralement le port 3000 de l’hôte à celui du conteneur. L’application doit écouter sur une interface accessible depuis le réseau du conteneur, souvent <code>0.0.0.0</code>, et non seulement sur son loopback <code>127.0.0.1</code>.</p><p>Si le conteneur s’arrête, consulte les logs et le code de sortie. Si le navigateur ne se connecte pas, vérifie dans l’ordre : processus vivant, port d’écoute, interface, port publié et pare-feu. Un conteneur démarré n’est pas forcément prêt à servir le trafic.</p>
+</section><section class="lesson-section"><h2>4. Volumes, réseaux et Compose</h2>
+<p>Un volume conserve des données hors de la couche éphémère du conteneur. Un bind mount relie un chemin de l’hôte au conteneur : pratique en développement, mais susceptible d’écraser des fichiers du conteneur.</p><pre><code>services:
+  api:
+    build: .
+    ports: ["3000:3000"]
+    environment:
+      DATABASE_URL: postgres://app:example@db:5432/app
+    depends_on: [db]
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: app
+    volumes: [pgdata:/var/lib/postgresql/data]
+volumes:
+  pgdata:</code></pre><p>Dans le réseau Compose, le nom de service <code>db</code> est utilisé par l’API pour joindre PostgreSQL. Depuis le navigateur de l’hôte, ce nom n’est pas nécessairement résoluble. Les identifiants ci-dessus sont factices : ne les réutilise pas en production. <code>depends_on</code> ordonne le démarrage, mais ne garantit pas à lui seul que la base accepte les connexions ; prévois un healthcheck et une reconnexion robuste.</p>
+</section><section class="lesson-section"><h2>5. Reproductibilité et sécurité</h2>
+<p>Ajoute un <code>.dockerignore</code> pour exclure notamment <code>.git</code>, les dépendances locales, les fichiers de build obsolètes et les secrets. Sinon, le contexte peut être volumineux et des données privées peuvent entrer dans l’image.</p><p>Utilise un utilisateur non privilégié lorsque c’est compatible, garde les images de base à jour, évite le mode privilégié et ne place pas de secret dans <code>ARG</code> ou <code>ENV</code> si la valeur peut rester dans les métadonnées ou couches. Les secrets de construction doivent passer par les mécanismes dédiés de BuildKit lorsque nécessaire.</p><p>Docker améliore la cohérence d’exécution, mais ne rend pas l’application automatiquement sécurisée, disponible ou sauvegardée. Les mises à jour, journaux, healthchecks et sauvegardes restent à gérer.</p>
+</section><section class="lesson-section"><h2>Erreurs fréquentes et compromis</h2>
+<ul><li><strong>Confondre image et conteneur :</strong> modèle d’un côté, exécution de l’autre.</li><li><strong>Perdre les données :</strong> utilise un volume pour la persistance.</li><li><strong>Penser qu’EXPOSE publie le port :</strong> utilise un mapping explicite.</li><li><strong>Utiliser localhost entre conteneurs :</strong> localhost désigne le conteneur courant.</li><li><strong>Copier un secret dans l’image :</strong> exclus-le du contexte et injecte-le au runtime.</li><li><strong>Supposer qu’un service est prêt :</strong> vérifie sa santé et gère les reconnexions.</li></ul><p>Le multi-stage build réduit souvent la taille finale, mais ajoute de la complexité. Commence par une image fonctionnelle, puis mesure et durcis progressivement.</p>
+</section><section class="lesson-section"><h2>Construire une image exploitable en production</h2>
+<p>Le but n’est pas seulement d’obtenir un conteneur qui démarre : l’image doit être reproductible, petite autant que raisonnable, non privilégiée et sans secrets. Un fichier <code>.dockerignore</code> empêche notamment d’envoyer inutilement <code>node_modules</code>, <code>.git</code>, les fichiers locaux et les secrets au contexte de construction.</p>
+<pre><code># Exemple de .dockerignore
+node_modules
+.git
+.env
+.env.*
+coverage
+npm-debug.log</code></pre>
+<p>Dans un Dockerfile multi-étapes, sépare les dépendances de construction de l’image d’exécution. Copie d’abord les fichiers de verrouillage pour bénéficier du cache, installe les dépendances avec une commande déterministe, puis copie les sources nécessaires. Exécute le processus avec un utilisateur non-root lorsque c’est compatible avec l’application.</p>
+<pre><code>docker build -t catalogue:dev .
+docker image inspect catalogue:dev
+docker run --rm -p 3000:3000 catalogue:dev
+docker ps
+docker logs --tail 100 NOM_OU_ID</code></pre>
+<p>Le port publié relie le port de l’hôte au port du conteneur ; l’application doit souvent écouter sur <code>0.0.0.0</code> dans le conteneur, pas uniquement sur <code>127.0.0.1</code>. Un conteneur qui s’arrête immédiatement doit être diagnostiqué avec son code de sortie et ses logs avant d’ajouter un redémarrage automatique.</p>
+<p>Les conteneurs sont remplaçables : ne conserve pas les données métier uniquement dans leur système de fichiers éphémère. Utilise un volume ou un service de stockage adapté et teste explicitement la persistance après recréation du conteneur.</p>
+</section>
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Conteneurise une petite API écoutant sur le port 3000, publie le port et vérifie un endpoint de santé. Recrée ensuite le conteneur et observe quels fichiers persistent. Ajoute un fichier <code>.dockerignore</code>.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Ajoute PostgreSQL avec Compose, connecte l’API au service par son nom réseau et conserve les données dans un volume. Documente les commandes de démarrage, arrêt et consultation des logs.</p><ul><li>L’image se construit depuis un dépôt propre et un lockfile.</li><li>L’API est accessible via le port publié.</li><li>La base est jointe par le nom du service, pas localhost.</li><li>Les données persistent à la recréation du conteneur.</li><li>Les fichiers secrets sont exclus de l’image.</li><li>Les logs permettent de diagnostiquer un démarrage en échec.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><p>Utilise ces références pour approfondir les notions et vérifier les détails liés aux versions de tes outils.</p><ol><li><a href="https://docs.docker.com/get-started/" target="_blank" rel="noopener noreferrer">Docker Docs — Get started</a></li><li><a href="https://docs.docker.com/reference/dockerfile/" target="_blank" rel="noopener noreferrer">Docker Docs — Dockerfile reference</a></li><li><a href="https://docs.docker.com/compose/" target="_blank" rel="noopener noreferrer">Docker Docs — Compose</a></li><li><a href="https://docs.docker.com/build/building/best-practices/" target="_blank" rel="noopener noreferrer">Docker Docs — Build best practices</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Docker Security Cheat Sheet</a></li></ol></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2>
+<label><input type="checkbox"> Je peux expliquer les concepts essentiels avec mes propres mots.</label>
+<label><input type="checkbox"> Je peux appliquer la méthode à un cas concret.</label>
+<label><input type="checkbox"> Je sais diagnostiquer les erreurs et expliquer les compromis.</label>
+<label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+<p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p></section>
+<nav class="lesson-nav"><a class="nav-link" href="environnement-config.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="ci-cd.html">Compétence suivante →</a></nav>
+</main><footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body></html>

@@ -1,0 +1,55 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Vite, npm/pnpm, ESLint et Prettier
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. Vite — Guide officiel — https://vite.dev/guide/
+2. npm — Documentation — https://docs.npmjs.com/
+3. pnpm — Documentation — https://pnpm.io/motivation
+4. ESLint — Documentation — https://eslint.org/docs/latest/
+5. Prettier — Documentation — https://prettier.io/docs/
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Configurer les outils de développement, de qualité et de dépendances." name="description"/>
+<title>Vite, npm/pnpm, ESLint et Prettier — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">2. Frontend</p>
+<h1>Vite, npm/pnpm, ESLint et Prettier</h1>
+<p class="lead">Configurer un environnement frontend reproductible, gérer les dépendances et automatiser les contrôles de qualité du code.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 9 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Comprendre le rôle du serveur de développement et du build.</li><li>Gérer les dépendances et le fichier de verrouillage.</li><li>Distinguer linting et formatage.</li><li>Créer des scripts fiables pour le développement et l’intégration continue.</li></ul>
+</section><section class="lesson-section"><h2>Fil directeur</h2><p>Une chaîne frontend fiable doit rendre les mêmes dépendances et contrôles reproductibles sur le poste de développement et en intégration continue. Sépare les outils qui servent à exécuter l’application de ceux qui vérifient la qualité du code.</p></section><section class="lesson-section"><h2>1. Comprendre le cycle de développement et de build</h2><p>Vite fournit un serveur de développement et un processus de build. Le serveur accélère le retour pendant le codage ; le build produit des fichiers destinés à être servis en production. `preview` permet d’inspecter localement le résultat compilé, mais ne remplace pas un déploiement réel.</p><pre><code>npm create vite@latest mon-app
+cd mon-app
+npm install
+npm run dev
+npm run build
+npm run preview</code></pre><p>Lis `package.json` : les scripts exacts et le dossier de sortie dépendent du modèle de projet et de la configuration.</p></section><section class="lesson-section"><h2>2. Rendre les dépendances reproductibles</h2><p>`package.json` décrit les dépendances et les scripts ; le fichier de verrouillage enregistre la résolution concrète des versions. Versionne le lockfile et utilise le gestionnaire choisi par le dépôt. Évite de mélanger `package-lock.json` et `pnpm-lock.yaml`, car cela rend les installations moins prévisibles.</p><pre><code>npm ci</code></pre><p>`npm ci` réalise une installation propre en CI à partir d’un lockfile cohérent. Pour pnpm, utilise la commande d’installation figée correspondante à la version configurée. Documente la version de Node.js pour réduire les écarts entre machines.</p></section><section class="lesson-section"><h2>3. Séparer formatage, analyse et tests</h2><p>Prettier formate le code ; ESLint signale des motifs problématiques et applique des règles d’analyse statique ; les tests vérifient le comportement. Aucun de ces contrôles ne remplace les autres. Configure des scripts avec des objectifs distincts, par exemple `lint`, `format:check`, `test` et `build`.</p><pre><code>{
+  "scripts": {
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "build": "vite build"
+  }
+}</code></pre><p>Adapte les commandes au langage et à la configuration : un dépôt TypeScript/JSX doit être analysé avec les extensions et règles adaptées. L’exemple suppose que Vitest est installé et configuré ; si le projet utilise un autre runner, remplace `vitest run` par sa commande non interactive. En CI, exécute au minimum `npm ci`, `npm run lint`, `npm run format:check`, `npm test` et `npm run build`, en arrêtant le pipeline dès qu’une étape échoue.</p></section><section class="lesson-section"><h2>4. Automatiser le workflow et protéger les secrets</h2><p>En CI, commence par une installation propre, puis exécute lint, formatage, tests et build. Une vérification locale ou un hook Git accélère le retour, mais peut être contourné ; la CI doit donc rester l’autorité pour les contrôles requis.</p><p>Tout ce qui est intégré au bundle frontend est potentiellement public. Les variables préfixées pour être exposées au navigateur ne doivent jamais contenir de clé privée ou de mot de passe. Après le build, teste les routes directes, les chemins de ressources et les erreurs de console dans des conditions proches de la production.</p></section><section class="lesson-section"><h2>Erreurs fréquentes et diagnostic</h2><ul><li>Oublier le lockfile ou utiliser un gestionnaire différent de celui du projet.</li><li>Confondre formatage, lint, tests et build.</li><li>Ne valider que le serveur de développement.</li><li>Exposer une clé privée dans une variable client.</li><li>Compter sur un hook local au lieu de contrôles CI.</li></ul></section><section class="lesson-section"><h2>Exercice guidé</h2><p>Crée une application Vite avec scripts séparés pour lint, vérification du format, tests et build. Versionne le lockfile, fixe la version de Node.js et configure une CI qui échoue dès qu’un contrôle échoue. Inspecte le bundle pour vérifier qu’aucun secret n’est exposé.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul><li>Un clone neuf s’installe avec une procédure documentée.</li><li>Un seul gestionnaire de paquets et son lockfile sont utilisés.</li><li>Les scripts ont des responsabilités distinctes.</li><li>La CI exécute les contrôles et le build.</li><li>Aucun secret serveur n’est livré dans le code client.</li></ul></section>
+
+
+
+
+
+
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://vite.dev/guide/" rel="noopener noreferrer" target="_blank">Vite — Guide officiel</a></li><li><a href="https://docs.npmjs.com/" rel="noopener noreferrer" target="_blank">npm — Documentation</a></li><li><a href="https://pnpm.io/motivation" rel="noopener noreferrer" target="_blank">pnpm — Documentation</a></li><li><a href="https://eslint.org/docs/latest/" rel="noopener noreferrer" target="_blank">ESLint — Documentation</a></li><li><a href="https://prettier.io/docs/" rel="noopener noreferrer" target="_blank">Prettier — Documentation</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="tailwind-composants.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="nextjs.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

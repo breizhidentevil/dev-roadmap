@@ -1,0 +1,83 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Mise en page CSS avec Flexbox et Grid
+Les références sont des ressources de référence à consulter pour approfondir les notions. Le tutoriel est une synthèse pédagogique originale.
+1. MDN — Flexbox — https://developer.mozilla.org/fr/docs/Web/CSS/CSS_flexible_box_layout
+2. MDN — CSS Grid — https://developer.mozilla.org/fr/docs/Web/CSS/CSS_grid_layout
+3. MDN — Guide de mise en page CSS — https://developer.mozilla.org/fr/docs/Learn_web_development/Core/CSS_layout
+4. web.dev — Learn CSS — https://web.dev/learn/css
+5. CSS-Tricks — A Complete Guide to Flexbox — https://css-tricks.com/snippets/css/a-guide-to-flexbox/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Construire des mises en page robustes avec les deux systèmes de layout.">
+  <title>Flexbox et CSS Grid — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">2. Frontend</p>
+    <h1>Mise en page CSS avec Flexbox et Grid</h1>
+    <p class="lead">Choisir entre une disposition unidimensionnelle et une grille bidimensionnelle pour construire des interfaces responsive.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 6 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Choisir Flexbox pour aligner des éléments selon un axe.</li><li>Choisir Grid pour organiser lignes et colonnes.</li><li>Utiliser gap, flex-wrap, fr, minmax et auto-fit.</li><li>Construire des mises en page adaptables sans positions fragiles.</li><li>Tester les débordements et les contenus de longueur variable.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Flexbox : organiser un axe</h2>
+    <p>Flexbox est conçu pour distribuer et aligner des éléments le long d’un axe principal. La propriété <code>display: flex</code> active le modèle ; <code>justify-content</code> règle la distribution sur l’axe principal et <code>align-items</code> l’alignement sur l’axe transversal.</p><pre><code>.barre {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }</code></pre><p><code>flex-wrap: wrap</code> autorise les éléments à passer sur plusieurs lignes lorsque l’espace manque. Le modèle flex peut aussi réduire les éléments ; si un enfant déborde à cause de son contenu, <code>min-width: 0</code> sur l’enfant peut être nécessaire pour autoriser sa réduction.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Grid : lignes et colonnes</h2>
+    <p>CSS Grid permet de définir des colonnes et des lignes coordonnées. Il est particulièrement adapté aux grilles de cartes, aux tableaux de bord et aux structures de page à deux dimensions.</p><pre><code>.grille {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }</code></pre><p>Les fractions <code>fr</code> répartissent l’espace disponible. <code>minmax(0, 1fr)</code> évite que la taille minimale automatique du contenu impose parfois une colonne trop large. Une grille explicite de trois colonnes ne convient pas à toutes les largeurs : adapte-la au contenu ou utilise une règle auto-adaptative.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Grilles responsives</h2>
+    <pre><code>.grille-produits {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+      gap: 1rem;
+    }</code></pre><p>Cette approche permet au nombre de colonnes de s’ajuster à l’espace disponible. Avec <code>auto-fit</code>, les pistes répétées vides sont repliées quand il reste moins d’éléments que de pistes possibles ; <code>auto-fill</code> conserve ces pistes vides, ce qui peut laisser de l’espace réservé. Une media query reste utile lorsque le design doit réellement changer de comportement à un seuil donné. Choisis les seuils en fonction du moment où le contenu ne tient plus, pas en fonction d’une liste fixe de modèles d’appareils.</p>
+    </section>
+    <section class="lesson-section"><h2>4. Placer et aligner</h2>
+    <p>Dans Flexbox, l’ordre visuel peut diverger de l’ordre du DOM si tu utilises <code>order</code> ou des directions inversées. Cela peut surprendre la navigation clavier et les technologies d’assistance. Garde autant que possible un ordre source logique.</p><p>Dans Grid, les lignes nommées et les zones nommées peuvent clarifier une mise en page complexe. N’utilise pas Grid pour tout par principe : pour aligner une simple rangée de boutons, Flexbox est souvent plus direct.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Déboguer les layouts</h2>
+    <p>Les outils de développement affichent les lignes de grille, les axes Flexbox et les tailles calculées. Si un composant déborde, inspecte d’abord sa largeur minimale, les longues chaînes, les images et les marges. Préfère <code>max-width: 100%</code> pour les médias qui doivent rester dans leur conteneur et évite de masquer globalement le débordement pour cacher un défaut de layout.</p><p>Teste avec du texte long, une police agrandie, une fenêtre étroite et un zoom élevé. Une disposition robuste doit s’adapter au contenu réel, pas seulement à la capture d’écran de référence.</p>
+    </section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Utiliser Flexbox pour une mise en page complexe à deux dimensions sans raison.</li><li>Définir un nombre fixe de colonnes sans prévoir les petits écrans.</li><li>Employer <code>order</code> pour corriger un ordre HTML mal conçu.</li><li>Masquer le débordement sans en identifier la cause.</li><li>Oublier les chaînes longues, images larges et contenus traduits.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Analyse approfondie : éviter les débordements de contenu</h2>
+<p>Flexbox et Grid distribuent l’espace disponible, mais le contenu possède aussi des tailles minimales intrinsèques. Un mot très long, une URL, une image trop large ou un élément avec une largeur fixe peut forcer un débordement malgré une grille qui semble flexible.</p>
+<h3>Grille robuste pour des cartes</h3><pre><code>.cartes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 1rem;
+}
+.carte { min-width: 0; }
+.carte img { max-width: 100%; height: auto; }
+.carte__titre { overflow-wrap: anywhere; }</code></pre>
+<p><code>auto-fit</code> adapte le nombre de pistes qui peuvent tenir ; <code>minmax()</code> borne leur taille et <code>min-width: 0</code> autorise un élément de grille à rétrécir sous sa taille minimale automatique. <code>overflow-wrap</code> est utile pour les chaînes qui n’ont pas de points de coupure naturels, mais ne doit pas remplacer une conception de contenu raisonnable.</p>
+<h3>Choisir le modèle</h3><ul><li>Flexbox convient aux barres d’actions, aux groupes de contrôles et aux alignements principalement sur un axe.</li><li>Grid convient aux régions où lignes et colonnes doivent se coordonner, comme une galerie ou un tableau de bord.</li><li>Ne réordonne pas visuellement les éléments d’une manière qui contredit l’ordre de lecture et de focus du DOM.</li></ul>
+<p>Teste avec un titre deux fois plus long, une carte supplémentaire et une fenêtre étroite. Une mise en page robuste supporte la variation du contenu, pas seulement les textes de démonstration.</p></section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Construis une barre d’actions avec Flexbox et une grille de cartes avec Grid. Fais varier la largeur de la fenêtre, allonge les titres et ajoute une carte supplémentaire. Utilise les outils du navigateur pour observer les axes, les colonnes et les causes d’un éventuel débordement.</p><h3>Critères de réussite</h3><ul><li>Flexbox est utilisé pour aligner la barre d’actions.</li><li>Grid organise les cartes avec une largeur minimale raisonnable.</li><li>La mise en page s’adapte à plusieurs largeurs sans débordement involontaire.</li><li>L’ordre DOM reste logique pour la navigation au clavier.</li><li>Les textes longs et médias restent dans leur conteneur.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/fr/docs/Web/CSS/CSS_flexible_box_layout" target="_blank" rel="noopener noreferrer">MDN — Flexbox</a></li><li><a href="https://developer.mozilla.org/fr/docs/Web/CSS/CSS_grid_layout" target="_blank" rel="noopener noreferrer">MDN — CSS Grid</a></li><li><a href="https://developer.mozilla.org/fr/docs/Learn_web_development/Core/CSS_layout" target="_blank" rel="noopener noreferrer">MDN — Guide de mise en page CSS</a></li><li><a href="https://web.dev/learn/css" target="_blank" rel="noopener noreferrer">web.dev — Learn CSS</a></li><li><a href="https://css-tricks.com/snippets/css/a-guide-to-flexbox/" target="_blank" rel="noopener noreferrer">CSS-Tricks — A Complete Guide to Flexbox</a></li></ul></section>
+        <nav class="lesson-nav"><a class="nav-link" href="css-fondamentaux.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="responsive-design.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

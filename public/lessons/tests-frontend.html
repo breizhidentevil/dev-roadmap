@@ -1,0 +1,76 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Tests frontend
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. Testing Library — Introduction — https://testing-library.com/docs/
+2. Vitest — Guide — https://vitest.dev/guide/
+3. Playwright — Writing tests — https://playwright.dev/docs/writing-tests
+4. Cypress — End-to-end testing — https://docs.cypress.io/app/end-to-end-testing/writing-your-first-end-to-end-test
+5. Kent C. Dodds — Testing implementation details — https://kentcdodds.com/blog/testing-implementation-details
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Tester les composants et les parcours utilisateurs." name="description"/>
+<title>Tests frontend — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">2. Frontend</p>
+<h1>Tests frontend</h1>
+<p class="lead">Construire une stratégie de tests frontend fondée sur le risque : vérifier la logique, les interactions accessibles et les parcours réels sans rendre la suite fragile.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 9 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Choisir le niveau de test adapté au risque.</li><li>Tester le comportement plutôt que les détails internes.</li><li>Écrire des tests déterministes et lisibles.</li><li>Automatiser les parcours critiques sans rendre la suite fragile.</li></ul>
+</section><section class="lesson-section"><h2>Fil conducteur</h2><p>Partir du risque produit, choisir le niveau de test le moins coûteux qui le couvre, puis ajouter quelques parcours intégrés pour vérifier que les couches fonctionnent ensemble.</p></section>
+<section class="lesson-section"><h2>1. Choisir le bon niveau de test</h2>
+<p>Un test unitaire vérifie une petite unité de logique ; un test de composant vérifie l’interaction d’une partie de l’interface avec son environnement ; un test end-to-end (E2E) vérifie un parcours utilisateur à travers l’application en fonctionnement. Ces niveaux sont complémentaires et n’ont pas le même coût d’exécution ni de maintenance.</p><p>Teste en priorité les règles métier, les états d’erreur, les formulaires et les parcours dont la régression aurait un impact important. Une grande quantité de tests ne garantit pas une bonne couverture des risques : choisis des scénarios représentatifs.</p>
+</section>
+<section class="lesson-section"><h2>2. Tester comme un utilisateur</h2>
+<p>Testing Library encourage à retrouver les éléments comme le ferait un utilisateur : par rôle accessible, nom, libellé ou texte visible. Ce choix favorise des tests qui détectent aussi certains problèmes d’accessibilité.</p><pre><code>import { expect, test, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { LoginForm } from "./LoginForm";
+
+test("soumet l’adresse saisie", async () =&gt; {
+  const user = userEvent.setup();
+  const onSubmit = vi.fn();
+  render(&lt;LoginForm onSubmit={onSubmit} /&gt;);
+  await user.type(
+    screen.getByRole("textbox", { name: /e-mail/i }),
+    "personne@example.test"
+  );
+  await user.click(screen.getByRole("button", { name: /connexion/i }));
+  expect(onSubmit).toHaveBeenCalled();
+});</code></pre><p>Le code suppose que `LoginForm` expose une prop `onSubmit`, que ses champs portent les libellés indiqués et que Vitest, Testing Library et `user-event` sont installés. Crée une instance de `userEvent` avec `userEvent.setup()` dans chaque test qui simule des interactions. Évite de sélectionner un élément uniquement par une classe CSS ou un détail de structure DOM si ce n’est pas le contrat fonctionnel visé.</p>
+</section>
+<section class="lesson-section"><h2>3. Gérer l’asynchronisme</h2>
+<p>Les interfaces mettent souvent à jour leur contenu après une requête ou une interaction asynchrone. Utilise les mécanismes d’attente de la bibliothèque de test plutôt que des délais fixes. Les attentes doivent porter sur un résultat observable, par exemple un message de succès qui apparaît.</p><p>Les tests deviennent fragiles lorsqu’ils dépendent de l’heure, d’un réseau externe ou d’un ordre d’exécution implicite. Remplace les services externes par des réponses contrôlées lorsque le but est de tester l’interface, et réserve les tests intégrés aux environnements appropriés.</p>
+</section>
+<section class="lesson-section"><h2>4. Tests E2E avec Playwright ou Cypress</h2>
+<p>Un test E2E ouvre l’application dans un navigateur et suit un parcours proche de l’usage réel : connexion, recherche, création d’un élément ou achat simulé. Ces tests couvrent les interactions entre le frontend, les routes et les services configurés, mais ils sont plus lents et demandent un environnement reproductible.</p><pre><code>test("la recherche affiche un résultat", async ({ page }) =&gt; {
+      await page.goto("/products");
+      await page.getByRole("searchbox").fill("clavier");
+      await expect(page.getByText("Clavier mécanique")).toBeVisible();
+    });</code></pre><p>Le chemin relatif de `page.goto` est résolu par rapport à `use.baseURL` dans `playwright.config.ts`. Si `baseURL` n’est pas défini, passe une URL absolue ; démarre le serveur de test avant la suite. Utilise des sélecteurs robustes, des données de test isolées et des attentes sur l’état de la page. Évite de dépendre de services publics instables ou de données de production.</p>
+</section>
+<section class="lesson-section"><h2>5. Fiabilité et intégration continue</h2>
+<p>Un test doit échouer quand le comportement est incorrect et réussir de manière répétable quand il est correct. Les tests aléatoires ou dépendants de l’ordre rendent la CI peu fiable et incitent l’équipe à ignorer les échecs.</p><p>Structure la suite pour obtenir un retour rapide : tests unitaires et composants d’abord, puis E2E ciblés sur les parcours critiques. En CI, exécute les tests sur une installation reproductible, collecte les rapports et captures utiles, et ne masque pas les échecs par des relances répétées sans diagnostic.</p>
+</section>
+
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Écris des tests pour un formulaire de recherche : rendu initial, résultat trouvé, absence de résultat, erreur de service et soumission au clavier. Ajoute un test E2E qui suit le parcours depuis l’ouverture de la page jusqu’à l’affichage du résultat.</p><h3>Critères de réussite</h3><ul><li>Les tests utilisent des rôles et libellés accessibles.</li><li>Les cas nominal, vide et erreur sont couverts.</li><li>Les attentes sont basées sur des résultats observables.</li><li>Les données de test sont isolées et reproductibles.</li><li>La suite s’exécute en CI et ses échecs sont diagnostiquables.</li></ul>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Tester les détails d’implémentation plutôt que le comportement.</li><li>Utiliser des temporisations arbitraires pour attendre un rendu.</li><li>Faire dépendre les tests de données externes instables.</li><li>Ne tester que le cas nominal.</li><li>Multiplier les E2E lents pour des règles qui peuvent être testées plus simplement.</li></ul>
+</section>
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://testing-library.com/docs/" rel="noopener noreferrer" target="_blank">Testing Library — Introduction</a></li><li><a href="https://vitest.dev/guide/" rel="noopener noreferrer" target="_blank">Vitest — Guide</a></li><li><a href="https://playwright.dev/docs/writing-tests" rel="noopener noreferrer" target="_blank">Playwright — Writing tests</a></li><li><a href="https://docs.cypress.io/app/end-to-end-testing/writing-your-first-end-to-end-test" rel="noopener noreferrer" target="_blank">Cypress — End-to-end testing</a></li><li><a href="https://kentcdodds.com/blog/testing-implementation-details" rel="noopener noreferrer" target="_blank">Kent C. Dodds — Testing implementation details</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="nextjs.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="nodejs-typescript.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html><p><strong>Repère pratique. </strong>Une règle pratique : tester une fonction pure au niveau unitaire, un comportement d’interface au niveau composant, puis les intégrations critiques en E2E. Évite de vérifier trois fois le même détail à des niveaux différents ; réserve les tests les plus lents aux risques qu’ils sont seuls à couvrir.</p><p><strong>Repère pratique. </strong>Quand un test échoue de façon intermittente, distingue un vrai défaut d’une course temporelle : identifie l’événement attendu, attends cet état précis, et assure-toi que les données et le réseau sont contrôlés. Un délai fixe ne prouve pas que l’application a terminé son travail.</p><p><strong>Repère pratique. </strong>Pour diagnostiquer un échec, conserve le message d’assertion, les logs et, pour un E2E, la capture ou la trace. Ne transforme pas automatiquement tout échec en nouvelle tentative : cela peut cacher une instabilité qui doit être corrigée.</p>

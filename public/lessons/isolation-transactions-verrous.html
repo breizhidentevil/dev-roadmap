@@ -1,0 +1,107 @@
+ <!-- SOURCES DOCUMENTAIRES
+- PostgreSQL — Transaction Isolation: https://www.postgresql.org/docs/current/transaction-iso.html
+- PostgreSQL — Explicit Locking: https://www.postgresql.org/docs/current/explicit-locking.html
+- MySQL — InnoDB Transaction Isolation Levels: https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html
+- Microsoft — Transactions and concurrency control: https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide
+- Martin Kleppmann — Designing Data-Intensive Applications: https://dataintensive.net/
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Comprendre les anomalies de concurrence en base de données, choisir un niveau d’isolation et utiliser les verrous sans créer de blocages incontrôlés.">
+<title>Isolation des transactions et verrous — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Isolation des transactions et verrous</h1>
+<p class="lead">Comprendre les anomalies de concurrence en base de données, choisir un niveau d’isolation et utiliser les verrous sans créer de blocages incontrôlés.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Les transactions protègent un ensemble d’écritures, mais elles ne garantissent pas automatiquement que deux opérations concurrentes produisent le résultat métier souhaité. Les niveaux d’isolation et les verrous déterminent ce qu’une transaction peut observer et comment elle interagit avec les autres. À la fin, vous saurez reconnaître plusieurs anomalies, choisir une stratégie de coordination et traiter les conflits sans supposer que la base les évitera tous par défaut.</p>
+<h2>2. ACID et limites d’une transaction</h2>
+<p>Les propriétés ACID désignent l’atomicité, la cohérence, l’isolation et la durabilité. L’atomicité garantit que les écritures d’une transaction sont validées ensemble ou annulées ensemble. La cohérence signifie que les contraintes définies restent respectées. L’isolation régit l’interaction entre transactions concurrentes. La durabilité concerne la conservation des changements validés selon les garanties du système.</p>
+<p>Une transaction ne rend pas automatiquement vraie une règle métier qui n’a pas été encodée. Par exemple, si une règle impose qu’il ne reste jamais plus de dix réservations pour un créneau, deux transactions peuvent chacune lire neuf réservations, puis ajouter la dixième et la onzième si le contrôle et l’écriture ne sont pas coordonnés. Il faut traduire l’invariant dans une contrainte, un verrou ou une stratégie transactionnelle adaptée.</p>
+<h2>3. Anomalies de concurrence</h2>
+<p>Une lecture non répétable survient lorsqu’une transaction relit une ligne et observe une valeur modifiée par une autre transaction. Une lecture fantôme correspond à des lignes supplémentaires ou disparues dans un ensemble défini par une requête. Une mise à jour perdue survient lorsque deux transactions lisent la même valeur et que l’écriture de l’une écrase celle de l’autre. Une anomalie d’écriture désynchronisée peut violer un invariant lorsque plusieurs transactions mettent à jour des lignes différentes sur la base d’une même observation.</p>
+<p>Les noms exacts et les garanties varient selon le moteur de base de données et son implémentation. Ne transposez pas sans vérification le comportement de PostgreSQL à MySQL ou SQL Server. Consultez la documentation de la version utilisée et testez les scénarios qui importent au domaine.</p>
+<h2>4. Niveaux d’isolation</h2>
+<p>Les niveaux d’isolation courants vont de <code>Read Uncommitted</code> à <code>Serializable</code>, avec des différences importantes selon le moteur. Un niveau plus strict peut empêcher davantage d’anomalies, mais peut augmenter les conflits, les annulations ou le coût de coordination. Le niveau par défaut n’est pas identique dans toutes les bases.</p>
+<p><code>Read Committed</code> garantit généralement qu’une lecture ne voit pas les données non validées, mais deux lectures au cours d’une même transaction peuvent observer des états différents. <code>Repeatable Read</code> offre des garanties plus fortes, dont les détails dépendent du moteur. <code>Serializable</code> vise un résultat équivalent à un ordre séquentiel des transactions, mais certaines implémentations détectent les conflits et annulent une transaction plutôt que de bloquer tout comportement concurrent.</p>
+<p>Un niveau strict n’élimine pas le besoin de gérer les erreurs de conflit. Une transaction annulée pour sérialisation doit souvent être rejouée depuis le début, avec une politique bornée. Les effets externes ne doivent pas être déclenchés avant de savoir que la transaction est validée, sauf si le système possède une stratégie de compensation fiable.</p>
+<h2>5. Verrous pessimistes</h2>
+<p>Un verrou pessimiste empêche ou limite les modifications concurrentes d’une ressource pendant une section critique. Dans SQL, une requête comme <code>SELECT ... FOR UPDATE</code> peut verrouiller les lignes sélectionnées dans les moteurs qui la prennent en charge, jusqu’à la fin de la transaction. Cela peut convenir lorsque l’application doit lire une valeur puis la modifier sans laisser une autre transaction agir entre les deux étapes.</p>
+<pre><code>BEGIN;
+
+SELECT available
+FROM inventory
+WHERE product_id = 42
+FOR UPDATE;
+
+-- L'application vérifie qu'une ligne existe et que la valeur est positive.
+UPDATE inventory
+SET available = available - 1
+WHERE product_id = 42 AND available &gt; 0
+RETURNING available;
+
+-- L'application exige exactement une ligne retournée.
+-- Sinon : ROLLBACK ; ne pas créer la réservation.
+
+COMMIT;</code></pre>
+<p>Le code est schématique : il faut vérifier les règles exactes du moteur, contrôler le nombre de lignes modifiées et gérer l’absence du produit. Le verrou doit être acquis et utilisé dans la même transaction. Garder une transaction ouverte pendant un appel réseau ou une attente utilisateur augmente les blocages et le risque de deadlock. Pour un invariant simple, une mise à jour conditionnelle atomique peut suffire : <code>UPDATE inventory SET available = available - 1 WHERE product_id = 42 AND available &gt; 0 RETURNING available</code>. Zéro ligne retournée signifie que la réservation n’a pas été obtenue ; la commande et la réservation doivent alors être annulées ensemble si elles font partie de la même opération métier.</p>
+<h2>6. Verrous optimistes et versionnement</h2>
+<p>Le contrôle optimiste laisse les opérations travailler sans verrou exclusif prolongé, puis vérifie au moment de l’écriture que l’état n’a pas changé. Une colonne de version peut servir à ce contrôle :</p>
+<pre><code>UPDATE documents
+SET content = :content, version = version + 1
+WHERE id = :id AND version = :expectedVersion;</code></pre>
+<p>Si aucune ligne n’est modifiée, une autre transaction a probablement changé la version, ou la ligne n’existe plus. L’application doit distinguer ces cas si le contrat l’exige, puis décider de recharger, fusionner ou demander à l’utilisateur de résoudre le conflit. Cette approche est efficace lorsque les conflits sont rares et que les opérations peuvent être rejouées sans danger.</p>
+<h2>7. Deadlocks et ordre d’acquisition</h2>
+<p>Un deadlock se produit lorsque des transactions se bloquent mutuellement en attendant des ressources détenues par l’autre. Le moteur détecte généralement la situation et annule une transaction. Réduire la durée des transactions, verrouiller les ressources dans un ordre cohérent et éviter les accès inutiles diminue le risque sans le supprimer complètement.</p>
+<p>Traitez les erreurs de deadlock et de sérialisation comme des conflits potentiellement réessayables, mais seulement avec une politique limitée et en rejouant l’unité transactionnelle complète. N’essayez pas de poursuivre une transaction dont le moteur a déjà marqué l’état comme annulé. Surveillez la fréquence et les requêtes impliquées pour corriger la cause plutôt que d’augmenter indéfiniment le nombre de retries.</p>
+<h2>8. Contraintes de base comme dernier garde-fou</h2>
+<p>Les contraintes d’unicité, de clé étrangère, de vérification et de non-nullité permettent à la base de protéger des invariants même si plusieurs instances de l’application agissent simultanément. Lorsque c’est possible, exprimez les règles dans le schéma plutôt que de compter uniquement sur une vérification en code suivie d’une écriture séparée.</p>
+<p>Pour une capacité maximale ou un invariant portant plusieurs lignes, une contrainte simple ne suffit pas toujours. Il faut peut-être verrouiller une ligne de coordination, employer une transaction sérialisable ou remodeler les données afin que la règle soit vérifiable atomiquement. La bonne solution dépend de la fréquence des conflits, du débit attendu et de la complexité métier.</p>
+<h2>9. Erreurs fréquentes et compromis</h2>
+<ul>
+<li>Supposer qu’une transaction implique automatiquement une isolation sérialisable.</li>
+<li>Lire une valeur puis la modifier sans coordination et perdre une mise à jour.</li>
+<li>Maintenir des verrous pendant des opérations réseau longues.</li>
+<li>Ignorer les erreurs de deadlock ou de sérialisation.</li>
+<li>Rejouer une transaction sans prendre en compte ses effets externes.</li>
+<li>Compter uniquement sur la logique applicative alors qu’une contrainte de base peut protéger l’invariant.</li>
+</ul>
+<h2>10. Exercice et critères de réussite</h2>
+<p>Modélisez un stock d’un produit disponible en une unité. Deux transactions concurrentes tentent chacune de réserver cette unité. Décrivez le résultat possible avec une lecture suivie d’une mise à jour non protégée, puis proposez deux solutions : verrouillage pessimiste et mise à jour conditionnelle atomique. Ajoutez un scénario de deadlock et expliquez comment le détecter et réessayer sans dépasser un budget défini.</p>
+<ul class="checklist">
+<li>Je peux expliquer ACID et plusieurs anomalies de concurrence.</li>
+<li>Je sais que les garanties des niveaux d’isolation varient selon le moteur.</li>
+<li>Je distingue verrouillage pessimiste et contrôle optimiste par version.</li>
+<li>Je réduis la durée des transactions et prévois les deadlocks.</li>
+<li>Je protège les invariants importants par des contraintes ou une coordination atomique.</li>
+</ul>
+
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://www.postgresql.org/docs/current/transaction-iso.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Transaction Isolation</a></li>
+<li><a href="https://www.postgresql.org/docs/current/explicit-locking.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Explicit Locking</a></li>
+<li><a href="https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html" target="_blank" rel="noopener noreferrer">MySQL — InnoDB Transaction Isolation Levels</a></li>
+<li><a href="https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide" target="_blank" rel="noopener noreferrer">Microsoft — Transactions and concurrency control</a></li>
+<li><a href="https://dataintensive.net/" target="_blank" rel="noopener noreferrer">Martin Kleppmann — Designing Data-Intensive Applications</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="webhooks.html">← Précédent : Webhooks et intégrations tierces</a><a rel="next" href="concurrence-mises-a-jour.html">Suivant : Concurrence et mises à jour perdues →</a></nav>
+
+<section class="lesson-workshop"><h2>Atelier approfondi — Analyser les anomalies de concurrence</h2><h3>Objectifs opérationnels</h3><ul><li>Expliquer les garanties et les limites du mécanisme présenté.</li><li>Choisir une stratégie adaptée à un cas réaliste et justifier ses compromis.</li><li>Vérifier le comportement avec des tests reproductibles plutôt que par intuition.</li></ul><h3>Explications et exemple guidé</h3><p>Une transaction regroupe des opérations dans une unité logique, mais son niveau d’isolation détermine quelles interférences entre transactions sont possibles. Les anomalies classiques incluent lectures non répétables, lectures fantômes et mises à jour perdues. Les noms et garanties exactes dépendent du moteur : il faut lire sa documentation, pas se fier uniquement à l’étiquette du niveau SQL.</p><pre><code>BEGIN;
+SELECT balance_cents FROM accounts WHERE id = 42 FOR UPDATE;
+-- Vérifier que le compte existe et que le solde couvre le débit.
+UPDATE accounts
+SET balance_cents = balance_cents - 500
+WHERE id = 42 AND balance_cents &gt;= 500
+RETURNING id;
+-- L'application exige exactement une ligne ; sinon ROLLBACK.
+COMMIT;</code></pre><p>Un verrou explicite peut protéger une ligne existante, mais ne règle pas automatiquement toutes les contraintes impliquant des lignes absentes ou plusieurs tables. Les contraintes uniques, mises à jour conditionnelles et niveaux d’isolation plus forts peuvent être plus adaptés. Gardez les transactions courtes et définissez une stratégie de reprise après deadlock ou conflit de sérialisation. Une reprise doit recommencer toute la transaction depuis son début, après un rollback confirmé, avec un budget de tentatives et un délai maximal ; ne réexécute pas seulement la dernière instruction d’une transaction annulée.</p><h3>Pièges et limites</h3><ul><li>Piège : supposer que <code>READ COMMITTED</code> fournit un instantané identique pendant toute la transaction.</li><li>Piège : verrouiller dans des ordres différents et augmenter le risque de deadlock.</li><li>Piège : effectuer un appel réseau lent pendant qu’une transaction garde des verrous.</li><li>Piège : relancer aveuglément une transaction sans limiter les tentatives.</li></ul><h3>Exercice</h3><p>Deux transactions réservent la dernière place disponible. Dessinez l’interleaving qui provoque une sur-réservation, puis proposez deux solutions distinctes (verrouillage, contrainte ou mise à jour conditionnelle) et comparez leurs compromis.</p><h3>Critères de réussite</h3><ul><li>L’anomalie est reproduite avec un ordre précis des opérations.</li><li>La solution protège réellement l’invariant métier.</li><li>Les deadlocks et conflits transitoires ont une stratégie de reprise bornée.</li><li>Les garanties sont vérifiées pour le moteur SQL choisi.</li></ul></section>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

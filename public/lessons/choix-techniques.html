@@ -1,0 +1,109 @@
+<!-- SOURCES DOCUMENTAIRES
+- Architecture Decision Records — guide: https://adr.github.io/
+- AWS Well-Architected Framework: https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html
+- Martin Fowler — Architecture: https://martinfowler.com/architecture/
+- OWASP Application Security Verification Standard: https://owasp.org/www-project-application-security-verification-standard/
+- Google Engineering Practices — code review: https://google.github.io/eng-practices/review/
+Ces liens sont des points de départ documentaires ciblés ; ils ne constituent pas une affirmation de lecture intégrale de chaque ressource.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Savoir justifier une décision technique à partir du besoin, des contraintes, des alternatives et des conséquences observables.">
+  <title>Expliquer les choix techniques — Parcours Full Stack</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a href="/" target="_top">Parcours Full Stack</a>
+    <nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav>
+  </header>
+  <main class="lesson">
+    <p class="eyebrow">Tutoriel technique</p>
+    <h1>Expliquer les choix techniques</h1>
+    <p class="lead">Savoir justifier une décision technique à partir du besoin, des contraintes, des alternatives et des conséquences observables.</p>
+    
+<h2>1. Objectifs et prérequis</h2>
+<p>Un développeur doit pouvoir expliquer pourquoi une technologie ou une architecture convient à un problème donné. À la fin de ce module, vous saurez distinguer un besoin d’une préférence, comparer plusieurs options, expliciter les compromis et rédiger une décision révisable. Vous devez connaître les bases du développement, du versionnement Git et du cycle de vie d’une application.</p>
+<h2>2. Partir du besoin, pas de la mode</h2>
+<p>Un choix technique est pertinent lorsqu’il répond à une exigence concrète. Commencez par préciser les fonctionnalités attendues, le volume de données, le nombre d’utilisateurs, les contraintes de latence, les exigences de sécurité, les compétences de l’équipe, le budget et les conditions d’exploitation. Distinguez les contraintes non négociables des préférences : « doit fonctionner avec la base existante » n’a pas le même statut que « l’équipe préfère tel framework ».</p>
+<p>Les besoins non fonctionnels méritent d’être mesurables. « Rapide » est vague ; « le 95e percentile des requêtes doit rester sous 300 ms à la charge attendue » est vérifiable. « Sécurisé » doit être décomposé en exigences : authentification, autorisations, chiffrement, journalisation, conservation des données et réponse aux incidents.</p>
+<h2>3. Comparer des options équitablement</h2>
+<p>Établissez deux ou trois options réalistes, dont la solution la plus simple. Comparez-les selon les mêmes critères. Par exemple, pour stocker des données, une base relationnelle, un magasin clé-valeur et un fichier peuvent tous être valides dans des contextes différents. Une comparaison utile examine la cohérence des données, les requêtes requises, les sauvegardes, la montée en charge, l’exploitation et le coût de migration.</p>
+<table>
+<thead><tr><th>Critère</th><th>Question à poser</th></tr></thead>
+<tbody>
+<tr><td>Adéquation fonctionnelle</td><td>La solution couvre-t-elle les cas d’usage réels ?</td></tr>
+<tr><td>Complexité</td><td>Combien de concepts et de composants faut-il maintenir ?</td></tr>
+<tr><td>Sécurité</td><td>Quelles menaces et erreurs de configuration sont possibles ?</td></tr>
+<tr><td>Exploitation</td><td>Comment surveiller, sauvegarder, restaurer et mettre à jour ?</td></tr>
+<tr><td>Équipe</td><td>La compétence est-elle disponible ou faut-il la construire ?</td></tr>
+<tr><td>Réversibilité</td><td>Quel coût si l’hypothèse initiale devient fausse ?</td></tr>
+</tbody></table>
+<p>Une matrice pondérée peut aider, mais ses scores restent des estimations. Si une option obtient 4/5 en simplicité et une autre 3/5, cela n’a de sens que si les critères et leur pondération sont explicites. Ne laissez pas un total numérique masquer un risque bloquant, comme une incompatibilité réglementaire.</p>
+<h2>4. Les compromis sont inévitables</h2>
+<p>La plupart des décisions déplacent la complexité plutôt qu’elles ne la suppriment. Une architecture distribuée peut permettre de déployer certaines parties indépendamment, mais introduit réseau, observabilité distribuée, cohérence éventuelle et gestion des pannes. Une abstraction peut faciliter les tests, mais rendre le flux d’exécution plus difficile à suivre. Un cache réduit la charge, mais crée un problème d’invalidation et une source potentielle de données périmées.</p>
+<p>Il faut aussi considérer le coût total, pas uniquement le temps de développement initial : hébergement, licences, support, mise à jour, formation, incidents, migrations et départ d’une personne clé. Pour un petit produit, une solution familière et simple peut être préférable à une technologie théoriquement plus performante mais coûteuse à opérer.</p>
+<h2>5. Rédiger une décision technique</h2>
+<p>Une courte fiche de décision (souvent appelée ADR, pour <em>Architecture Decision Record</em>) conserve le contexte qui justifie le choix. Elle évite que les futurs contributeurs interprètent une décision comme une règle arbitraire. Une structure pratique est :</p>
+<pre><code># Décision : utiliser PostgreSQL pour les données métier
+
+Statut : acceptée
+Contexte : relations entre comptes, commandes et paiements ;
+besoin de transactions et de requêtes structurées.
+Options : PostgreSQL, document store, fichiers JSON.
+Décision : PostgreSQL.
+Raisons : intégrité relationnelle, transactions, outils connus.
+Conséquences : schéma et migrations à gérer ; sauvegardes à tester.
+Réexamen si : le profil des données ou les contraintes changent.</code></pre>
+<p>La fiche doit rester concise. Elle ne remplace ni le code ni la documentation d’exploitation. Écrivez les conséquences négatives aussi honnêtement que les avantages. Précisez le statut : proposée, acceptée, remplacée ou abandonnée. Une décision peut évoluer si les hypothèses changent.</p>
+<h2>6. Valider après mise en œuvre</h2>
+<p>Quand c’est possible, testez les hypothèses avec un prototype ou une mesure : benchmark réaliste, essai de restauration, test de charge ou preuve de concept. Un microbenchmark isolé peut être trompeur s’il ne représente pas les requêtes et la charge réelles. Définissez à l’avance le critère de réussite et observez les résultats. Si la décision ne satisfait pas les exigences, revenez aux options sans défendre le choix par orgueil.</p>
+<h2>7. Distinguer contraintes, hypothèses et seuils de décision</h2>
+<p>Une comparaison devient fragile lorsque des hypothèses sont présentées comme des faits. Marquez chaque élément comme <strong>contrainte</strong> (obligatoire), <strong>hypothèse</strong> (à vérifier), <strong>mesure</strong> (résultat observé) ou <strong>préférence</strong> (utile, mais négociable). Une note de décision gagne en qualité lorsque ces catégories sont visibles.</p>
+<p>Exemple : « la base doit accepter des transactions atomiques » peut être une contrainte métier ; « nous aurons un million d’utilisateurs » est une hypothèse tant qu’elle n’est pas étayée ; « le prototype traite 800 requêtes/s sur le scénario défini » est une mesure, valable seulement avec le matériel, les données et le protocole consignés. Ne comparez pas des benchmarks réalisés avec des charges différentes.</p>
+<p>Définissez avant le prototype les critères qui feront accepter ou rejeter une option. Si le besoin impose un percentile de latence, un plafond de coût ou une exigence de conformité, traitez-le comme un seuil éliminatoire : une excellente note moyenne ne compense pas l’échec d’une contrainte obligatoire. Les scores pondérés servent à départager les options encore admissibles, pas à dissimuler un risque bloquant.</p>
+<p>Évaluez aussi la réversibilité. Un choix facile à changer peut être adopté avec une preuve légère et un point de réexamen. Une migration coûteuse, une dépendance propriétaire ou une modification difficile à annuler demande davantage de validation avant engagement. Notez l’événement qui déclenchera une nouvelle décision : volume réel dépassant un seuil, hausse du coût d’exploitation, incident récurrent ou besoin métier nouveau.</p>
+<table><thead><tr><th>Élément</th><th>Exemple de formulation utile</th></tr></thead><tbody>
+<tr><td>Contrainte</td><td>« Les réservations qui se chevauchent doivent être empêchées de façon atomique. »</td></tr>
+<tr><td>Hypothèse</td><td>« Le trafic restera modéré pendant les six premiers mois. »</td></tr>
+<tr><td>Preuve attendue</td><td>« Un test concurrent confirme qu’une seule réservation gagne. »</td></tr>
+<tr><td>Seuil de réexamen</td><td>« Réévaluer si la latence p95 dépasse le budget pendant deux semaines. »</td></tr>
+</tbody></table>
+<h2>8. Erreurs fréquentes</h2>
+<ul>
+<li><strong>Choisir avant de définir le besoin :</strong> on optimise un outil plutôt que le résultat attendu.</li>
+<li><strong>Comparer des options inégales :</strong> une option est évaluée en production, l’autre sur une démo simplifiée.</li>
+<li><strong>Traiter les scores comme des vérités :</strong> les pondérations et les données restent des jugements à expliciter.</li>
+<li><strong>Oublier le coût de cycle de vie :</strong> exploitation, mises à jour, migration, support et compétences manquantes.</li>
+<li><strong>Ne pas prévoir de retour arrière :</strong> le changement devient difficile à limiter lorsqu’une hypothèse se révèle fausse.</li>
+<li><strong>Défendre un choix par orgueil :</strong> les mesures réelles doivent pouvoir modifier ou annuler la décision.</li>
+</ul>
+<h2>9. Exercice</h2>
+<p>Imaginez une API de réservation avec un catalogue, des utilisateurs et des réservations qui ne doivent pas se chevaucher. Comparez une base relationnelle et une base documentaire. Listez cinq critères, identifiez deux compromis pour chaque option, puis rédigez un ADR de 150 à 250 mots. Indiquez quelles mesures ou preuves pourraient vous faire changer d’avis.</p>
+<h2>10. Critères de réussite</h2>
+<ul class="checklist">
+<li>Le besoin et les contraintes sont décrits avant la comparaison des outils.</li>
+<li>Au moins deux options réalistes sont comparées selon des critères identiques.</li>
+<li>Les faits mesurés, les hypothèses et les préférences sont distingués.</li>
+<li>Les coûts, risques, conséquences négatives et conditions de retour arrière sont explicités.</li>
+<li>La décision comporte un statut et un déclencheur de réexamen vérifiable.</li>
+</ul>
+<h2>Sources documentaires</h2>
+      <p>Utilisez ces références pour approfondir les concepts et vérifier les détails liés aux versions.</p>
+      <ul><li><a href="https://adr.github.io/" target="_blank" rel="noopener noreferrer">Architecture Decision Records — guide</a></li>
+<li><a href="https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html" target="_blank" rel="noopener noreferrer">AWS Well-Architected Framework</a></li>
+<li><a href="https://martinfowler.com/architecture/" target="_blank" rel="noopener noreferrer">Martin Fowler — Architecture</a></li>
+<li><a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener noreferrer">OWASP Application Security Verification Standard</a></li>
+<li><a href="https://google.github.io/eng-practices/review/" target="_blank" rel="noopener noreferrer">Google Engineering Practices — code review</a></li></ul>
+
+    <nav class="lesson-navigation" aria-label="Navigation entre les leçons">
+      <a rel="prev" href="usage-ia.html">← Précédent : Utiliser l’IA comme outil de développement</a>
+      <a rel="next" href="specialisation.html">Suivant : Approfondissement et spécialisation →</a>
+    </nav>
+  </main>
+  <footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

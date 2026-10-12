@@ -1,0 +1,104 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Injection de dépendances
+Domaine documentaire : architecture
+Ces références sont des points de départ ciblés pour approfondir le sujet ; cette liste ne prétend pas que chaque page liée a été lue intégralement.
+1. Martin Fowler — Inversion of Control et injection de dépendances — https://martinfowler.com/articles/injection.html
+2. NestJS — Injection de dépendances — https://docs.nestjs.com/fundamentals/custom-providers
+3. Angular — Injection de dépendances — https://angular.dev/guide/di
+4. Microsoft — Injection de dépendances en .NET — https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection
+5. Martin Fowler — Inversion des dépendances — https://martinfowler.com/articles/dipInTheWild.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Rendre les modules testables et remplaçables en contrôlant leurs dépendances explicites.">
+<title>Injection de dépendances — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">17. Architecture backend approfondie</p>
+<h1>Injection de dépendances</h1>
+<p class="lead">Rendre les modules testables et remplaçables en contrôlant leurs dépendances explicites.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Lecture et mise en pratique</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2><p>Tu sauras reconnaître une dépendance, différencier injection de dépendances et inversion de contrôle, utiliser des interfaces ou des fonctions pour découpler des modules et choisir entre construction manuelle et conteneur. Tu apprendras aussi à éviter les abstractions qui ajoutent plus de complexité qu’elles n’en retirent.</p>
+<p>Prérequis : modules, fonctions, classes et tests unitaires. Les exemples peuvent être transposés en TypeScript, Java, C# ou dans d’autres langages orientés objets ou fonctionnels.</p></section><section class="lesson-section"><h2>1. Pourquoi injecter une dépendance ?</h2><p>Un module dépend d’un autre lorsqu’il l’appelle, l’instancie ou s’appuie sur son comportement. Si un service de commande crée directement un client de paiement concret, sa logique métier est liée à cette implémentation. Les tests risquent alors d’effectuer des appels réels ou de nécessiter une configuration lourde.</p>
+<p>L’injection de dépendances consiste à fournir à un module les objets ou fonctions dont il a besoin, plutôt que de les construire à l’intérieur. Le module exprime ainsi ses besoins, et un niveau extérieur choisit les implémentations. Ce choix facilite les tests, la configuration et le remplacement d’un adaptateur, par exemple passer d’un système de courriel à un autre.</p>
+<p>L’injection ne supprime pas la dépendance fonctionnelle : le service a toujours besoin d’une capacité d’envoi. Elle rend cette dépendance explicite et contrôlable. Un module qui dépend d’une interface étroite peut être testé avec une fausse implémentation, sans simuler tout un système externe.</p></section><section class="lesson-section"><h2>2. Inversion de contrôle et frontières</h2><p>L’inversion de contrôle (IoC) signifie qu’un module ne contrôle plus lui-même certains détails de l’exécution ; un cadre ou un niveau supérieur orchestre le cycle de vie. L’injection de dépendances est une technique courante pour réaliser cette inversion, mais les termes ne sont pas synonymes. Les callbacks et les événements peuvent également inverser le flux de contrôle.</p>
+<p>Le principe d’inversion des dépendances recommande que les politiques de haut niveau ne dépendent pas directement des détails de bas niveau ; les deux peuvent dépendre d’abstractions adaptées. Dans une architecture hexagonale, la logique métier définit les ports dont elle a besoin, et les adaptateurs relient ces ports à la base de données, au réseau ou aux services externes.</p>
+<p>Ne crée pas une interface pour chaque classe par automatisme. Une abstraction est utile si elle exprime un contrat stable, permet plusieurs implémentations pertinentes ou isole une frontière qui mérite un test indépendant. Une interface qui reproduit exactement chaque méthode d’une classe sans apporter de découplage réel peut n’être qu’une couche supplémentaire à maintenir.</p></section><section class="lesson-section"><h2>3. Injection par constructeur, fonction ou conteneur</h2><p>L’injection par constructeur rend visibles les dépendances indispensables à la création d’un objet. Si `OrderService` nécessite un dépôt et un service de paiement, son constructeur peut les recevoir explicitement. Il est alors impossible de créer le service sans fournir ces éléments, ce qui rend ses préconditions claires.</p>
+<p>L’injection par fonction convient souvent en TypeScript : une fonction métier reçoit un adaptateur en paramètre, ou une fabrique retourne une fonction configurée. Les closures permettent de capturer une dépendance sans recourir à une classe. Le style doit correspondre aux conventions du projet et rester facile à comprendre.</p>
+<p>Un conteneur de dépendances automatise l’enregistrement et la résolution des objets. Il peut gérer les cycles de vie, les dépendances imbriquées et les configurations par environnement. Mais il introduit une mécanique supplémentaire et peut rendre les dépendances moins visibles si tout est résolu dynamiquement. Pour une petite application, une composition manuelle dans un point d’entrée est souvent suffisante ; adopte un conteneur lorsque le nombre de dépendances et les règles de cycle de vie le justifient.</p></section><section class="lesson-section"><h2>4. Durée de vie et configuration</h2><p>Les dépendances ont souvent une durée de vie : singleton, par requête, par session ou par opération. Un objet partagé globalement ne doit pas contenir par inadvertance des données propres à un utilisateur. Un service singleton mutable qui stocke l’identité de la requête peut créer des fuites entre utilisateurs ou des conditions de concurrence.</p>
+<p>Choisis le cycle de vie en fonction de l’état détenu et des ressources utilisées. Un pool de connexions peut être partagé, alors qu’un contexte de requête contenant l’utilisateur courant doit être isolé. Un client HTTP immuable peut souvent être partagé ; un objet de travail temporaire peut être créé à chaque opération. Les frameworks définissent des règles spécifiques : apprends-les avant de choisir une portée.</p>
+<p>La configuration doit être assemblée à une frontière identifiable, souvent le point d’entrée de l’application. Évite de lire directement des variables d’environnement dans chaque module métier. Valide la configuration au démarrage et injecte les valeurs nécessaires. Ainsi, le domaine reste testable et ne dépend pas de l’environnement global.</p></section><section class="lesson-section"><h2>5. Exemple et stratégie de test</h2><p>Imagine un service de facturation qui doit enregistrer une facture et envoyer un reçu. Il peut dépendre d’un dépôt de factures et d’un port d’envoi de notifications. En test, un dépôt en mémoire et un faux expéditeur permettent de vérifier la logique sans base réelle ni courriel externe. En production, la composition fournit les adaptateurs concrets.</p>
+<p>Les tests doivent vérifier le comportement métier : la facture est enregistrée une fois, le montant calculé correspond aux règles et la notification est déclenchée selon le contrat. Évite de vérifier chaque appel interne si cet ordre n’est pas une exigence. Un mock trop détaillé peut faire échouer les tests dès qu’on refactorise sans changer le comportement public.</p>
+<p>L’injection ne rend pas automatiquement le système fiable. Il faut encore traiter les erreurs, la concurrence, les transactions et la sécurité. Si l’enregistrement réussit mais que l’envoi échoue, décide si la notification est réessayée, mise en file ou compensée. Cette politique relève de l’architecture métier, pas du mécanisme d’injection.</p></section><section class="lesson-section">
+<h2>Atelier approfondi — assembler les dépendances à une frontière claire</h2>
+<h3>Objectifs ciblés</h3>
+<p>Tu sauras définir un port à partir d’un besoin métier, injecter une implémentation sans conteneur obligatoire, tester avec un adaptateur déterministe et choisir une durée de vie sans partager accidentellement un état utilisateur.</p>
+<h3>Définir le besoin avant l’interface</h3>
+<p>Une abstraction utile décrit ce que le module veut accomplir, pas toutes les capacités du système externe. Si un service de facturation a uniquement besoin d’enregistrer une facture et de connaître l’heure, il ne devrait pas dépendre de l’ensemble d’un SDK de base de données ni lire directement l’horloge globale. Ces dépendances peuvent être fournies à la création du service.</p>
+<pre><code>type Invoice = { id: string; createdAt: Date; totalCents: number };
+
+interface InvoiceRepository {
+  save(invoice: Invoice): Promise&lt;void&gt;;
+}
+interface Clock {
+  now(): Date;
+}
+
+class InvoiceService {
+  constructor(
+    private readonly repository: InvoiceRepository,
+    private readonly clock: Clock
+  ) {}
+
+  async create(id: string, totalCents: number): Promise&lt;Invoice&gt; {
+    if (!Number.isInteger(totalCents) || totalCents &lt; 0) {
+      throw new Error("Montant invalide");
+    }
+    const invoice = { id, totalCents, createdAt: this.clock.now() };
+    await this.repository.save(invoice);
+    return invoice;
+  }
+}</code></pre>
+<p>Le service dépend de contrats réduits. En production, le point de composition fournit un dépôt relié à la base et une horloge réelle ; en test, il fournit un dépôt en mémoire et une horloge fixe. La logique métier devient déterministe sans simuler tout l’environnement. Les contrats doivent néanmoins être cohérents avec les garanties réelles de l’adaptateur, notamment sur les erreurs et les transactions.</p>
+<h3>Test déterministe et composition manuelle</h3>
+<pre><code>const saved: Invoice[] = [];
+const repository: InvoiceRepository = {
+  save: async (invoice) =&gt; { saved.push(invoice); }
+};
+const fixedClock: Clock = {
+  now: () =&gt; new Date("2026-01-01T00:00:00Z")
+};
+
+const service = new InvoiceService(repository, fixedClock);
+const invoice = await service.create("inv-1", 1250);
+
+// À vérifier dans le test :
+// - saved contient une facture et pas deux ;
+// - totalCents vaut 1250 ;
+// - createdAt est l’instant fixé par le test.</code></pre>
+<p>Dans un vrai test automatisé, transforme ces commentaires en assertions exécutées. Le point d’entrée de l’application est responsable de créer les adaptateurs et de les relier. Un conteneur DI devient utile lorsque le graphe, les portées et les modules rendent la composition manuelle pénible ; il n’est pas une exigence de principe.</p>
+<h3>Durée de vie et données de requête</h3>
+<p>Choisis la durée de vie en fonction de l’état détenu. Un client HTTP immuable ou un pool de connexions peut être partagé. Un contexte qui contient l’utilisateur courant ou des permissions calculées doit être limité à la requête ou transmis explicitement. Un singleton mutable qui conserve l’utilisateur courant peut provoquer une fuite de données entre requêtes concurrentes.</p>
+<p>La configuration doit être lue et validée à la frontière de démarrage, puis transmise aux adaptateurs nécessaires. Cela rend les erreurs de configuration visibles tôt et évite que chaque module métier dépende de variables globales. Les dépendances optionnelles doivent avoir une vraie sémantique ; ne remplace pas silencieusement un service critique par une implémentation vide.</p>
+<h3>Pièges spécifiques</h3>
+<ul><li>Créer une interface pour chaque classe sans bénéfice observable multiplie les couches et les fichiers.</li><li>Un test qui vérifie uniquement le nombre d’appels internes peut casser lors d’un refactoring sans changement de comportement.</li><li>Un faux dépôt ne prouve pas que les transactions et contraintes de la base réelle fonctionnent : un test d’intégration reste nécessaire.</li><li>Un singleton qui garde un état propre à une requête peut mélanger les données de plusieurs utilisateurs.</li><li>L’injection ne règle pas automatiquement les échecs partiels, la cohérence transactionnelle ou les reprises.</li></ul>
+<h3>Exercice et critères de réussite</h3>
+<p>Prends un service qui construit directement un client HTTP ou lit l’heure système. Définis le contrat minimal correspondant au besoin, injecte-le et écris un test avec un adaptateur déterministe. Ajoute ensuite un test d’intégration avec l’adaptateur réel si l’environnement le permet. Documente la durée de vie des objets et vérifie qu’aucune donnée utilisateur ne se trouve dans un singleton partagé.</p>
+<ul><li>Les dépendances essentielles sont visibles et limitées au besoin du module.</li><li>Le test unitaire vérifie des résultats et invariants observables.</li><li>Un test d’intégration couvre les garanties que le faux adaptateur ne peut pas démontrer.</li><li>Le point de composition et la durée de vie des dépendances sont identifiables.</li><li>Les erreurs de configuration et les échecs partiels sont traités explicitement.</li></ul>
+</section>
+<section class="lesson-section"><h2>Pièges, limites et compromis</h2><ul><li>Injection de dépendances et inversion de contrôle sont liées mais différentes.</li><li>Une interface sans besoin réel peut ajouter de la complexité inutile.</li><li>Les singletons mutables peuvent provoquer des fuites de données entre requêtes.</li><li>Un conteneur peut masquer les dépendances et compliquer le débogage s’il est surutilisé.</li><li>Les mocks doivent vérifier le contrat, pas reproduire chaque détail interne.</li><li>L’injection facilite les tests mais ne résout pas les erreurs de transaction ou de concurrence.</li><li>La composition manuelle reste une option valable tant que l’application est simple.</li></ul></section><section class="lesson-section"><h2>Exercice</h2><p>Prends un service qui crée directement un client HTTP, un dépôt ou un expéditeur de courriels. Extrais une interface ou un type fonctionnel correspondant au besoin réel, puis injecte-le au constructeur ou à la fonction. Écris un test avec un faux adaptateur et un test d’intégration avec l’implémentation réelle si possible. Compare la lisibilité et le nombre de couches avant/après ; retire toute abstraction qui n’apporte pas de bénéfice clair.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul class="checklist"><li>Les dépendances essentielles sont visibles dans l’interface du module.</li><li>La logique métier peut être testée sans service externe réel.</li><li>Les abstractions expriment des capacités utiles et stables.</li><li>Le cycle de vie des dépendances est choisi explicitement.</li><li>La configuration est validée à une frontière claire.</li><li>Je sais expliquer ce que l’injection ne résout pas à elle seule.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces références sont des points de départ ciblés pour vérifier les notions et poursuivre l’apprentissage. Consulte les documentations officielles à jour pour les détails propres à chaque outil.</p><ol><li><a href="https://martinfowler.com/articles/injection.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Inversion of Control et injection de dépendances</a></li><li><a href="https://docs.nestjs.com/fundamentals/custom-providers" target="_blank" rel="noopener noreferrer">NestJS — Injection de dépendances</a></li><li><a href="https://angular.dev/guide/di" target="_blank" rel="noopener noreferrer">Angular — Injection de dépendances</a></li><li><a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection" target="_blank" rel="noopener noreferrer">Microsoft — Injection de dépendances en .NET</a></li><li><a href="https://martinfowler.com/articles/dipInTheWild.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Inversion des dépendances</a></li></ol></section>
+<nav class="lesson-nav" aria-label="Navigation entre les leçons">
+<a href="decoupage-composants.html">← Précédent : Découpage et composition des composants</a>
+<a href="transactions-metier.html">Suivant : Transactions et cohérence métier →</a>
+</nav>
+</main>
+</body>
+</html>

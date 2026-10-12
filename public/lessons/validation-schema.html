@@ -1,0 +1,101 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Validation avec Zod, Joi ou Yup
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. Zod — Documentation — https://zod.dev/
+2. Joi — API Reference — https://joi.dev/api/
+3. Yup — Documentation — https://github.com/jquense/yup
+4. OWASP — Input Validation Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+5. TypeScript — Everyday Types — https://www.typescriptlang.org/docs/handbook/2/everyday-types.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Définir des schémas de données explicites pour contrôler les entrées à la frontière de l’application.">
+  <title>Validation avec Zod, Joi ou Yup — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">3. Backend</p>
+    <h1>Validation avec Zod, Joi ou Yup</h1>
+    <p class="lead">Définir et vérifier des schémas de données.</p>
+    <div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 11 · 2026</span></div>
+    <section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+    <ul><li>Décrire les données attendues avec un schéma exécutable.</li><li>Distinguer validation syntaxique, validation métier et autorisation.</li><li>Comprendre la différence entre validation et conversion des types.</li><li>Produire des erreurs utiles sans exposer d’informations sensibles.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>1. Pourquoi valider à la frontière</h2>
+    <p>Les données reçues d’un navigateur, d’un webhook, d’un fichier ou d’un autre service doivent être considérées comme non fiables. Les types TypeScript disparaissent à l’exécution : déclarer <code>req.body</code> comme un objet typé ne vérifie pas le JSON reçu. Un schéma d’exécution permet de contrôler réellement la structure, les types et certaines contraintes.</p><p>Valide tôt, à la frontière du système, puis transmets au reste du code une représentation dont les invariants sont connus. Les contraintes importantes doivent aussi être garanties par la base de données lorsqu’elles concernent l’intégrité des données.</p>
+    </section>
+    <section class="lesson-section"><h2>2. Définir un schéma avec Zod</h2>
+    <pre><code>import { z } from "zod";
+
+const CreateTaskSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  dueDate: z.string().date().optional(),
+  priority: z.enum(["low", "normal", "high"]).default("normal")
+});
+
+type CreateTaskInput = z.infer&lt;typeof CreateTaskSchema&gt;;
+
+const result = CreateTaskSchema.safeParse(input);
+if (!result.success) {
+  // Convertir les erreurs en réponse HTTP documentée.
+} else {
+  const data: CreateTaskInput = result.data;
+}</code></pre><p>Exemple avec Zod : <code>safeParse</code> renvoie un résultat discriminé et évite d’utiliser une exception pour un échec de validation attendu. <code>result.data</code> est la valeur validée et éventuellement transformée, pas simplement la donnée brute d’origine.</p>
+    </section>
+    <section class="lesson-section"><h2>3. Valider n’est pas seulement typer</h2>
+    <p>Un schéma peut vérifier la forme, les longueurs, les formats, les valeurs permises et parfois transformer les données. Mais une date syntaxiquement valide peut être dans le passé ; un identifiant peut exister sans appartenir à l’utilisateur ; une adresse électronique peut être bien formée sans être vérifiée.</p><ul><li><strong>Structure :</strong> l’objet possède les champs attendus et des types acceptés.</li><li><strong>Règles métier :</strong> la date limite est cohérente avec l’état de la tâche.</li><li><strong>Autorisation :</strong> l’utilisateur a le droit de modifier cette tâche.</li><li><strong>Intégrité :</strong> la base garantit unicité, clés étrangères et contraintes atomiques.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>4. Corps, paramètres et erreurs</h2>
+    <p>Valide séparément le corps JSON, les paramètres de chemin et les paramètres de requête. Les paramètres d’URL arrivent souvent sous forme de chaînes : convertir <code>"25"</code> en nombre doit être une décision explicite et contrôlée, avec une plage autorisée.</p><p>Renvoie une erreur stable qui identifie les champs invalides et la nature du problème. Ne renvoie pas l’objet complet reçu ni des détails internes du validateur si ceux-ci risquent de révéler des informations inutiles. La validation côté client améliore l’expérience, mais le serveur reste la frontière de confiance.</p>
+    </section>
+    <section class="lesson-section"><h2>5. Schémas partagés et évolution</h2>
+    <p>Partage les schémas lorsqu’ils représentent réellement le même contrat. Un schéma de création, de mise à jour et de réponse ne sont pas nécessairement identiques : une réponse peut inclure un identifiant généré, tandis qu’une mise à jour autorise certains champs absents. Réutiliser un schéma trop général peut rendre accidentellement modifiables des champs réservés au serveur.</p><p>Ajoute des tests pour les cas valides, les champs manquants, les types incorrects, les limites, les valeurs inattendues et les tentatives d’injecter des propriétés sensibles comme <code>role</code> ou <code>ownerId</code>.</p>
+    </section>
+    <section class="lesson-section"><h2>6. Étude de cas : de l’entrée non fiable à la commande métier</h2>
+<p>Une requête de création de tâche peut contenir <code>title</code>, <code>dueDate</code> et <code>priority</code>. Le schéma d’entrée vérifie la forme des données ; il ne garantit pas à lui seul que la date soit compatible avec la règle métier, que l’utilisateur possède le projet ciblé ou que l’écriture concurrente reste valide.</p>
+<pre><code>const CreateTaskSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  dueDate: z.string().date().optional(),
+  priority: z.enum(["low", "normal", "high"]).default("normal")
+}).strict();
+
+const parsed = CreateTaskSchema.safeParse(request.body);
+if (!parsed.success) {
+  const details = parsed.error.issues.slice(0, 20).map(issue => ({
+    field: issue.path.join("."),
+    code: issue.code
+  }));
+  return reply.code(400).send({ error: "INVALID_INPUT", details });
+}
+const input = parsed.data; // valeur validée et normalisée
+// Ensuite : authentifier, autoriser, vérifier les règles métier,
+// puis persister avec les contraintes de la base de données.</code></pre>
+<p><code>.strict()</code> est un choix de contrat : il refuse les propriétés inconnues. Selon l’API, tu peux préférer les retirer ou les conserver explicitement, mais ne laisse pas le comportement par défaut décider sans réflexion. Les valeurs par défaut et transformations doivent également être documentées, car elles modifient la donnée transmise à la logique métier.</p>
+<h3>Trois niveaux à ne pas confondre</h3><ul><li><strong>Syntaxe/forme :</strong> la chaîne ressemble-t-elle à une date valide et le champ est-il du bon type ?</li><li><strong>Règle métier :</strong> la date d’échéance est-elle autorisée pour ce statut ou ce projet ?</li><li><strong>Autorisation :</strong> cet utilisateur a-t-il le droit de créer une tâche dans ce projet ?</li></ul>
+<p>Ne renvoie pas automatiquement tous les détails internes du validateur : les chemins de champs peuvent être utiles au client, mais les valeurs reçues peuvent contenir des données personnelles. Normalise le format d’erreur, limite le nombre d’erreurs et évite d’inclure une pile d’appel.</p>
+<p><strong>Tests à écrire :</strong> champ manquant, corps qui n’est pas un objet, chaîne vide après <code>trim</code>, chaîne trop longue, priorité inconnue, date mal formée, propriété inattendue et valeur valide. Vérifie aussi que le défaut <code>normal</code> est appliqué comme prévu. Puis teste séparément une règle métier refusée et un accès interdit : ces cas ne sont pas des erreurs de schéma. Vérifie enfin que la réponse d’erreur contient seulement des chemins de champs et des codes contrôlés, jamais les valeurs reçues ni une pile d’appel.</p>
+<p><strong>Critère de réussite :</strong> une entrée invalide n’atteint pas la logique métier, une entrée valide fournit un type inféré fiable, et les erreurs de validation ne sont pas confondues avec les refus métier ou d’autorisation.</p></section>
+    <section class="lesson-section"><h2>Erreurs fréquentes</h2>
+    <ul><li>Penser que TypeScript valide automatiquement les requêtes à l’exécution.</li><li>Valider uniquement dans le navigateur.</li><li>Confondre validation de forme et autorisation.</li><li>Accepter des propriétés supplémentaires sensibles par défaut.</li><li>Utiliser le même schéma indistinctement pour création, modification et réponse.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Exercice guidé</h2>
+    <p>Écris un schéma de création d’utilisateur avec un nom de 2 à 60 caractères, un courriel au format accepté et un mot de passe d’au moins 12 caractères. Refuse les propriétés non prévues ou définis explicitement leur traitement. Ajoute ensuite les contrôles métier et d’autorisation nécessaires à une modification de profil.</p><h3>Critères de réussite</h3><ul><li>Les règles sont exécutées côté serveur.</li><li>Les conversions et valeurs par défaut sont explicites.</li><li>Les erreurs identifient les champs sans exposer de secrets.</li><li>Validation, règles métier et autorisation restent distinctes.</li><li>Les cas limites sont testés automatiquement.</li></ul>
+    </section>
+    <section class="lesson-section"><h2>Sources à étudier</h2><p>Références documentaires de départ pour approfondir les concepts et vérifier les détails propres aux outils utilisés.</p><ul>
+      <li><a href="https://zod.dev/" target="_blank" rel="noopener noreferrer">Zod — Documentation</a></li>
+      <li><a href="https://joi.dev/api/" target="_blank" rel="noopener noreferrer">Joi — API Reference</a></li>
+      <li><a href="https://github.com/jquense/yup" target="_blank" rel="noopener noreferrer">Yup — Documentation</a></li>
+      <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Input Validation Cheat Sheet</a></li>
+      <li><a href="https://www.typescriptlang.org/docs/handbook/2/everyday-types.html" target="_blank" rel="noopener noreferrer">TypeScript — Everyday Types</a></li>
+    </ul></section>
+        <nav class="lesson-nav"><a class="nav-link" href="middlewares.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="taches-asynchrones.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

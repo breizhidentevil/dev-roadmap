@@ -1,0 +1,97 @@
+ <!-- SOURCES DOCUMENTAIRES
+- PostgreSQL — Using EXPLAIN: https://www.postgresql.org/docs/current/using-explain.html
+- MySQL — EXPLAIN Statement: https://dev.mysql.com/doc/refman/8.4/en/explain.html
+- SQLite — EXPLAIN QUERY PLAN: https://www.sqlite.org/eqp.html
+- Use The Index, Luke!: https://use-the-index-luke.com/
+- PostgreSQL — Indexes: https://www.postgresql.org/docs/current/indexes.html
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Lire les plans d’exécution pour comprendre le coût réel des requêtes, repérer les scans coûteux et choisir des optimisations mesurables.">
+<title>Plans d’exécution SQL — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Plans d’exécution SQL</h1>
+<p class="lead">Lire les plans d’exécution pour comprendre le coût réel des requêtes, repérer les scans coûteux et choisir des optimisations mesurables.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Une requête SQL qui paraît simple peut parcourir des millions de lignes, effectuer un tri coûteux ou choisir un mauvais ordre de jointure. Le plan d’exécution décrit la stratégie choisie par l’optimiseur pour produire le résultat. À la fin de ce tutoriel, vous saurez obtenir un plan, distinguer estimations et mesures réelles, identifier quelques coûts fréquents et vérifier qu’une optimisation améliore réellement la requête. Il faut connaître les bases de SQL, les filtres, les jointures et les index.</p>
+<h2>2. Pourquoi le plan est plus utile que l’intuition</h2>
+<p>Le temps d’une requête dépend du volume des données, de leur distribution, des index disponibles, de la mémoire, des caches et de la concurrence. Une requête qui fonctionne vite sur cent lignes peut devenir lente sur plusieurs millions. Le texte SQL seul ne révèle pas le nombre de lignes lues ni la manière dont le moteur combine les tables.</p>
+<p>Les optimiseurs choisissent un plan à partir de statistiques et de coûts estimés. Ils ne cherchent pas à produire le plan le plus élégant, mais un plan estimé peu coûteux selon leur modèle. Si les statistiques sont obsolètes ou si les données sont très déséquilibrées, l’estimation peut être incorrecte. Le plan est donc une hypothèse à confronter aux mesures, pas une preuve absolue.</p>
+<h2>3. Utiliser EXPLAIN et EXPLAIN ANALYZE</h2>
+<p>Dans PostgreSQL, <code>EXPLAIN</code> affiche le plan estimé. <code>EXPLAIN ANALYZE</code> exécute effectivement la requête et ajoute les durées et les nombres de lignes observés. Cette distinction est fondamentale : une commande qui analyse peut exécuter une requête coûteuse, et une requête qui modifie des données peut réellement effectuer ses changements. Dans un environnement de production, soyez particulièrement prudent avec les commandes d’analyse et les requêtes d’écriture.</p>
+<pre><code>EXPLAIN
+SELECT id, created_at
+FROM orders
+WHERE customer_id = 42
+ORDER BY created_at DESC
+LIMIT 20;</code></pre>
+<p>Pour mesurer le comportement réel dans PostgreSQL, on peut employer <code>EXPLAIN (ANALYZE, BUFFERS)</code>, sur un jeu de données représentatif et avec les précautions nécessaires. <code>BUFFERS</code> fournit des informations sur les pages lues ou trouvées dans les caches. Les options et la syntaxe diffèrent entre moteurs ; consultez la documentation de la base utilisée plutôt que de transposer les options telles quelles.</p>
+<h2>4. Lire un plan de bas en haut</h2>
+<p>Un plan est généralement un arbre : les nœuds enfants produisent les lignes consommées par leurs parents. Il est souvent utile de commencer par les nœuds les plus bas et de remonter vers le résultat. Repérez le type d’opération, le nombre de lignes estimé et observé, le nombre de boucles et la durée. Les noms exacts varient, mais plusieurs familles de nœuds sont courantes.</p>
+<ul>
+<li><strong>Scan séquentiel :</strong> le moteur parcourt une table. Ce n’est pas forcément mauvais : pour lire une grande partie d’une petite table, cela peut être optimal.</li>
+<li><strong>Scan d’index :</strong> l’index aide à trouver les entrées correspondantes. Des accès nombreux aux lignes de la table peuvent cependant coûter cher.</li>
+<li><strong>Tri :</strong> les lignes sont ordonnées. Un tri volumineux peut consommer de la mémoire ou déborder sur disque.</li>
+<li><strong>Jointure :</strong> le moteur choisit une stratégie adaptée aux volumes et aux index, par exemple nested loop, hash join ou merge join.</li>
+<li><strong>Aggregate :</strong> le moteur calcule des groupes ou des agrégats, parfois avec un coût mémoire significatif.</li>
+</ul>
+<h2>5. Estimations, lignes réelles et boucles</h2>
+<p>Un signal utile est l’écart entre les lignes estimées et celles réellement produites. Si le plan prédit quelques lignes mais en traite des milliers, le moteur peut avoir choisi une stratégie inadaptée. Les statistiques, les corrélations entre colonnes et les paramètres réels peuvent expliquer cet écart. Une mise à jour des statistiques peut aider, mais ne corrige pas toutes les limites du modèle de données ou de la requête.</p>
+<p>Faites attention aux boucles : un nœud exécuté plusieurs milliers de fois peut coûter cher même si chaque exécution semble rapide. Dans certains formats de plan, la durée ou le nombre de lignes est affiché par boucle ; vérifiez les conventions de votre moteur. Ne concluez pas qu’un nœud est lent uniquement parce que son temps cumulé apparaît important : analysez sa place dans l’arbre et les opérations qui le déclenchent.</p>
+<h2>6. Les index : aider sans en abuser</h2>
+<p>Un index peut accélérer les recherches, les jointures et parfois le tri, mais il a un coût de stockage et ralentit les écritures puisqu’il doit être maintenu. Ajouter un index sur chaque colonne n’est pas une stratégie. Un index composé peut être utile lorsque les requêtes filtrent régulièrement sur plusieurs colonnes, mais l’ordre des colonnes et la sélectivité comptent. Il faut partir des requêtes et de leurs plans, pas créer un index sur la base d’une intuition générale.</p>
+<pre><code>CREATE INDEX idx_orders_customer_created
+ON orders (customer_id, created_at DESC);</code></pre>
+<p>Cet index peut être pertinent pour la requête précédente selon le moteur, la distribution des données et la forme de la requête. Il ne garantit pas que l’optimiseur le choisira. Comparez les plans avant et après, mesurez plusieurs fois et vérifiez aussi l’impact sur les insertions et mises à jour. Un index inutilisé peut être un coût net, mais sa suppression doit être fondée sur des observations suffisantes.</p>
+<h2>7. Jointures et filtres</h2>
+<p>Un plan coûteux peut provenir d’un filtre appliqué trop tard, d’une jointure qui produit beaucoup plus de lignes que prévu ou d’une condition qui empêche l’utilisation d’un index. Évitez d’envelopper systématiquement une colonne indexée dans une fonction si le moteur ne peut pas exploiter l’index dans cette forme. Une colonne transformée, une conversion de type implicite ou un motif de recherche avec joker initial peuvent changer le plan choisi.</p>
+<p>Il ne faut pas pour autant réécrire toutes les requêtes en fonction d’une règle simpliste. Les optimiseurs savent pousser certains filtres et réordonner des jointures. Inspectez le plan réel, vérifiez les types et les statistiques, puis modifiez une chose à la fois. Une requête plus longue à écrire n’est pas nécessairement plus rapide, et une jointure différente peut changer le résultat si elle modifie la logique métier.</p>
+<h2>8. Mesurer proprement</h2>
+<p>Comparez des requêtes équivalentes sur des données et des conditions comparables. Tenez compte des caches froids ou chauds, de la charge concurrente, de la variabilité et de la latence de bout en bout. Pour une API, la durée de la requête SQL ne représente qu’une partie du temps total : sérialisation, réseau, attente d’une connexion et logique applicative comptent également.</p>
+<p>Suivez des indicateurs comme la latence médiane et les percentiles élevés, le nombre d’appels, les lignes lues, les lectures disque et la fréquence d’exécution. Une requête qui gagne cinq millisecondes mais est exécutée une fois par jour peut être moins prioritaire qu’une requête légèrement plus lente appelée des milliers de fois par minute.</p>
+<h2>9. Erreurs fréquentes</h2>
+<ul>
+<li>Considérer chaque scan séquentiel comme un défaut.</li>
+<li>Confondre coût estimé et durée réelle.</li>
+<li>Lancer une analyse qui exécute une requête de modification sans précaution.</li>
+<li>Ajouter des index sans mesurer leur bénéfice et leur coût en écriture.</li>
+<li>Optimiser sur un petit jeu de données non représentatif.</li>
+<li>Mesurer une seule fois et ignorer la concurrence, les caches ou les percentiles.</li>
+</ul>
+<h2>10. Exercice et critères de réussite</h2>
+<p>Choisissez une requête qui filtre, trie et limite les résultats d’une table volumineuse. Capturez son plan estimé, puis mesurez-la dans un environnement adapté. Relevez le type de scan, les lignes estimées et observées, les opérations de tri et les boucles. Formulez une hypothèse, ajoutez ou modifiez un index seulement si cela est justifié, puis comparez les plans et les latences.</p>
+<ul class="checklist">
+<li>Je sais distinguer EXPLAIN estimé et analyse réellement exécutée.</li>
+<li>Je lis un plan comme un arbre et repère les nœuds importants.</li>
+<li>Je recherche les écarts entre lignes estimées et observées.</li>
+<li>Je justifie les index par des requêtes concrètes et des mesures.</li>
+<li>Je compare les performances dans des conditions suffisamment représentatives.</li>
+</ul>
+
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://www.postgresql.org/docs/current/using-explain.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Using EXPLAIN</a></li>
+<li><a href="https://dev.mysql.com/doc/refman/8.4/en/explain.html" target="_blank" rel="noopener noreferrer">MySQL — EXPLAIN Statement</a></li>
+<li><a href="https://www.sqlite.org/eqp.html" target="_blank" rel="noopener noreferrer">SQLite — EXPLAIN QUERY PLAN</a></li>
+<li><a href="https://use-the-index-luke.com/" target="_blank" rel="noopener noreferrer">Use The Index, Luke!</a></li>
+<li><a href="https://www.postgresql.org/docs/current/indexes.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Indexes</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="concurrence-mises-a-jour.html">← Précédent : Concurrence et mises à jour perdues</a><a rel="next" href="strategie-sauvegarde-restauration.html">Suivant : Sauvegarde et restauration →</a></nav>
+
+<section class="lesson-workshop"><h2>Atelier approfondi — Relier le plan à une mesure de performance</h2><h3>Objectifs opérationnels</h3><ul><li>Expliquer les garanties et les limites du mécanisme présenté.</li><li>Choisir une stratégie adaptée à un cas réaliste et justifier ses compromis.</li><li>Vérifier le comportement avec des tests reproductibles plutôt que par intuition.</li></ul><h3>Explications et exemple guidé</h3><p>Un plan d’exécution décrit la stratégie choisie par l’optimiseur : accès par index ou scan séquentiel, ordre des jointures, tris, agrégations et estimations de cardinalité. Un scan séquentiel n’est pas automatiquement mauvais : sur une petite table ou une requête qui lit une grande part des lignes, il peut être le meilleur choix.</p><pre><code>EXPLAIN (ANALYZE, BUFFERS)
+SELECT customer_id, created_at
+FROM orders
+WHERE customer_id = 42
+ORDER BY created_at DESC
+LIMIT 20;</code></pre><p><code>EXPLAIN ANALYZE</code> exécute réellement la requête : utilisez-le en connaissance de cause, surtout pour des requêtes mutantes. Comparez lignes estimées et réelles, temps par nœud, lectures mémoire/disque et nombre de boucles. Optimisez à partir d’un scénario reproductible et de données représentatives, pas uniquement de l’apparence du plan.</p><h3>Pièges et limites</h3><ul><li>Piège : ajouter des index sans tenir compte du coût des écritures, de la taille disque et de la sélectivité.</li><li>Piège : comparer des mesures avec des caches, volumes ou paramètres différents.</li><li>Piège : regarder seulement le temps total et ignorer le nœud qui multiplie le travail.</li><li>Piège : considérer les temps d’un environnement de développement comme représentatifs de la production.</li></ul><h3>Exercice</h3><p>Choisissez une requête avec filtre, tri et limite. Capturez le plan avant optimisation, formulez une hypothèse, testez un index composite éventuel puis comparez les plans et mesures sur les mêmes données.</p><h3>Critères de réussite</h3><ul><li>La requête et les données de test sont reproductibles.</li><li>Le diagnostic s’appuie sur les estimations, les lignes réelles et les lectures.</li><li>L’index proposé correspond aux filtres et à l’ordre d’accès observés.</li><li>Le gain est mesuré et le coût potentiel en écriture est discuté.</li></ul></section>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

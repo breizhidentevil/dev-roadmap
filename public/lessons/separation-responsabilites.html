@@ -1,0 +1,87 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Séparation des responsabilités
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. Martin Fowler — Presentation Domain Data Layering — https://martinfowler.com/bliki/PresentationDomainDataLayering.html
+2. Robert C. Martin — The Clean Architecture — https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html
+3. Microsoft — Common web application architectures — https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures
+4. Martin Fowler — Dependency Injection — https://martinfowler.com/articles/injection.html
+5. Refactoring.Guru — SOLID principles — https://refactoring.guru/design-patterns/solid-principles
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Éviter le mélange des règles métier, du transport HTTP et de la persistance.">
+<title>Séparation des responsabilités — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Parcours Full Stack · Architecture et exploitation</p>
+<h1>Séparation des responsabilités</h1>
+<p class="lead">Séparer les responsabilités consiste à donner à chaque module une raison claire de changer. L’objectif n’est pas de multiplier les fichiers, mais de rendre les règles compréhensibles, testables et modifiables sans effets de bord inutiles.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Une application web doit recevoir une requête, vérifier les entrées, appliquer les règles du domaine, lire ou écrire des données et produire une réponse. Si toute cette logique est concentrée dans un seul contrôleur, chaque évolution devient risquée. À l’inverse, une architecture fragmentée en dizaines de classes minuscules peut compliquer la navigation sans améliorer la conception.</p><ul><li>Identifier les responsabilités de l’interface, de l’application, du domaine et de l’infrastructure.</li><li>Réduire le couplage entre règles métier et détails techniques.</li><li>Utiliser des interfaces lorsqu’elles apportent une frontière utile.</li><li>Tester les règles métier sans démarrer un serveur ni une base de données.</li></ul>
+</section>
+<section class="lesson-section"><h2>1. Une responsabilité est une raison de changer</h2>
+<p>Considérez un endpoint qui crée une commande. Il parse le JSON, vérifie les champs, calcule les remises, vérifie le stock, écrit plusieurs lignes SQL, envoie un courriel et construit la réponse HTTP. Il rassemble des décisions qui évoluent pour des raisons différentes : contrat d’API, politique commerciale, schéma de données et fournisseur de messagerie.</p><p>La séparation consiste à placer chaque décision à l’endroit où elle est la plus compréhensible. Le contrôleur adapte HTTP à l’application ; le service applicatif orchestre le cas d’usage ; le domaine exprime les invariants métier ; les adaptateurs techniques réalisent les accès à la base et aux services externes.</p><p>Ces couches sont un moyen, pas une loi universelle. Pour un petit CRUD, une structure simple avec peu de fichiers peut être préférable. La question utile est : « cette modification métier peut-elle être comprise et testée sans modifier des détails techniques sans rapport ? »</p>
+</section>
+<section class="lesson-section"><h2>2. Une répartition concrète</h2>
+<ol><li><strong>Transport / contrôleur :</strong> lit la requête, applique les contrôles de format, appelle le cas d’usage et traduit le résultat en code HTTP.</li><li><strong>Application :</strong> coordonne le scénario, définit les frontières de transaction et appelle les ports nécessaires.</li><li><strong>Domaine :</strong> contient les règles et invariants indépendants du framework, par exemple interdire une commande vide ou calculer une remise autorisée.</li><li><strong>Infrastructure :</strong> implémente les accès SQL, l’envoi d’e-mails, le cache ou les appels externes.</li></ol><p>Exemple de flux : <code>POST /orders</code> → contrôleur → <code>CreateOrder</code> → règle métier de commande → interface <code>OrderRepository</code> → implémentation PostgreSQL → résultat → réponse HTTP. Le domaine n’a pas besoin de connaître Express, Spring, HTTP ou le pilote SQL.</p><p>La validation se fait à plusieurs niveaux : validation de forme à l’entrée, puis vérification des invariants au niveau métier. Un champ numérique valide peut malgré tout être illégal dans le domaine : une quantité doit être positive, une commande clôturée ne doit pas être modifiée, etc.</p>
+</section>
+<section class="lesson-section"><h2>3. Dépendances orientées vers les règles</h2>
+<p>Un module de règles métier ne devrait généralement pas dépendre directement d’un framework web ou d’un pilote de base de données. Il peut définir une interface minimale dont l’implémentation se trouve dans l’infrastructure. L’application reçoit cette dépendance par construction ou par injection.</p><pre><code>interface OrderRepository {
+  save(order: Order): Promise<void>;
+}
+
+class CreateOrder {
+  constructor(private orders: OrderRepository) {}
+
+  async execute(input: CreateOrderInput): Promise<OrderId> {
+    const order = Order.create(input.items);
+    await this.orders.save(order);
+    return order.id;
+  }
+}</code></pre><p>Exemple pédagogique en TypeScript : les types <code>Order</code>, <code>OrderId</code> et <code>CreateOrderInput</code> sont ici supposés définis. Le code illustre la frontière, pas une implémentation complète : une vraie commande doit traiter la concurrence, les transactions et les erreurs métier appropriées.</p><p>Une interface est utile lorsqu’elle exprime un contrat stable ou permet de remplacer un adaptateur. Créer une interface pour chaque classe sans besoin réel peut ajouter du bruit. Il n’est pas nécessaire d’abstraire chaque fonction pure.</p>
+</section>
+<section class="lesson-section"><h2>4. Tester au bon niveau</h2>
+<p>Les tests unitaires du domaine vérifient les règles avec des données en mémoire et sans infrastructure. Les tests d’application vérifient l’orchestration à l’aide de dépendances contrôlées. Les tests d’intégration valident que l’adaptateur SQL respecte le contrat du dépôt, que les transactions fonctionnent et que les contraintes de base sont effectives. Les tests HTTP vérifient le contrat exposé au client.</p><p>Ne simulez pas tout : un test avec un faux dépôt ne prouve pas qu’une requête SQL fonctionne. À l’inverse, il n’est pas nécessaire de lancer une base de données pour vérifier qu’une remise de 10 % est calculée correctement.</p><p>Les erreurs doivent aussi franchir les frontières de manière explicite. Le domaine peut produire une erreur métier ; le contrôleur la traduit en réponse appropriée sans exposer la pile technique au client. Les journaux internes doivent conserver suffisamment de contexte pour diagnostiquer le problème sans enregistrer de secrets.</p>
+</section>
+<section class="lesson-section"><h2>5. Signes de mauvaise séparation</h2>
+<ul><li><strong>Contrôleur obèse :</strong> règles métier, SQL et appels externes s’accumulent dans la même méthode.</li><li><strong>Modèle anémique :</strong> les objets ne portent aucune règle et toute la logique est dispersée dans des services sans cohésion.</li><li><strong>Abstraction prématurée :</strong> plusieurs couches ou interfaces sont créées avant d’avoir un besoin de variation ou de test identifiable.</li><li><strong>Fuite du framework :</strong> des objets de requête HTTP ou des annotations ORM envahissent le cœur métier sans nécessité.</li><li><strong>Transaction mal placée :</strong> plusieurs écritures doivent être atomiques, mais sont exécutées dans des fonctions indépendantes sans coordination.</li><li><strong>Duplication de validation :</strong> la même règle est copiée dans le front-end, le contrôleur et plusieurs services ; les contrôles d’interface améliorent l’expérience, mais le serveur reste l’autorité.</li></ul><p>La qualité se mesure à la facilité de raisonner sur une modification, au caractère local des tests et à la clarté des dépendances, pas au nombre de couches.</p>
+</section>
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Refactorisez mentalement un endpoint <code>POST /users</code> qui vérifie le format d’un e-mail, refuse les doublons, enregistre l’utilisateur et envoie un message de bienvenue.</p><ol><li>Quelles vérifications relèvent du format d’entrée et lesquelles relèvent du domaine ?</li><li>Quel module orchestre l’enregistrement et l’envoi ?</li><li>Comment empêcher qu’un échec d’e-mail crée un état incohérent ?</li><li>Quels tests peuvent rester unitaires et lesquels nécessitent une base réelle ?</li><li>Quelles informations ne doivent jamais apparaître dans une réponse d’erreur publique ?</li></ol><p><strong>Critères de réussite :</strong> vous proposez des frontières cohérentes, évitez la dépendance directe du domaine au framework, distinguez tests unitaires et d’intégration et identifiez les questions de transaction et d’effets secondaires.</p>
+</section>
+<section class="lesson-section"><h2>Atelier de validation : séparer sans disperser</h2>
+<p>La séparation des responsabilités doit réduire les raisons de changer et rendre les tests plus précis. Elle ne signifie pas qu’il faut créer une classe ou une interface pour chaque fonction.</p>
+<h3>Exemple : appliquer une remise</h3><pre><code>type Ligne = { prixUnitaire: number; quantite: number };
+function calculerTotal(lignes: Ligne[], remise: number): number {
+  if (!Number.isFinite(remise) || remise &lt; 0 || remise &gt; 1) {
+    throw new Error("Remise invalide");
+  }
+  return lignes.reduce((somme, ligne) => {
+    if (ligne.quantite &lt; 0 || ligne.prixUnitaire &lt; 0) {
+      throw new Error("Ligne invalide");
+    }
+    return somme + ligne.prixUnitaire * ligne.quantite;
+  }, 0) * (1 - remise);
+}</code></pre>
+<p>Cette règle pure peut être testée sans base de données ni framework web. Le cas d’usage orchestre ensuite chargement, calcul, sauvegarde et publication d’événement ; le contrôleur traduit la requête HTTP en entrée de cas d’usage. La transaction doit couvrir les écritures qui partagent un invariant.</p>
+<h3>Diagnostic des responsabilités</h3><ul><li>Une fonction qui lit HTTP, calcule un prix, écrit en base et envoie un courriel mélange plusieurs raisons de changer.</li><li>Une interface n’est utile que si elle définit une frontière, un contrat substituable ou un point de test pertinent.</li><li>Évitez d’extraire une abstraction tant que ses variations et ses invariants ne sont pas compris.</li></ul>
+<h3>Exercice</h3><p>Refactorisez un contrôleur « créer commande » en quatre étapes : caractériser le comportement existant par des tests, extraire la règle pure, déplacer l’orchestration dans un cas d’usage, puis isoler les adaptateurs. À chaque étape, lancez les tests et inspectez le diff.</p>
+<p><strong>Critères de réussite :</strong> les règles métier se testent sans infrastructure ; les effets secondaires sont explicites ; les erreurs et transactions ont un propriétaire clair ; le refactoring ne change pas silencieusement le comportement.</p></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces références permettent d’approfondir les concepts et de vérifier les détails propres aux outils. Les exemples du tutoriel sont synthétiques ; consultez la documentation officielle avant une mise en production.</p><ol><li><a href="https://martinfowler.com/bliki/PresentationDomainDataLayering.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Presentation Domain Data Layering</a></li>
+<li><a href="https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html" target="_blank" rel="noopener noreferrer">Robert C. Martin — The Clean Architecture</a></li>
+<li><a href="https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures" target="_blank" rel="noopener noreferrer">Microsoft — Common web application architectures</a></li>
+<li><a href="https://martinfowler.com/articles/injection.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Dependency Injection</a></li>
+<li><a href="https://refactoring.guru/design-patterns/solid-principles" target="_blank" rel="noopener noreferrer">Refactoring.Guru — SOLID principles</a></li></ol></section>
+<nav class="lesson-nav" aria-label="Navigation entre les compétences"><a href="architecture-modulaire.html">← Compétence précédente</a><a href="design-patterns.html">Compétence suivante →</a></nav>
+</main>
+<footer class="site-footer"><p>Roadmap Full Stack 2026 · Apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

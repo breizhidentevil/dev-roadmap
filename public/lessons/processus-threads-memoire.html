@@ -1,0 +1,54 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Processus, threads et mémoire
+Références retenues comme points de départ documentaires ; vérifier leur actualité et leur adéquation au projet.
+1. MDN — Concurrency model and Event Loop — https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Execution_model
+2. Node.js — Don't block the Event Loop — https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop
+3. Node.js — Worker threads — https://nodejs.org/api/worker_threads.html
+4. Linux man-pages — pthreads — https://man7.org/linux/man-pages/man7/pthreads.7.html
+5. OSTEP — Operating Systems: Three Easy Pieces — https://pages.cs.wisc.edu/~remzi/OSTEP/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Comprendre l’exécution d’un programme, le partage de mémoire et les causes courantes de concurrence.">
+  <title>Processus, threads et mémoire — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">0. Informatique générale et fonctionnement des systèmes</p>
+    <h1>Processus, threads et mémoire</h1>
+    <p class="lead">Comprendre l’exécution des programmes, la concurrence et l’utilisation de la mémoire.</p>
+    <div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 1 h 45</span></div>
+<section class="lesson-section"><h2>Objectifs pédagogiques</h2><ul><li>Distinguer processus, thread et tâche asynchrone.</li><li>Expliquer l’espace mémoire d’un processus et les effets du partage de données.</li><li>Reconnaître les situations où la concurrence impose une synchronisation.</li></ul></section>
+<section class="lesson-section"><h2>1. Le processus</h2><p>Un processus est une instance d’un programme en cours d’exécution. Le système d’exploitation lui attribue un espace d’adressage virtuel, des ressources et un contexte d’exécution. Deux processus sont en principe isolés l’un de l’autre : ils ne lisent pas directement la mémoire privée de l’autre sans mécanisme explicite de communication, comme un pipe, un socket ou une mémoire partagée.</p><p>Un processus peut posséder plusieurs threads. Le système d’exploitation planifie leur exécution et répartit le temps processeur entre les tâches actives.</p></section>
+<section class="lesson-section"><h2>2. Le thread et le partage mémoire</h2><p>Un thread est un fil d’exécution à l’intérieur d’un processus. Les threads d’un même processus partagent généralement le tas et les ressources du processus, mais disposent chacun de leur propre pile d’exécution et de leur contexte. Ce partage permet des échanges rapides, mais crée des risques : deux threads peuvent modifier la même donnée au même moment.</p><p>Une condition de concurrence survient lorsque le résultat dépend de l’ordre ou du minutage des opérations. Un verrou, une primitive atomique ou un modèle sans état partagé peut rendre le comportement prévisible.</p></section>
+<section class="lesson-section"><h2>3. Pile, tas et durée de vie</h2><p>La pile contient notamment les cadres d’appel et les variables locales associées à l’exécution d’une fonction. Le tas accueille les objets dont la durée de vie dépasse souvent un seul appel. Cette distinction est conceptuelle : les détails exacts dépendent du langage et de son environnement d’exécution.</p><ul><li>Une référence conservée trop longtemps peut prolonger la durée de vie d’un objet.</li><li>Une allocation massive ou répétée peut accroître la pression mémoire.</li><li>Une fuite mémoire peut apparaître lorsque des objets devenus inutiles restent référencés.</li><li>Un accès à une mémoire libérée ou invalide peut provoquer des comportements indéfinis dans certains langages.</li></ul></section>
+<section class="lesson-section"><h2>4. Parallélisme et asynchronisme</h2><p>Le parallélisme signifie que plusieurs opérations progressent réellement au même instant, généralement sur plusieurs cœurs. L’asynchronisme permet de ne pas bloquer l’exécution pendant une attente, par exemple un accès réseau ou disque. Une application peut être asynchrone sans exécuter plusieurs opérations JavaScript simultanément sur un même thread.</p><p>Dans Node.js, la boucle d’événements coordonne de nombreuses opérations d’entrée-sortie. Une fonction CPU très coûteuse exécutée sur le thread principal peut bloquer le traitement des autres requêtes. Il faut alors envisager de découper le calcul ou de le déplacer vers un worker ou un processus séparé.</p></section>
+<section class="lesson-section"><h2>5. Synchronisation et communication</h2><p>Les mécanismes de synchronisation — mutex, sémaphores, atomiques, files de messages — permettent de coordonner l’accès aux ressources partagées. Ils peuvent toutefois introduire des blocages, de la contention ou des interblocages. Un interblocage (deadlock) survient notamment lorsque plusieurs tâches attendent des ressources détenues les unes par les autres.<p>Réduisez la durée de détention des verrous, documentez l’ordre d’acquisition et privilégiez les files de messages ou le passage de messages lorsque le partage mémoire n’est pas nécessaire. Ne supposez pas que le code est sûr parce qu’un test n’a pas reproduit la course.</p></section>
+<section class="lesson-section"><h2>6. Exercice</h2><p>Imaginez un compteur partagé incrémenté par deux tâches. Expliquez pourquoi une lecture suivie d’une écriture peut perdre une mise à jour. Proposez deux solutions : une synchronisation explicite et une conception évitant le partage mutable. Pour une application Node.js, identifiez une tâche CPU qui pourrait bloquer la boucle d’événements.</p><h3>Critères de réussite</h3><ul><li>La différence entre processus et thread est claire.</li><li>Vous savez expliquer une condition de concurrence.</li><li>Vous distinguez parallélisme et asynchronisme.</li><li>Vous savez choisir entre partage synchronisé et communication par messages.</li></ul></section>
+
+<section class="lesson-section"><h2>7. Diagnostiquer un blocage ou une course critique</h2>
+<p>Un symptôme intermittent est difficile à reproduire parce que l’ordonnancement change d’une exécution à l’autre. Pour analyser un problème de concurrence, identifie d’abord l’état partagé, les opérations qui le lisent ou le modifient, puis les ordres d’exécution possibles. Ne suppose pas que deux lignes successives dans le code sont atomiques : une opération composée peut être interrompue entre lecture, calcul et écriture.</p>
+<p>Exemple conceptuel : deux tâches lisent un compteur à 10, calculent chacune 11 puis écrivent 11. Le résultat final est 11 alors que deux incréments étaient attendus, car une mise à jour a été perdue. Selon l’environnement, une primitive atomique, un verrou, une transaction ou la sérialisation des opérations peut corriger le problème. La solution doit correspondre à la portée du partage : un verrou en mémoire locale ne synchronise pas deux processus distincts ni deux serveurs.</p>
+<pre><code>// Pseudocode d'une mise à jour non atomique
+value = counter.read()
+value = value + 1
+counter.write(value)
+
+// Deux exécutions concurrentes peuvent perdre un incrément.
+// Utiliser une opération atomique ou une section critique adaptée.</code></pre>
+<p>Pour les fuites mémoire, cherche une croissance soutenue de la mémoire au fil des requêtes, pas seulement une valeur élevée ponctuelle. Les caches sans limite, les écouteurs jamais retirés et les références conservées dans des collections globales sont des causes courantes. Une collecte automatique des déchets ne libère pas un objet encore référencé.</p>
+<p>Enfin, distingue la concurrence logique du parallélisme matériel. Une fonction asynchrone qui attend un service distant peut libérer l’exécution pour d’autres tâches sans exécuter son propre calcul en parallèle. Pour un calcul CPU important, un worker ou un processus séparé peut aider, au prix d’une communication et d’une gestion supplémentaires.</p></section>
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Execution_model" target="_blank" rel="noopener noreferrer">MDN — Concurrency model and Event Loop</a></li><li><a href="https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop" target="_blank" rel="noopener noreferrer">Node.js — Don&#x27;t block the Event Loop</a></li><li><a href="https://nodejs.org/api/worker_threads.html" target="_blank" rel="noopener noreferrer">Node.js — Worker threads</a></li><li><a href="https://man7.org/linux/man-pages/man7/pthreads.7.html" target="_blank" rel="noopener noreferrer">Linux man-pages — pthreads</a></li><li><a href="https://pages.cs.wisc.edu/~remzi/OSTEP/" target="_blank" rel="noopener noreferrer">OSTEP — Operating Systems: Three Easy Pieces</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je distingue processus, thread et opération asynchrone.</label><label><input type="checkbox"> Je sais décrire une course critique et ses solutions.</label><label><input type="checkbox"> Je peux expliquer pourquoi un calcul CPU peut bloquer une boucle d’événements.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="architecture-ordinateur.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="systeme-exploitation-fichiers.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

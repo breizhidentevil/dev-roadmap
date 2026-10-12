@@ -1,0 +1,106 @@
+ <!-- SOURCES DOCUMENTAIRES
+- RFC 9110 — HTTP Semantics: https://www.rfc-editor.org/rfc/rfc9110.html
+- Stripe — Idempotent requests: https://docs.stripe.com/api/idempotent_requests
+- AWS Builders’ Library — Making retries safe with idempotent APIs: https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/
+- Microsoft — Idempotent message processing: https://learn.microsoft.com/en-us/azure/architecture/patterns/
+- IETF — Idempotency-Key HTTP Header Field: https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Concevoir des opérations répétables sans doublons, gérer les requêtes incertaines et utiliser des clés d’idempotence avec des garanties explicites.">
+<title>Idempotence des API — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Idempotence des API</h1>
+<p class="lead">Concevoir des opérations répétables sans doublons, gérer les requêtes incertaines et utiliser des clés d’idempotence avec des garanties explicites.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>L’idempotence est une propriété essentielle des API distribuées : elle permet de répéter une requête sans reproduire indéfiniment ses effets. Elle devient particulièrement importante lorsqu’un client perd la réponse, qu’un réseau coupe une connexion ou qu’un système de paiement réessaie une opération. À la fin, vous saurez distinguer idempotence HTTP et clé d’idempotence applicative, concevoir le stockage nécessaire et définir les cas où une répétition doit être rejetée.</p>
+<h2>2. Définition opérationnelle</h2>
+<p>Une opération est idempotente lorsque son exécution répétée avec les mêmes paramètres produit le même effet final que son exécution unique. Cela ne signifie pas nécessairement que chaque réponse HTTP est identique, ni que l’opération n’a aucun effet. Par exemple, définir l’adresse d’un profil à une valeur donnée peut être idempotent : répéter la même affectation ne change pas davantage l’état après la première application.</p>
+<p>À l’inverse, une opération « ajouter un élément » peut créer un nouvel élément à chaque appel. Si le client ne sait pas si la première requête a abouti, la répétition risque de créer un doublon. Il faut donc examiner les effets métier, pas uniquement le nom de la méthode ou le code de réponse.</p>
+<h2>3. Méthodes HTTP et idempotence</h2>
+<p>La sémantique HTTP définit certaines méthodes comme idempotentes, notamment <code>GET</code>, <code>PUT</code> et <code>DELETE</code>. La propriété porte sur l’effet demandé au serveur, pas sur l’absence totale de journalisation, de métriques ou d’autres effets auxiliaires. <code>POST</code> n’est pas idempotent par défaut : il sert souvent à créer une ressource ou à déclencher une action.</p>
+<p>Une API peut néanmoins concevoir un endpoint <code>POST</code> avec une clé d’idempotence. À l’inverse, une implémentation peut violer la sémantique attendue d’une méthode idempotente si elle réalise des effets métier supplémentaires à chaque appel. La documentation doit expliquer la garantie concrète fournie par l’application.</p>
+<h2>4. Pourquoi une réponse perdue est ambiguë</h2>
+<p>Supposons qu’un client envoie une demande de réservation. Le serveur enregistre la réservation, puis la connexion se coupe avant que la réponse arrive. Le client ne peut pas conclure que l’opération a échoué. Un retry aveugle pourrait créer une seconde réservation ; ne pas réessayer pourrait laisser l’utilisateur sans confirmation. Le problème est une incertitude sur le résultat, et non simplement une erreur de transport.</p>
+<p>La solution consiste à donner à l’opération une identité stable, puis à faire en sorte que le serveur reconnaisse les répétitions. La clé doit être créée par le client pour une intention métier précise et réutilisée pour les tentatives de cette même intention. Une nouvelle intention doit utiliser une nouvelle clé.</p>
+<h2>5. Clés d’idempotence</h2>
+<p>Une clé d’idempotence est un identifiant opaque envoyé avec la requête, souvent dans un en-tête dédié. Le serveur associe cette clé au résultat de l’opération. Lorsqu’il reçoit de nouveau la même clé, il doit éviter de réexécuter l’effet métier et retourner un résultat cohérent avec la première exécution, selon le contrat documenté.</p>
+<pre><code>POST /api/reservations
+Idempotency-Key: 7b2c...opaque-key
+Content-Type: application/json
+
+{
+  "slotId": "slot-42",
+  "customerId": "customer-9"
+}</code></pre>
+<p>La clé ne remplace ni l’authentification, ni l’autorisation, ni la validation du corps. Le serveur doit empêcher qu’une clé d’un utilisateur révèle le résultat d’une opération appartenant à un autre utilisateur. Il doit également définir ce qui se passe si la même clé est réutilisée avec un corps différent : en général, la requête doit être rejetée comme conflit plutôt que de deviner l’intention.</p>
+<h2>6. Persistance atomique et concurrence</h2>
+<p>Une implémentation robuste stocke la clé, l’identité de l’appelant, une empreinte des paramètres, l’état de traitement et le résultat associé. La création de cet enregistrement doit être coordonnée avec l’effet métier. Si le serveur enregistre la réservation puis tombe avant d’enregistrer le résultat d’idempotence, une nouvelle tentative peut répéter l’effet. Si la clé est réservée mais que l’effet n’a jamais lieu, la politique de reprise doit permettre de récupérer ou de terminer l’opération.</p>
+<p>Une contrainte d’unicité en base de données sur le périmètre pertinent de la clé est souvent nécessaire pour arbitrer deux requêtes concurrentes. Un simple contrôle « la clé existe-t-elle ? » suivi d’une insertion est vulnérable à une course : deux requêtes peuvent toutes deux lire « absente ». La garantie doit être portée par une opération atomique, une transaction ou un mécanisme équivalent.</p>
+<pre><code>CREATE TABLE idempotency_records (
+  actor_id       text        NOT NULL,
+  operation      text        NOT NULL,
+  idempotency_key text       NOT NULL,
+  request_hash   text        NOT NULL,
+  status         text        NOT NULL
+    CHECK (status IN ('processing', 'completed')),
+  response_status integer,
+  response_body  jsonb,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  expires_at      timestamptz NOT NULL,
+  PRIMARY KEY (actor_id, operation, idempotency_key)
+);</code></pre>
+<p><strong>Flux transactionnel pour un effet dans la même base :</strong> tenter d’insérer la clé avec son empreinte ; laisser la contrainte unique arbitrer les requêtes concurrentes ; si l’insertion réussit, appliquer l’effet métier et enregistrer la réponse dans la même transaction ; puis valider. Si la clé existe déjà, comparer l’empreinte et vérifier l’identité de l’appelant : empreinte différente = conflit documenté ; résultat terminé = restituer le résultat enregistré ; traitement en cours = retourner l’état prévu par le contrat, sans lancer un second effet. La forme exacte du verrouillage et de la gestion des conflits dépend du SGBD.</p>
+<p>Ne conservez dans <code>response_body</code> que les données nécessaires et autorisées à être rejouées. Pour un effet externe, ne gardez pas une transaction SQL ouverte pendant l’appel réseau : persistez l’intention via une outbox, transmettez une clé au prestataire si celui-ci la prend en charge et traitez les résultats incertains explicitement.</p>
+<h2>7. Durée de conservation et états intermédiaires</h2>
+<p>La durée de conservation des clés doit correspondre à la fenêtre de retry attendue et aux exigences métier. Une clé supprimée trop tôt peut permettre un doublon si un client réessaie tardivement. Une conservation infinie peut augmenter le stockage et compliquer les règles de réutilisation. Documentez la durée et le comportement après expiration.</p>
+<p>Pour les opérations longues, une réponse initiale peut indiquer que le traitement est en cours. Les répétitions doivent retrouver ce même état plutôt que démarrer un second traitement. Il faut définir les transitions possibles : en attente, en cours, terminé avec succès ou terminé en échec. Les reprises après crash doivent distinguer un échec certain d’un résultat encore incertain.</p>
+<h2>8. Idempotence et effets externes</h2>
+<p>Une transaction de base de données ne peut pas rendre atomiques tous les systèmes externes. Si votre API écrit en base puis appelle un prestataire, un crash peut survenir entre les deux étapes. Le pattern outbox transactionnel permet de sauvegarder l’intention d’envoyer un événement dans la même transaction que les données métier, puis de le publier de façon fiable. Le consommateur doit lui aussi tolérer les messages en double, car une livraison « au moins une fois » est courante.</p>
+<p>Il est souvent plus réaliste de concevoir des effets « au moins une fois avec déduplication » que de promettre un « exactement une fois » global. Précisez où se situe la garantie : dans votre base, dans une file de messages ou chez le prestataire. Une clé locale ne garantit pas à elle seule que le prestataire externe ne facturera jamais deux fois.</p>
+<h2>9. Erreurs fréquentes</h2>
+<ul>
+<li>Générer une nouvelle clé pour chaque retry au lieu de réutiliser celle de l’intention initiale.</li>
+<li>Accepter silencieusement la même clé avec des paramètres différents.</li>
+<li>Vérifier l’existence de la clé sans contrainte atomique en cas de concurrence.</li>
+<li>Oublier l’identité de l’appelant dans le périmètre de déduplication.</li>
+<li>Prétendre garantir une exécution exactement une fois sur plusieurs systèmes indépendants.</li>
+<li>Ne pas définir l’expiration, les résultats en cours et la reprise après incident.</li>
+</ul>
+<h2>10. Exercice et critères de réussite</h2>
+<p>Concevez une API de création de commande qui accepte une clé d’idempotence. Définissez les champs stockés, la contrainte d’unicité, le comportement d’une répétition réussie, celui d’une requête concurrente et celui d’une clé réutilisée avec un corps différent. Simulez la perte de réponse après l’enregistrement de la commande. Vérifiez qu’un retry retrouve le résultat existant et ne crée pas une seconde commande.</p>
+<ul class="checklist">
+<li>Je peux expliquer l’idempotence à partir des effets métier.</li>
+<li>Je distingue les méthodes HTTP idempotentes d’une clé applicative.</li>
+<li>Je sais pourquoi le résultat doit être persisté de manière cohérente avec l’effet.</li>
+<li>Je prends en compte les requêtes concurrentes et les clés réutilisées incorrectement.</li>
+<li>Je décris précisément les limites de la garantie, notamment avec les systèmes externes.</li>
+</ul>
+
+<section class="lesson-workshop"><h2>Atelier approfondi — Rendre les répétitions de requêtes sûres</h2><h3>Objectifs opérationnels</h3><ul><li>Expliquer les garanties et les limites du mécanisme présenté.</li><li>Choisir une stratégie adaptée à un cas réaliste et justifier ses compromis.</li><li>Vérifier le comportement avec des tests reproductibles plutôt que par intuition.</li></ul><h3>Explications et exemple guidé</h3><p>Une opération est idempotente si répéter la même requête produit le même effet final que l’exécuter une fois. Cela ne signifie pas nécessairement que toutes les réponses sont identiques. Les retries surviennent après des timeouts où le client ignore si le serveur a terminé : l’idempotence évite alors de créer deux commandes ou deux paiements.</p><p>Pour une opération de création, une clé d’idempotence peut être associée à l’identité du client, à l’opération et à une empreinte des paramètres. Le serveur enregistre de façon atomique la clé et le résultat ; la même clé avec des paramètres différents doit être refusée. La durée de conservation et le comportement des requêtes concurrentes font partie du contrat.</p><pre><code>POST /payments
+Idempotency-Key: 8d7f... (valeur unique par opération logique)
+
+// même clé + même payload : restituer le résultat enregistré
+// même clé + payload différent : rejeter le conflit</code></pre><h3>Pièges et limites</h3><ul><li>Piège : stocker la clé après l’effet métier sans transaction ou mécanisme de récupération, ce qui laisse une fenêtre de doublon.</li><li>Piège : partager une clé entre deux opérations distinctes.</li><li>Piège : oublier la portée utilisateur/compte et permettre une collision entre clients.</li><li>Piège : promettre une idempotence illimitée alors que les clés expirent.</li></ul><h3>Exercice</h3><p>Concevez le stockage et le flux de traitement d’une création de paiement idempotente, y compris deux requêtes concurrentes, un crash après l’appel au prestataire et une répétition après timeout.</p><h3>Critères de réussite</h3><ul><li>La portée et la durée de vie de la clé sont documentées.</li><li>La réservation de clé et l’effet métier sont coordonnés.</li><li>Une même clé avec un contenu différent produit un conflit explicite.</li><li>Les tests couvrent concurrence, répétition et reprise après panne.</li></ul></section>
+
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://www.rfc-editor.org/rfc/rfc9110.html" target="_blank" rel="noopener noreferrer">RFC 9110 — HTTP Semantics</a></li>
+<li><a href="https://docs.stripe.com/api/idempotent_requests" target="_blank" rel="noopener noreferrer">Stripe — Idempotent requests</a></li>
+<li><a href="https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/" target="_blank" rel="noopener noreferrer">AWS Builders’ Library — Making retries safe with idempotent APIs</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/" target="_blank" rel="noopener noreferrer">Microsoft — Idempotent message processing</a></li>
+<li><a href="https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/" target="_blank" rel="noopener noreferrer">IETF — Idempotency-Key HTTP Header Field</a></li></ul></section>
+
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="timeouts-retries-annulation.html">← Précédent : Timeouts, retries et annulation</a><a rel="next" href="webhooks.html">Suivant : Webhooks et intégrations tierces →</a></nav>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

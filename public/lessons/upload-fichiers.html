@@ -1,0 +1,75 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Sécurité des fichiers téléversés
+Les références sont des points de départ pertinents ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. OWASP — File Upload Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html
+2. OWASP — Input Validation Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+3. OWASP — Path Traversal — https://owasp.org/www-community/attacks/Path_Traversal
+4. MDN — Content-Type — https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
+5. OWASP — Unrestricted File Upload — https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Valider, isoler et servir les fichiers envoyés par les utilisateurs.">
+  <title>Sécurité des fichiers téléversés — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">5. Sécurité applicative</p>
+    <h1>Sécurité des fichiers téléversés</h1>
+    <p class="lead">Valider, isoler et servir les fichiers envoyés par les utilisateurs.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Qualité et tests</span></div>
+    <section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Tu dois savoir concevoir un endpoint de téléversement sans faire confiance au nom, à l’extension ou au type MIME déclarés par le navigateur. Tu apprendras à limiter la taille, vérifier le contenu, stocker hors du répertoire exécutable et contrôler l’accès au téléchargement.</p><ul><li>Définir une liste blanche de formats et des limites de taille.</li><li>Comprendre pourquoi une extension ou un en-tête MIME ne suffit pas.</li><li>Protéger le système de fichiers et le parcours de traitement asynchrone.</li></ul>
+</section><section class="lesson-section"><h2>1. Pourquoi un upload est une frontière de confiance</h2>
+<p>Un fichier envoyé par un utilisateur est une entrée non fiable. Il peut être trop volumineux, malformé, conçu pour exploiter un parseur, porter un contenu actif ou avoir une extension trompeuse. Le nom de fichier peut aussi contenir des chemins ou des caractères inhabituels. La sécurité doit couvrir l’acceptation, le stockage, le traitement et la restitution.</p><p>Commence par définir précisément les usages permis. Un avatar JPEG n’a pas les mêmes besoins qu’un import CSV ou un document PDF. Une liste blanche de formats et des limites par usage sont plus faciles à vérifier qu’une règle générique « tout type de fichier est accepté ».</p>
+</section><section class="lesson-section"><h2>2. Valider plusieurs propriétés</h2>
+<p>Ne considère jamais un seul signal comme preuve. Vérifie au minimum :</p><ul><li>la taille maximale du fichier et, si nécessaire, le nombre de fichiers par requête ;</li><li>l’extension normalisée selon la liste autorisée ;</li><li>le type déclaré, sans lui faire confiance seul ;</li><li>la signature ou la structure réelle du contenu avec une bibliothèque appropriée ;</li><li>les dimensions, pages ou limites de décompression pour les formats concernés.</li></ul><p>Un fichier peut annoncer <code>image/png</code> tout en contenant autre chose. Inversement, une détection de signature n’élimine pas les fichiers malveillants. Pour des formats complexes, maintiens les bibliothèques à jour et envisage une analyse antivirus ou une mise en quarantaine selon le risque.</p>
+<table><thead><tr><th>Risque</th><th>Contrôle à privilégier</th><th>Test négatif</th></tr></thead><tbody>
+<tr><td>Extension ou MIME falsifié</td><td>Liste blanche, puis validation de la structure réelle par un parseur adapté.</td><td>Envoyer un exécutable renommé en <code>.jpg</code> avec <code>image/jpeg</code>.</td></tr>
+<tr><td>Contenu actif ou ambigu</td><td>Refuser les formats non nécessaires ; servir les fichiers avec un type contrôlé et une politique de téléchargement adaptée.</td><td>Vérifier qu’un format actif non autorisé n’est ni publié ni rendu dans l’origine de l’application.</td></tr>
+<tr><td>Déni de service</td><td>Limiter taille, dimensions, pages, temps CPU et volume après décompression.</td><td>Envoyer un fichier au plafond, juste au-dessus, puis un document aux dimensions excessives.</td></tr>
+<tr><td>Accès à un fichier privé</td><td>Autoriser selon l’utilisateur et la ressource à chaque téléchargement.</td><td>Essayer l’identifiant d’un autre compte et attendre un refus sans contenu sensible.</td></tr>
+</tbody></table>
+<p>Ces contrôles se cumulent : la signature du fichier, le MIME et l’extension sont des indices différents, pas trois preuves équivalentes. Si tu convertis une image, effectue la conversion avec une bibliothèque maintenue et limite les ressources consommées ; ne traite pas cette conversion comme une garantie absolue.</p>
+</section><section class="lesson-section"><h2>3. Noms et emplacement de stockage</h2>
+<p>Ne construis pas un chemin de destination directement depuis le nom fourni par l’utilisateur. Génère un identifiant aléatoire côté serveur, conserve éventuellement le nom original comme métadonnée nettoyée, et stocke les fichiers dans un emplacement dédié qui n’est pas servi comme code exécutable.</p><pre><code>// Schéma de principe
+const id = crypto.randomUUID();
+const destination = join(UPLOAD_ROOT, id);
+// Vérifier que UPLOAD_ROOT est fixe et que le traitement
+// n'utilise jamais le nom fourni comme chemin.</code></pre><p>Le code est illustratif : en production, utilise une API de stockage adaptée et vérifie les permissions du répertoire. Pour le stockage objet, sépare les buckets ou préfixes selon les besoins, protège les credentials et évite de rendre les objets publics par défaut.</p><p>La normalisation de chemin seule n’est pas une garantie si des liens symboliques ou des courses entre vérification et ouverture sont possibles. La conception la plus sûre évite de laisser l’utilisateur choisir le chemin.</p>
+</section><section class="lesson-section"><h2>4. Télécharger un fichier en sécurité</h2>
+<p>Le téléchargement doit vérifier l’autorisation sur la ressource : connaître un identifiant de fichier ne doit pas suffire à récupérer le fichier d’un autre utilisateur. Le serveur devrait définir un type de contenu maîtrisé et, pour les fichiers non destinés à être affichés en ligne, utiliser souvent <code>Content-Disposition: attachment</code>. Une politique <code>X-Content-Type-Options: nosniff</code> peut compléter les protections côté navigateur.</p><p>Si tu utilises des URL signées vers un stockage objet, limite leur durée de vie et leur périmètre. Une URL signée est un bearer token : toute personne qui la possède peut agir selon ses permissions jusqu’à expiration.</p><p>Traite les formats actifs séparément des images raster. SVG, HTML et certains documents peuvent contenir du contenu interprétable ; ne les affiche pas automatiquement en ligne sur la même origine que l’application authentifiée. Si le besoin métier ne l’exige pas, refuse ces formats. Pour des images, un ré-encodage avec un décodeur maintenu peut réduire les métadonnées et contenus inattendus, sans remplacer les limites de ressources ni les autres contrôles. Pour les fichiers téléchargés, définis un type contrôlé, utilise <code>Content-Disposition: attachment</code> lorsque l’affichage n’est pas nécessaire, et envisage une origine dédiée sans cookies applicatifs pour les contenus utilisateur.</p>
+</section><section class="lesson-section"><h2>5. Traitement et disponibilité</h2>
+<p>Ne traite pas immédiatement des fichiers coûteux dans le thread de la requête si cela risque de bloquer le serveur. Une chaîne robuste peut stocker d’abord le fichier en quarantaine, créer un travail asynchrone, analyser le contenu puis marquer le fichier comme disponible seulement après validation.</p><p>Limite aussi le temps CPU, la mémoire, le nombre de pages, les dimensions d’image et les taux de décompression. Les archives et documents compressés peuvent être très petits avant extraction et énormes après extraction. Définis des plafonds et traite les erreurs sans laisser des fichiers temporaires orphelins.</p>
+<p>Modélise le traitement avec un état explicite, par exemple <code>RECEIVED → QUARANTINED → SCANNING → AVAILABLE</code>, avec une sortie <code>REJECTED</code> en cas d’échec. Seuls les fichiers <code>AVAILABLE</code> sont téléchargeables. Le worker doit tolérer une relance sans publier deux fois le même fichier ; un travail interrompu ne doit pas laisser un objet publiquement accessible. Prévois également une tâche de nettoyage des fichiers temporaires et des éléments en quarantaine trop anciens.</p>
+</section><section class="lesson-section"><h2>Erreurs fréquentes</h2>
+<ul><li>Faire confiance à l’extension ou au MIME envoyé par le client.</li><li>Utiliser le nom du fichier comme chemin sur le serveur.</li><li>Stocker les fichiers dans un répertoire où le serveur peut exécuter du code.</li><li>Accepter des fichiers sans limite de taille ou de quantité.</li><li>Servir des fichiers privés sans revérifier les droits à chaque téléchargement.</li><li>Extraire des archives sans limiter la taille totale décompressée.</li></ul>
+</section><section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Construis un endpoint de démonstration qui accepte uniquement des images PNG et JPEG de moins de 2 Mo. Génère un identifiant serveur, place le fichier dans un répertoire dédié, puis crée un endpoint de lecture qui vérifie que l’utilisateur a le droit d’accéder au fichier.</p><p>Teste une extension falsifiée, un MIME incorrect, un fichier trop volumineux, un nom contenant <code>../</code>, un SVG avec contenu actif et un identifiant appartenant à un autre utilisateur. Chaque cas doit être rejeté ou traité selon une règle documentée. Vérifie qu’un fichier en quarantaine ou rejeté n’est jamais servi, même si son URL ou son identifiant est connu, et que les réponses de téléchargement ne révèlent pas le chemin interne ni le nom temporaire. Ajoute un test qui simule l’échec du scanner et vérifie que le fichier reste indisponible, puis un test de reprise du worker pour vérifier qu’il ne crée pas de publication en double. Vérifie enfin que les fichiers temporaires sont supprimés après un échec.</p>
+</section><section class="lesson-section"><h2>Exercice autonome et critères de réussite</h2>
+<p>Décris le pipeline d’upload d’un document PDF : validation, stockage temporaire, analyse, publication, accès et suppression.</p><p><strong>Réussite :</strong> les formats acceptés sont explicitement listés ; taille et traitement sont bornés ; le nom client ne contrôle pas le chemin ; le stockage n’exécute pas les fichiers ; l’accès est vérifié au téléchargement ; les erreurs nettoient les fichiers temporaires ; les tests couvrent les entrées falsifiées et les limites de ressources.</p>
+</section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <p>Ces références permettent d’approfondir les choix d’implémentation et de confronter les exemples au framework et à la version utilisés dans ton projet.</p>
+      <ol><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — File Upload Cheat Sheet</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Input Validation Cheat Sheet</a></li><li><a href="https://owasp.org/www-community/attacks/Path_Traversal" target="_blank" rel="noopener noreferrer">OWASP — Path Traversal</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type" target="_blank" rel="noopener noreferrer">MDN — Content-Type</a></li><li><a href="https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload" target="_blank" rel="noopener noreferrer">OWASP — Unrestricted File Upload</a></li></ol>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer le problème traité et les garanties recherchées.</label>
+      <label><input type="checkbox"> Je peux appliquer la méthode sur un cas concret.</label>
+      <label><input type="checkbox"> Je sais identifier les limites et les cas non couverts.</label>
+      <label><input type="checkbox"> Je peux vérifier le résultat avec des critères reproductibles.</label>
+      <p class="note small">Les cases ne sont pas enregistrées après fermeture de la page.</p>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="donnees-logs.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="tests-unitaires.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

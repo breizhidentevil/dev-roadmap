@@ -1,0 +1,149 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Accessibilité Web
+Domaine documentaire : accessibility
+Références consultées pour vérifier l’existence et l’adéquation générale des ressources. Elles servent de base de travail, pas de classement absolu des cinq meilleures ressources.
+1. MDN — Accessibilité sur le Web — https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Accessibility
+2. W3C WAI — WCAG, présentation du standard — https://www.w3.org/WAI/standards-guidelines/wcag/
+3. MDN — Apprendre le développement Web — https://developer.mozilla.org/fr/docs/Learn_web_development
+4. MDN — HTML sémantique — https://developer.mozilla.org/en-US/curriculum/core/semantic-html/
+5. W3C WAI — Introduction à l’accessibilité Web — https://www.w3.org/WAI/fundamentals/accessibility-intro/
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Rendre les interfaces utilisables au clavier et par les technologies d’assistance.">
+  <title>Accessibilité Web — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">2. Frontend</p>
+    <h1>Accessibilité Web</h1>
+    <p class="lead">Rendre les interfaces utilisables au clavier et par les technologies d’assistance.</p>
+    <div class="lesson-meta"><span>Tutoriel complet · Niveau débutant à intermédiaire</span><span>Durée indicative : 2 h</span></div>
+    <section class="lesson-section">
+      <h2>Objectifs d’apprentissage</h2>
+      <ul>
+        <li>Expliquer ce que recouvre l’accessibilité numérique et pourquoi elle concerne tous les projets Web.</li>
+        <li>Appliquer les quatre principes WCAG : perceptible, utilisable, compréhensible et robuste.</li>
+        <li>Construire des pages navigables au clavier et compréhensibles par les technologies d’assistance.</li>
+        <li>Effectuer un premier audit manuel et automatisé sans confondre score d’outil et conformité.</li>
+      </ul>
+    </section>
+    <section class="lesson-section">
+      <h2>1. Qu’est-ce que l’accessibilité Web ?</h2>
+      <p>L’accessibilité consiste à concevoir un site ou une application que les personnes peuvent utiliser avec des capacités, appareils et modes d’interaction variés. Cela inclut notamment les personnes aveugles ou malvoyantes, sourdes ou malentendantes, ayant une limitation motrice, des troubles cognitifs, une fatigue temporaire ou une connexion et un matériel limités.</p>
+      <p>Le but n’est pas de produire une interface séparée, mais de rendre le même service utilisable par davantage de personnes. Les améliorations profitent souvent à tout le monde : sous-titres dans un environnement bruyant, contrastes suffisants en plein soleil, formulaires explicites ou navigation cohérente.</p>
+      <p>Les WCAG du W3C fournissent un cadre international. Elles organisent les critères autour de quatre principes. La version à prendre comme référence doit être vérifiée au moment du projet ; les recommandations évoluent.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>2. Les quatre principes WCAG</h2>
+      <h3>Perceptible</h3><p>L’information ne doit pas dépendre d’un seul canal sensoriel. Une image informative reçoit un texte alternatif pertinent ; une vidéo importante dispose de sous-titres ; une erreur n’est pas indiquée uniquement par la couleur ; le texte conserve un contraste suffisant.</p>
+      <h3>Utilisable</h3><p>Les commandes doivent pouvoir être utilisées par différents moyens. Toutes les fonctions essentielles doivent être accessibles au clavier, l’ordre de tabulation doit rester logique, le focus doit être visible et les interactions ne doivent pas imposer des gestes impossibles à réaliser.</p>
+      <h3>Compréhensible</h3><p>Les libellés, instructions et comportements doivent être prévisibles. Utilisez des mots précis, des erreurs qui expliquent comment corriger la saisie, une navigation stable et des changements de contexte annoncés.</p>
+      <h3>Robuste</h3><p>Le contenu doit reposer sur des technologies Web correctement utilisées pour être interprété par les navigateurs et les technologies d’assistance. Le HTML sémantique est généralement plus fiable que des éléments génériques auxquels on ajoute artificiellement des rôles.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>3. Commencer par le HTML sémantique</h2>
+      <p>Les éléments HTML natifs apportent une structure et des comportements déjà compris par les navigateurs : <code>&lt;button&gt;</code> pour une action, <code>&lt;a&gt;</code> pour naviguer, <code>&lt;label&gt;</code> pour nommer un champ, <code>&lt;nav&gt;</code> pour une zone de navigation et des titres hiérarchisés pour structurer le contenu.</p>
+      <pre><code>&lt;main&gt;
+  &lt;h1&gt;Créer un compte&lt;/h1&gt;
+  &lt;form&gt;
+    &lt;label for="email"&gt;Adresse e-mail&lt;/label&gt;
+    &lt;input id="email" name="email" type="email" autocomplete="email" required&gt;
+    &lt;button type="submit"&gt;Créer mon compte&lt;/button&gt;
+  &lt;/form&gt;
+&lt;/main&gt;</code></pre>
+      <p>Le champ est relié à un libellé explicite par <code>for</code> et <code>id</code>. Le type <code>email</code> donne un clavier adapté sur mobile et permet une validation de base. L’attribut <code>required</code> expose l’obligation au navigateur. Ces attributs ne remplacent toutefois pas la validation côté serveur.</p>
+      <p>Ne choisissez pas un élément uniquement pour son apparence. Un <code>&lt;div&gt;</code> cliquable n’acquiert pas automatiquement le comportement clavier, le rôle ou l’état d’un bouton. Préférez l’élément natif et stylisez-le.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>4. Navigation clavier et focus</h2>
+      <p>Testez la page sans souris : utilisez <kbd>Tab</kbd> pour avancer, <kbd>Maj</kbd> + <kbd>Tab</kbd> pour revenir, <kbd>Entrée</kbd> pour activer un lien ou un bouton et les touches attendues par le composant. Le focus doit être visible et ne doit pas disparaître derrière un bandeau fixe.</p>
+      <ul><li>Gardez un ordre de focus qui suit le sens de lecture et l’ordre visuel.</li><li>Ne retirez pas l’indicateur de focus sans fournir un remplacement visible.</li><li>Prévoyez un moyen de fermer les dialogues au clavier et de rendre le focus à l’élément qui les a ouverts.</li><li>Évitez les pièges clavier où l’utilisateur ne peut plus quitter une zone.</li></ul>
+    </section>
+    <section class="lesson-section">
+      <h2>5. Images, couleurs, formulaires et messages</h2>
+      <p>Le texte alternatif dépend de la fonction de l’image, pas uniquement de ce qu’elle représente. Une image purement décorative peut avoir <code>alt=""</code>. Une image qui transmet une information doit fournir une alternative utile. Si une image est le seul contenu d’un lien, son alternative doit décrire la destination ou l’action.</p>
+      <p>La couleur ne doit pas être le seul moyen de communiquer une information. Pour signaler un champ invalide, combinez par exemple un message textuel, un état programmatique et une indication visuelle. Les erreurs doivent identifier le champ concerné et expliquer comment les corriger.</p>
+      <pre><code>&lt;label for="password"&gt;Mot de passe&lt;/label&gt;
+&lt;input id="password" name="password"
+       type="password" aria-describedby="password-help"&gt;
+&lt;p id="password-help"&gt;12 caractères minimum.&lt;/p&gt;</code></pre>
+      <p><code>aria-describedby</code> associe une aide complémentaire au champ. ARIA est utile lorsqu’un élément natif ne suffit pas ; il ne faut pas ajouter des attributs ARIA redondants ou contradictoires à une sémantique HTML déjà correcte.</p><p>Pour un panneau repliable, place <code>aria-expanded</code> sur le bouton qui commande l’ouverture et relie ce bouton à la cible avec <code>aria-controls</code>. Synchronise cet état avec la visibilité réelle du panneau ; ajouter un attribut ARIA sans implémenter le comportement ne rend pas le composant fonctionnel.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>6. Méthode d’audit</h2>
+      <ol>
+        <li><strong>Parcours clavier :</strong> testez menus, formulaires, dialogues, accordéons et actions principales sans souris.</li>
+        <li><strong>Structure :</strong> vérifiez les titres, les régions de page, les libellés et les noms accessibles des contrôles.</li>
+        <li><strong>Visuel :</strong> vérifiez contraste, zoom, reflow sur petit écran et visibilité du focus.</li>
+        <li><strong>Contenus :</strong> examinez les alternatives des images, sous-titres, instructions et messages d’erreur.</li>
+        <li><strong>Outils :</strong> utilisez un outil automatique pour détecter certaines erreurs, puis vérifiez manuellement les points qu’il ne peut pas juger.</li>
+        <li><strong>Technologies d’assistance :</strong> quand le projet le justifie, testez avec un lecteur d’écran et des utilisateurs concernés.</li>
+      </ol>
+      <p>Un outil automatique ne peut pas décider si le texte alternatif d’une photo est pertinent, si un ordre de lecture est logique ou si une instruction est compréhensible. Un rapport sans erreurs détectées n’est donc pas une preuve de conformité totale.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>7. Erreurs fréquentes</h2>
+      <ul>
+        <li>Utiliser des titres pour leur taille visuelle plutôt que pour structurer le document.</li>
+        <li>Remplacer les boutons et liens natifs par des éléments génériques interactifs.</li>
+        <li>Supprimer le focus clavier ou communiquer un état uniquement par la couleur.</li>
+        <li>Ajouter ARIA pour compenser un balisage mal choisi au lieu de corriger le HTML.</li>
+        <li>Ne tester que la page d’accueil et oublier les dialogues, formulaires, états de chargement et messages d’erreur.</li>
+        <li>Assimiler un score d’audit automatique à une certification d’accessibilité.</li>
+      </ul>
+    </section>
+    <section class="lesson-section"><h2>Analyse approfondie : un contrôle d’accessibilité reproductible</h2>
+<p>Les outils automatiques détectent des défauts comme certains contrastes insuffisants ou des attributs manquants, mais ils ne peuvent pas conclure seuls qu’un parcours est compréhensible. L’audit combine inspection automatisée, clavier, zoom et essai avec des technologies d’assistance lorsque possible.</p>
+<h3>Protocole manuel minimal</h3><ol><li>Recharge la page et n’utilise que Tab, Maj+Tab, Entrée, Espace et les touches fléchées quand le composant le prévoit.</li><li>Vérifie que le focus est toujours visible, suit un ordre logique et n’est jamais piégé.</li><li>Ouvre et ferme chaque menu, dialogue ou accordéon sans souris ; vérifie le retour du focus après fermeture d’une boîte de dialogue.</li><li>Agrandis le texte et teste le reflow à une largeur équivalente à 320 pixels CSS, sans perte de contenu ou de fonction.</li><li>Vérifie les noms accessibles des champs, boutons et liens ; un placeholder ne remplace généralement pas un libellé persistant.</li></ol>
+<h3>Exemple de champ avec aide et erreur associées</h3><pre><code>&lt;label for="courriel"&gt;Adresse e-mail&lt;/label&gt;
+&lt;p id="courriel-aide"&gt;Exemple : nom@domaine.fr&lt;/p&gt;
+&lt;input id="courriel" name="courriel" type="email"
+       autocomplete="email" required
+       aria-invalid="true"
+       aria-describedby="courriel-aide courriel-erreur"&gt;
+&lt;p id="courriel-erreur"&gt;Saisis une adresse e-mail valide.&lt;/p&gt;</code></pre>
+<p>Ce fragment représente l’état invalide : le message d’erreur est visible et référencé par <code>aria-describedby</code>, et <code>aria-invalid="true"</code> indique l’état du champ. Quand la valeur devient valide, retire cet état et ne référence plus le message d’erreur. Pour un formulaire comportant plusieurs erreurs, ajoute un résumé accessible et une stratégie de focus après soumission ; ne déplace pas le focus à chaque frappe. Ne communique jamais une erreur uniquement par la couleur.</p><p>Pour les composants dynamiques, annoncer un changement d’état peut nécessiter une région de statut ou un nom accessible mis à jour, sans déplacer le focus inutilement.</p></section>
+    <section class="lesson-section">
+      <h2>8. Exercice guidé</h2>
+      <p>Créez un formulaire de connexion contenant un champ e-mail, un champ mot de passe, une case « Se souvenir de moi », un bouton de soumission et une zone d’erreur. Vérifiez les libellés, les types, les associations d’aide et d’erreur, l’ordre clavier, le focus visible et le comportement après une soumission invalide.</p>
+      <h3>Exercice autonome</h3><p>Auditez une page de votre choix. Relevez au moins huit problèmes potentiels, classez-les par gravité et proposez une correction testable pour chacun. Distinguez les problèmes détectés automatiquement de ceux qui nécessitent un jugement humain.</p>
+    </section>
+    <section class="lesson-section">
+      <h2>9. Critères de validation</h2>
+      <ul>
+        <li>Vous pouvez expliquer les quatre principes WCAG et donner un exemple concret de chacun.</li>
+        <li>Vous pouvez parcourir toutes les actions importantes au clavier.</li>
+        <li>Les contrôles ont des noms accessibles, les champs ont des libellés et les erreurs sont compréhensibles.</li>
+        <li>Les images ont des alternatives adaptées à leur fonction et l’information ne dépend pas uniquement de la couleur.</li>
+        <li>Vous savez expliquer ce qu’un audit automatique peut et ne peut pas prouver.</li>
+      </ul>
+    </section>
+    <section class="lesson-section">
+      <h2>Sources à étudier</h2>
+      <ul>
+        <li><a href="https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Accessibility">MDN — Accessibilité sur le Web</a></li>
+        <li><a href="https://www.w3.org/WAI/standards-guidelines/wcag/">W3C WAI — WCAG 2</a></li>
+        <li><a href="https://developer.mozilla.org/fr/docs/Learn_web_development">MDN — Apprendre le développement Web</a></li>
+        <li><a href="https://developer.mozilla.org/en-US/curriculum/core/semantic-html/">MDN — HTML sémantique</a></li>
+        <li><a href="https://www.w3.org/WAI/fundamentals/accessibility-intro/">W3C WAI — Introduction à l’accessibilité</a></li>
+      </ul>
+    </section>
+    <section class="lesson-section checklist">
+      <h2>Validation des acquis</h2>
+      <label><input type="checkbox"> Je peux expliquer les quatre principes WCAG.</label>
+      <label><input type="checkbox"> Je peux auditer un formulaire au clavier.</label>
+      <label><input type="checkbox"> Je peux corriger des problèmes de sémantique et de nommage accessible.</label>
+      <label><input type="checkbox"> Je sais combiner outils automatiques et tests manuels.</label>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="html-semantique.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="css-fondamentaux.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

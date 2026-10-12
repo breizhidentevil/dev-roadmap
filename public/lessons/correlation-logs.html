@@ -1,0 +1,87 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Corrélation des logs
+Domaine documentaire : observability
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. OWASP — Logging Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
+2. OpenTelemetry — Logs — https://opentelemetry.io/docs/concepts/signals/logs/
+3. W3C — Trace Context — https://www.w3.org/TR/trace-context/
+4. 12-Factor App — Logs — https://12factor.net/logs
+5. Google SRE — Monitoring Distributed Systems — https://sre.google/sre-book/monitoring-distributed-systems/
+
+Note : les cinq références documentaires ci-dessous sont reprises dans la liste visible de la page.-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Structurer les journaux et les relier aux requêtes pour accélérer le diagnostic sans exposer d’informations sensibles.">
+<title>Corrélation des logs — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Architecture et ingénierie Full Stack</p>
+<h1>Corrélation des logs</h1>
+<p class="lead">Structurer les journaux et les relier aux requêtes pour accélérer le diagnostic sans exposer d’informations sensibles.</p>
+<div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir expliquer les concepts avec tes propres mots, choisir une approche adaptée à un besoin réel et justifier tes choix à partir de contraintes observables.</p>
+<ul><li>Définir le vocabulaire essentiel et le problème que la compétence résout.</li><li>Appliquer les principes dans un exemple pratique et identifier les limites.</li><li>Vérifier le résultat avec des critères explicites plutôt qu’une impression subjective.</li></ul></section>
+
+<section class="lesson-section"><h2>1. À quoi servent les logs corrélés ?</h2>
+<p>Un journal d’application est une suite d’événements décrivant ce qui s’est produit : démarrage, requête reçue, règle refusée, dépendance indisponible ou tâche terminée. Les logs deviennent difficiles à exploiter lorsque chaque composant écrit un format différent, que les messages sont uniquement du texte libre ou que l’on ne peut pas relier les événements d’une même requête.</p>
+<p>La corrélation consiste à ajouter des identifiants partagés afin de retrouver tous les événements pertinents. Un identifiant de requête permet de suivre un traitement à travers plusieurs lignes de log ; un trace ID peut relier ces logs à une trace distribuée. Ce ne sont pas des mécanismes d’autorisation et ils ne doivent pas être considérés comme secrets. Leur but est d’améliorer le diagnostic.</p>
+<p>Un bon système de logs répond à des questions opérationnelles : quel composant a échoué, quand, dans quelle opération et avec quelle conséquence ? Il n’a pas besoin de conserver le corps complet de chaque requête. Collecter trop de détails augmente le coût, le bruit et le risque de fuite de données.</p></section>
+<section class="lesson-section"><h2>2. Préférer des logs structurés</h2>
+<p>Un message texte comme « erreur lors du paiement » est lisible, mais difficile à filtrer de façon fiable. Un log structuré en JSON sépare les champs : horodatage, niveau, service, environnement, message, request ID, trace ID et code d’erreur. Les champs stables facilitent la recherche et les agrégations.</p>
+<pre><code>{
+  "timestamp": "2026-10-10T12:00:00Z",
+  "level": "error",
+  "service": "orders-api",
+  "environment": "production",
+  "message": "payment_provider_timeout",
+  "request_id": "req-example-42",
+  "trace_id": "trace-example-7",
+  "duration_ms": 1800
+}</code></pre>
+<p>Ces valeurs sont fictives et illustratives. Choisis une convention de nommage et garde-la stable entre services. Le niveau doit refléter l’action nécessaire : debug pour l’investigation temporaire, info pour les événements normaux significatifs, warn pour une anomalie récupérable et error pour un échec nécessitant une attention. Les niveaux ne remplacent pas un code d’erreur précis.</p>
+<p>Les logs doivent être exploitables par une machine et compréhensibles par un humain. Évite les phrases différentes pour chaque code de résultat si un champ normalisé peut porter l’information. N’enregistre pas le même événement à tous les niveaux de la chaîne : un timeout peut être logué comme erreur dans plusieurs couches et produire une alerte en double.</p></section>
+<section class="lesson-section"><h2>3. Propager l’identifiant de corrélation</h2>
+<p>À l’entrée d’une requête, le serveur peut générer un identifiant interne ou accepter un identifiant fourni selon une politique contrôlée. Si un identifiant externe est accepté, borne sa longueur et filtre les caractères problématiques afin d’éviter les injections dans les logs. Il ne faut pas laisser une valeur arbitrairement longue ou contrôlée par le client polluer les journaux.</p>
+<p>Le contexte doit ensuite suivre le traitement asynchrone et les appels sortants. Dans un service web, cela peut être géré par un middleware et un contexte d’exécution ; dans une file de messages, il faut transmettre les métadonnées pertinentes avec le message. Quand les logs sont liés à une trace OpenTelemetry, les champs de trace peuvent être ajoutés automatiquement par le SDK ou l’intégration de journalisation.</p>
+<p>Ne confonds pas un request ID avec un trace ID : le premier identifie généralement une requête à une frontière donnée ; le second peut couvrir un parcours distribué plus large, avec plusieurs services et spans. Définis clairement leur portée. Si une tâche se détache de la requête initiale, garde un lien causal sans prétendre qu’elle s’exécute toujours dans le même cycle HTTP.</p></section>
+<section class="lesson-section"><h2>4. Choisir quoi journaliser</h2>
+<p>Journalise les événements qui permettent de comprendre le comportement et d’agir : démarrage, arrêt, changements de configuration significatifs, échecs d’authentification selon la politique de sécurité, erreurs inattendues, échecs de dépendance et résultats importants. Pour une requête HTTP, la méthode, le nom de route, le statut et la durée sont souvent plus utiles que l’URL complète avec tous ses paramètres.</p>
+<p>Évite les mots de passe, jetons d’accès, cookies de session, clés API, données de paiement et données personnelles non nécessaires. Les informations sensibles doivent être exclues à la source, pas seulement masquées dans un tableau de bord. Si des données métier sont indispensables au diagnostic, définis une liste autorisée, une justification, une durée de conservation et des droits d’accès.</p>
+<p>Les logs peuvent aussi être manipulés par un utilisateur si les valeurs entrantes ne sont pas encodées correctement. Utilise un sérialiseur fiable, protège les sauts de ligne et autres caractères de contrôle selon le format, et limite les champs. La journalisation est une surface d’attaque et un système de données à part entière.</p></section>
+<section class="lesson-section"><h2>5. Coût, bruit et diagnostic</h2>
+<p>Une stratégie utile prévoit le volume, la rétention, la rotation, l’indexation et les droits d’accès. Les logs très détaillés sont précieux en développement mais peuvent être trop coûteux en production. Un niveau de debug activé partout peut saturer le stockage et rendre les événements importants difficiles à repérer. Les échantillons et les limites de débit peuvent aider, mais ne doivent pas supprimer les événements de sécurité critiques.</p>
+<p>Lors d’un incident, recherche d’abord par trace ID ou request ID, puis examine la séquence temporelle, le service et le code d’erreur. Vérifie le fuseau horaire et la synchronisation des horloges : des horodatages incohérents compliquent l’ordre apparent des événements. Relie les logs aux métriques pour savoir si le cas est isolé ou généralisé.</p>
+<ul><li>Ne logue pas chaque détail « au cas où ».</li><li>Ne transforme pas une erreur récupérée en alerte critique sans contexte.</li><li>Ne laisse pas les clients imposer sans validation l’identifiant de corrélation.</li><li>Ne compte pas sur les logs pour reconstruire des données métier qui auraient dû être stockées durablement.</li></ul></section>
+<section class="lesson-section"><h2>6. Exercice pratique</h2><p>Crée trois logs structurés pour une requête qui échoue : entrée dans l’API, timeout du prestataire, réponse HTTP finale. Fais circuler le même request ID et le même trace ID. Ajoute un code d’erreur, une durée et le nom du service, mais aucun secret. Puis écris deux requêtes de recherche conceptuelles : retrouver un parcours donné et compter les timeouts par service sur quinze minutes.</p></section>
+<section class="lesson-section checklist"><h2>Critères de réussite</h2><ul><li>Je peux expliquer la différence entre request ID et trace ID.</li><li>Je produis des logs structurés avec des champs stables.</li><li>Je propage le contexte aux appels et tâches asynchrones pertinents.</li><li>Je limite les données sensibles, le bruit et le volume.</li><li>Je peux retrouver un parcours complet et relier ses logs aux métriques.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Les ressources ci-dessous sont des références pour poursuivre l’apprentissage. Elles servent de points de départ ciblés ; consulte les sections pertinentes et vérifie les détails qui dépendent de la version des outils ou de ton environnement.</p><ol><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer">OWASP — Logging Cheat Sheet</a></li>
+<li><a href="https://opentelemetry.io/docs/concepts/signals/logs/" target="_blank" rel="noopener noreferrer">OpenTelemetry — Logs</a></li>
+<li><a href="https://www.w3.org/TR/trace-context/" target="_blank" rel="noopener noreferrer">W3C — Trace Context</a></li>
+<li><a href="https://12factor.net/logs" target="_blank" rel="noopener noreferrer">12-Factor App — Logs</a></li>
+<li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" target="_blank" rel="noopener noreferrer">Google SRE — Monitoring Distributed Systems</a></li></ol></section>
+<nav class="lesson-nav"><a class="nav-link" href="traces-distribuees.html">← Traces distribuées</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="metriques-alertes.html">Métriques et alertes →</a></nav>
+
+<section class="lesson-section atelier-approfondi">
+<h2>Atelier approfondi — corréler les journaux sans les rendre dangereux</h2>
+<h3>Objectifs pédagogiques</h3>
+<ul><li>Distinguer identifiant de requête, trace ID et identifiant métier.</li><li>Définir un schéma de logs structurés interrogeable.</li><li>Protéger les secrets et les données personnelles dans les journaux.</li></ul>
+<h3>Schéma stable</h3><p>Émettre timestamp, niveau, service, environnement, événement et identifiants de corrélation sous forme structurée.</p>
+<h3>Propagation</h3><p>Créer ou accepter un identifiant de corrélation selon une règle documentée; ne pas faire confiance sans validation à une valeur fournie par un client.</p>
+<h3>Recherche</h3><p>Une requête de diagnostic doit pouvoir filtrer par trace ID, service, fenêtre temporelle et code d’erreur.</p>
+<h3>Sécurité</h3><p>Masquer ou exclure mots de passe, tokens, données bancaires et contenus sensibles. Définir rétention, contrôle d’accès et audit.</p>
+<h3>Signal utile</h3><p>Préférer un événement explicite avec champs stables à un message libre ambigu; éviter les identifiants à forte cardinalité comme labels métriques.</p>
+<h3>Exercice pratique</h3><p>Proposer un format JSON pour une erreur de commande propagée sur trois services. Fournir une requête de recherche et une règle de masquage des données sensibles.</p>
+<h3>Critères de réussite</h3><ul><li>Les champs de corrélation sont cohérents de bout en bout.</li><li>Les logs sont structurés et horodatés.</li><li>Les secrets et données personnelles sont exclus ou masqués.</li><li>Une procédure de recherche permet de retrouver une requête.</li></ul>
+</section>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

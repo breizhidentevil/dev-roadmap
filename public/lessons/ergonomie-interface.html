@@ -1,0 +1,94 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Ergonomie et conception d’interface
+Domaine documentaire : javascript
+Ces références sont des points de départ ciblés pour approfondir le sujet ; cette liste ne prétend pas que chaque page liée a été lue intégralement.
+1. Nielsen Norman Group — 10 heuristiques d’utilisabilité — https://www.nngroup.com/articles/ten-usability-heuristics/
+2. GOV.UK Service Manual — comprendre les besoins utilisateurs — https://www.gov.uk/service-manual/user-research
+3. W3C WAI — Introduction à l’accessibilité Web — https://www.w3.org/WAI/fundamentals/accessibility-intro/
+4. MDN — Principes de conception Web — https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Your_first_website
+5. Material Design — principes d’utilisabilité et de conception — https://m3.material.io/foundations
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Principes d’ergonomie, hiérarchie visuelle, feedback et conception centrée sur les tâches.">
+  <title>Ergonomie et conception d’interface — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">14. UX, accessibilité et qualité produit</p>
+    <h1>Ergonomie et conception d’interface</h1>
+    <p class="lead">Concevoir des parcours compréhensibles, cohérents et adaptés aux besoins réels des utilisateurs.</p>
+    <div class="lesson-meta"><span>Tutoriel approfondi</span><span>Lecture et mise en pratique</span></div>
+    <section class="lesson-section">
+<h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu sauras partir d’un besoin utilisateur plutôt que d’une idée décorative, organiser une page selon la priorité des tâches, fournir un retour après chaque action importante et repérer les frictions avec des tests simples. Tu pourras expliquer la différence entre cohérence visuelle, ergonomie et accessibilité, puis proposer une amélioration en t’appuyant sur des observations plutôt que sur des préférences personnelles.</p>
+<p>Prérequis : connaître les bases du HTML et du CSS, savoir identifier les éléments d’une page et comprendre qu’une interface sert à accomplir une tâche. Aucun framework n’est nécessaire : les principes s’appliquent à une page statique comme à une application React.</p>
+</section><section class="lesson-section">
+<h2>1. Concevoir autour d’une tâche</h2>
+<p>Une interface est utile lorsqu’elle aide une personne à atteindre un objectif avec un effort raisonnable. Commence donc par écrire la tâche en termes concrets : « retrouver une commande », « créer un compte », « comparer deux offres ». Évite de définir l’écran uniquement par les composants que tu veux afficher.</p>
+<p>Décris ensuite le contexte : qui effectue la tâche, avec quelles connaissances, sur quel appareil, avec quelles contraintes et quel résultat attendu ? Cette description n’a pas besoin d’être une longue étude. Pour un petit projet, trois ou quatre scénarios réalistes suffisent à guider les choix et à révéler les questions à vérifier.</p>
+<p>Découpe le parcours en étapes. À chaque étape, demande-toi ce que l’utilisateur sait, ce qu’il doit décider et quelle action est disponible. Une page de paiement, par exemple, doit rendre visibles le montant total, les frais éventuels, les informations demandées et la prochaine étape. Si une information change la décision, elle ne doit pas être cachée derrière un lien secondaire.</p>
+<p>La hiérarchie visuelle traduit cette priorité. Taille, position, espacement, contraste et regroupement aident à distinguer le titre, l’action principale, les informations secondaires et les options avancées. Il ne faut pas rendre tous les éléments également saillants : cela crée une compétition visuelle et ralentit la lecture.</p>
+</section><section class="lesson-section">
+<h2>2. Cohérence, affordances et feedback</h2>
+<p>La cohérence réduit le coût d’apprentissage. Des actions similaires doivent se comporter de manière similaire, utiliser des libellés proches et occuper des emplacements prévisibles. Une action destructive ne doit pas être présentée comme une action anodine. Les conventions connues — logo menant à l’accueil, liens soulignés ou boutons clairement identifiables — évitent d’obliger les personnes à deviner.</p>
+<p>Un élément doit suggérer ce qu’il permet de faire. Un bouton doit ressembler à une commande activable ; un champ doit être identifiable comme une zone de saisie. Ne dépends pas seulement de la couleur ou d’une icône ambiguë. Le texte « Enregistrer les modifications » est plus explicite qu’une icône seule, surtout lorsque l’action a des conséquences.</p>
+<p>Chaque action importante exige un feedback perceptible : confirmation, progression, changement d’état ou message d’erreur. Après l’envoi d’un formulaire, indique si la demande a été acceptée. Pour une opération longue, affiche une progression ou explique que le traitement continue. Sans feedback, les personnes peuvent cliquer plusieurs fois, croire que l’application est bloquée ou perdre confiance.</p>
+<p>Les messages doivent préciser le problème et l’action possible. « Une erreur est survenue » est peu utile. « Le fichier dépasse la limite de 10 Mo ; choisissez un fichier plus petit » explique à la fois la cause et la correction. N’expose pas de détails techniques sensibles comme une trace de pile ou une requête SQL.</p>
+</section><section class="lesson-section">
+<h2>3. Réduire la charge cognitive</h2>
+<p>La charge cognitive correspond à l’effort mental requis pour comprendre l’écran, se souvenir des informations et décider. Réduis-la en regroupant les éléments liés, en nommant clairement les sections et en montrant les options au moment où elles sont utiles. Une longue liste de choix sans catégories peut être plus difficile qu’une liste structurée, même si elle contient le même nombre d’éléments.</p>
+<p>Préfère la reconnaissance au rappel. Une personne qui modifie une commande devrait pouvoir revoir son contenu plutôt que mémoriser chaque référence depuis l’écran précédent. Les valeurs déjà connues peuvent être préremplies si cela est sûr et transparent ; les valeurs calculées doivent être expliquées lorsqu’elles peuvent surprendre.</p>
+<p>Les formulaires illustrent bien ces principes. Associe chaque champ à une étiquette persistante, indique les formats attendus avant la saisie et conserve les données valides lorsqu’une erreur survient. Les placeholders ne remplacent pas les labels : ils disparaissent souvent à la saisie et offrent un contraste parfois insuffisant. Ne demande pas une information si elle n’est pas nécessaire à la tâche.</p>
+<p>Le minimalisme n’est pas l’absence d’informations. Il consiste à donner la bonne information au bon moment. Retirer un avertissement indispensable rend une page plus courte mais moins sûre ; masquer des options rares peut simplifier le parcours, à condition qu’elles restent trouvables.</p>
+</section><section class="lesson-section">
+<h2>4. Observer et améliorer sans deviner</h2>
+<p>Un avis personnel ne démontre pas qu’une interface fonctionne. Formule une hypothèse vérifiable, par exemple : « Les utilisateurs ne trouvent pas le filtre de date parce qu’il est placé sous la liste ». Puis observe des personnes qui essaient d’accomplir la tâche sans leur expliquer la solution. Note les hésitations, erreurs, retours en arrière, demandes d’aide et abandons.</p>
+<p>Un test d’utilisabilité modeste peut déjà révéler un problème majeur. Donne une tâche réaliste, demande à la personne de verbaliser ce qu’elle cherche sans la guider et laisse-la agir. N’évalue pas la personne : c’est la conception qui est mise à l’épreuve. Après plusieurs sessions, classe les observations par fréquence, gravité et coût de correction.</p>
+<p>Les mesures quantitatives complètent l’observation : taux de réussite, durée, erreurs, abandon et recours à l’aide. Une mesure isolée peut être trompeuse. Une tâche plus rapide n’est pas nécessairement meilleure si les erreurs augmentent ou si les utilisateurs ne comprennent pas les conséquences. Compare des segments pertinents et protège les données personnelles.</p>
+<p>Améliore une variable à la fois lorsque c’est possible, puis reteste. Documente le problème observé, le changement proposé et le résultat. Cette démarche rend les décisions explicables et évite les refontes basées sur une préférence esthétique.</p>
+</section><section class="lesson-section">
+<h2>5. Exemple pratique : formulaire d’inscription</h2>
+<p>Supposons qu’un formulaire demande nom, adresse e-mail, mot de passe et date de naissance. Avant de coder, vérifie si chaque champ est nécessaire et explique pourquoi. Place un titre explicite, une courte indication sur les exigences du mot de passe et des labels visibles. Le bouton principal doit dire « Créer mon compte », pas simplement « Valider ».</p>
+<p>À la soumission, valide côté client pour guider immédiatement, mais aussi côté serveur car le navigateur ne constitue pas une frontière de confiance. Si l’e-mail est invalide, associe un message au champ concerné, conserve les autres valeurs et place le focus ou une synthèse d’erreurs de manière prévisible. En cas de succès, confirme la création du compte et indique l’étape suivante, par exemple la vérification de l’adresse.</p>
+<p>Teste également les scénarios moins favorables : réseau lent, double clic, serveur indisponible, clavier seul, zoom important et petit écran. Un bon parcours n’est pas seulement celui qui fonctionne lorsque tout va bien ; il rend aussi les problèmes compréhensibles et récupérables.</p>
+</section><section class="lesson-section">
+<h2>Pièges, limites et compromis</h2>
+<ul><li>Ne confonds pas une préférence esthétique avec une preuve d’utilisabilité : cherche des observations.</li><li>Ne réduis pas tous les parcours à un unique profil moyen ; les besoins varient selon le contexte, les capacités et l’expérience.</li><li>Évite les changements de mise en page inattendus, les libellés vagues et les actions principales multiples sans hiérarchie.</li><li>Une confirmation ne doit pas annoncer une réussite que le serveur n’a pas confirmée.</li><li>Les animations et transitions peuvent clarifier une relation, mais elles doivent rester rapides, non bloquantes et respecter les préférences de réduction des mouvements.</li><li>Une interface très simplifiée peut masquer des choix importants. La bonne quantité d’information dépend de la tâche et de ses conséquences.</li></ul>
+</section><section class="lesson-section">
+<h2>Exercice</h2>
+<p>Choisis une page d’une application que tu connais ou construis un formulaire de contact. Écris la tâche principale et trois scénarios d’usage. Dessine la hiérarchie de la page, puis repère cinq frictions possibles. Modifie au moins trois éléments : libellé, regroupement, feedback ou ordre des champs. Fais tester le parcours à une personne sans lui expliquer l’interface et note précisément ses hésitations. Termine par une courte comparaison avant/après en séparant les observations des hypothèses.</p>
+</section><section class="lesson-section">
+<h2>Critères de réussite</h2>
+<ul class="checklist"><li>Je peux décrire l’objectif utilisateur sans parler d’abord des composants.</li><li>La page possède une hiérarchie visuelle et une action principale identifiable.</li><li>Les actions importantes fournissent un feedback explicite.</li><li>Les formulaires ont des labels, des consignes utiles et des erreurs récupérables.</li><li>J’ai testé au moins un scénario nominal et deux scénarios d’échec.</li><li>Mes améliorations sont reliées à des observations ou à une hypothèse vérifiable.</li></ul>
+</section>
+    <section class="lesson-section lesson-workshop">
+<h2>Atelier approfondi — Évaluer un parcours avec des preuves d’usage</h2>
+<h3>Objectifs opérationnels</h3>
+<ul><li>Transformer une impression d’interface en hypothèse testable.</li><li>Évaluer un parcours avec des indicateurs qui tiennent compte des erreurs et de l’autonomie.</li><li>Vérifier la récupération après erreur, la navigation clavier et les états intermédiaires.</li></ul>
+<h3>Explications et exemple guidé</h3>
+<p>Une interface ne se juge pas seulement à son apparence ou à la vitesse d’un utilisateur expert. Définis d’abord la tâche, les prérequis et le résultat attendu, puis observe des personnes qui n’ont pas reçu de formation. Mesure au minimum la réussite de la tâche, les erreurs, les hésitations importantes et le recours à l’aide. Le temps peut être utile, mais il doit être interprété avec la qualité du résultat : accélérer en provoquant plus d’erreurs n’est pas un progrès.</p>
+<p>Pour un formulaire, examine les états au-delà du cas idéal : chargement, envoi en cours, succès, erreur serveur, champ invalide, session expirée et double soumission. Un message doit expliquer le problème et le moyen de récupération ; les valeurs valides doivent rester disponibles. Après une erreur, le focus doit être placé de façon prévisible et le message doit être perceptible par les technologies d’assistance. La navigation au clavier ne doit pas dépendre de la souris ni perdre le focus dans un dialogue.</p>
+<p>Formule une hypothèse précise : « Les personnes soumettent deux fois parce qu’aucun état de traitement n’est visible ». Définis à l’avance ce qui confirmerait ou réfuterait l’hypothèse, teste le parcours, puis change un élément à la fois lorsque cela est possible. Documente les observations sans identifier inutilement les participants. Un test réduit peut révéler un problème important, mais un petit échantillon ne permet pas de prétendre à une mesure statistique universelle.</p>
+<h3>Pièges et limites</h3>
+<ul><li>Guider les participants vers la solution au lieu d’observer leurs stratégies naturelles.</li><li>Demander seulement « est-ce que tu aimes cette page ? » plutôt que de leur faire accomplir une tâche.</li><li>Considérer la couleur comme le seul signal d’erreur ou d’état, ou retirer le focus clavier sans alternative.</li><li>Généraliser à tous les utilisateurs à partir d’une seule session ou d’un profil unique.</li></ul>
+<h3>Exercice</h3>
+<p>Fais tester un parcours de création de compte ou de réservation à deux personnes. Donne la même consigne sans expliquer les étapes. Note les réussites, erreurs, hésitations et demandes d’aide ; teste ensuite au clavier seul et avec un zoom élevé. Choisis une friction prioritaire, propose une modification et répète le test en consignant ce qui a changé.</p>
+<h3>Critères de réussite</h3>
+<ul><li>L’hypothèse initiale et les observations sont distinguées des interprétations.</li><li>Les indicateurs couvrent réussite, erreurs et récupération, pas uniquement le temps.</li><li>Les états de chargement, erreur et succès sont compréhensibles et accessibles au clavier.</li><li>L’amélioration est reliée à une observation et réévaluée après modification.</li></ul>
+</section>
+    
+    <section class="lesson-section"><h2>Sources documentaires</h2><p>Les ressources suivantes sont des points de départ ciblés pour vérifier les notions et poursuivre l’apprentissage. Les versions et recommandations peuvent évoluer ; consulte les pages officielles à jour.</p><ol><li><a href="https://www.nngroup.com/articles/ten-usability-heuristics/" target="_blank" rel="noopener noreferrer">Nielsen Norman Group — 10 heuristiques d’utilisabilité</a></li><li><a href="https://www.gov.uk/service-manual/user-research" target="_blank" rel="noopener noreferrer">GOV.UK Service Manual — comprendre les besoins utilisateurs</a></li><li><a href="https://www.w3.org/WAI/fundamentals/accessibility-intro/" target="_blank" rel="noopener noreferrer">W3C WAI — Introduction à l’accessibilité Web</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Your_first_website" target="_blank" rel="noopener noreferrer">MDN — Principes de conception Web</a></li><li><a href="https://m3.material.io/foundations" target="_blank" rel="noopener noreferrer">Material Design — principes d’utilisabilité et de conception</a></li></ol></section>
+    <nav class="lesson-nav" aria-label="Navigation entre les leçons">
+      <a href="journalisation-incidents.html">← Précédent : Journalisation de sécurité et incidents — Parcours Full Stack</a>
+      <a href="etats-interface.html">Suivant : États de chargement, erreur et vide →</a>
+    </nav>
+  </main>
+</body>
+</html>

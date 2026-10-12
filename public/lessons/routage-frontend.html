@@ -1,0 +1,96 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Routage frontend
+Domaine documentaire : frontend
+Ces références sont des points de départ ciblés pour approfondir le sujet ; cette liste ne prétend pas que chaque page liée a été lue intégralement.
+1. React Router — Documentation — https://reactrouter.com/
+2. Next.js — Routage et navigation — https://nextjs.org/docs/app/building-your-application/routing
+3. MDN — URL et navigation — https://developer.mozilla.org/en-US/docs/Web/API/URL
+4. W3C — Comprendre les liens — https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html
+5. React — Rendu conditionnel — https://react.dev/learn/conditional-rendering
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Organiser les URL, les vues et les transitions de navigation d’une application web.">
+<title>Routage frontend — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">16. Architecture frontend approfondie</p>
+<h1>Routage frontend</h1>
+<p class="lead">Organiser les URL, les vues et les transitions de navigation d’une application web.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Lecture et mise en pratique</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2><p>À la fin de cette leçon, tu sauras expliquer le rôle du routeur côté client, définir des routes statiques et paramétrées, gérer les liens et la navigation arrière, et concevoir les états de chargement ou d’erreur d’une route. Tu comprendras aussi la différence entre une navigation cliente et une requête de document complète.</p>
+<p>Prérequis : HTML, JavaScript, composants et notions d’URL HTTP. Les API exactes varient selon la bibliothèque ; les concepts de routes, paramètres, liens, redirections et routes inconnues restent communs.</p></section><section class="lesson-section"><h2>1. Le modèle mental du routage</h2><p>Une URL identifie une ressource ou un état navigable. Dans une application multipage classique, le navigateur demande un nouveau document au serveur à chaque navigation. Dans une application monopage, le routeur peut intercepter certains liens internes, mettre à jour l’historique et rendre une autre vue sans recharger tout le document. Cette navigation peut être plus fluide, mais elle ne supprime pas les responsabilités liées aux URL.</p>
+<p>Une route associe généralement un motif d’URL à une vue ou à un gestionnaire. `/produits` peut afficher une liste, `/produits/42` un détail, et `/parametres/profil` une page de profil. Les segments dynamiques doivent être lus et validés : une chaîne présente dans l’URL n’est pas automatiquement un identifiant valide ni une autorisation d’accès.</p>
+<p>Le routage doit préserver les attentes du Web. Les liens doivent être partageables, rechargeables et utilisables avec les boutons précédent/suivant. Si une page fonctionne uniquement après avoir cliqué depuis l’accueil mais échoue au rechargement direct, le serveur ne sert probablement pas correctement les routes ou l’application dépend d’un état transitoire non reconstruit depuis l’URL.</p></section><section class="lesson-section"><h2>2. Routes, paramètres et liens</h2><p>Sépare les paramètres de chemin, comme l’identifiant d’un produit, des paramètres de requête, comme `?tri=prix&amp;page=2`. Le chemin identifie souvent la ressource ou la section ; la query string exprime souvent des filtres, un tri ou une pagination. Ce n’est pas une loi universelle, mais une convention qui facilite la lecture et le partage d’URL.</p>
+<p>Utilise des liens pour naviguer et des boutons pour déclencher une action. Un lien avec `href` fonctionne aussi sans JavaScript et peut être ouvert dans un nouvel onglet. Un bouton est adapté à une action comme ouvrir une boîte de dialogue, sauvegarder ou réinitialiser un formulaire. Transformer chaque élément cliquable en `div` affaiblit le clavier, le menu contextuel et la sémantique.</p>
+<p>Les paramètres d’URL sont des entrées externes. Valide leur format, applique des valeurs par défaut documentées et encode correctement les valeurs lors de la construction des liens. Ne construis pas des chemins en concaténant des chaînes non contrôlées. Si une route ne correspond à rien, affiche une page 404 utile plutôt qu’un écran vide ou une redirection silencieuse vers l’accueil.</p></section><section class="lesson-section"><h2>3. Navigation, historique et état</h2><p>Le navigateur possède un historique de navigation. Le routeur doit synchroniser l’URL et la vue rendue afin que précédent et suivant restaurent un état compréhensible. Lorsque les filtres sont importants, les conserver dans l’URL permet de partager une recherche et de retrouver la même vue après rechargement. En revanche, ne place pas dans l’URL des secrets ou des données privées : elle peut être copiée, enregistrée dans l’historique ou envoyée dans des logs.</p>
+<p>Distingue l’état propre à une vue de l’état navigable. L’ouverture temporaire d’un tooltip ne nécessite pas forcément une URL. Un filtre ou un onglet que l’utilisateur souhaite partager peut justifier un paramètre de requête. L’état local peut être perdu lors d’un rechargement ; décide explicitement quelles informations doivent survivre à la navigation.</p>
+<p>Après une navigation cliente, mets à jour le titre du document et veille à ce que le contenu principal soit repérable. Les lecteurs d’écran ne reçoivent pas toujours la même indication qu’après une navigation complète. Selon l’application, une annonce de changement de page ou un déplacement contrôlé du focus vers le titre principal peut aider. Le focus ne doit pas être déplacé arbitrairement après chaque interaction.</p></section><section class="lesson-section"><h2>4. Routes protégées et chargement</h2><p>Masquer un lien dans l’interface n’est pas un contrôle d’accès. Une route peut vérifier l’état de connexion pour orienter l’utilisateur, mais chaque opération sensible doit aussi être autorisée côté serveur. L’API doit contrôler le rôle, la propriété de la ressource et les règles métier ; l’URL ne constitue jamais une preuve de permission.</p>
+<p>Les routes qui chargent des données doivent représenter le chargement, l’erreur, l’absence de résultat et le succès. Une route paramétrée avec un identifiant inexistant devrait présenter un état 404 ou une explication métier appropriée. Une panne réseau ne signifie pas que la ressource n’existe pas. Conserve cette distinction pour permettre une reprise pertinente.</p>
+<p>Les redirections doivent être prévisibles. Évite les boucles entre une route protégée et la page de connexion, ou une redirection qui perd l’URL de destination. Si tu mémorises une destination après connexion, valide-la pour éviter les redirections ouvertes vers un site externe contrôlé par un tiers.</p></section><section class="lesson-section"><h2>5. Méthode de conception et de test</h2><p>Commence par dresser une table des routes : motif, objectif, paramètres, droits requis, données chargées, titre et comportement en cas d’échec. Cette table révèle les routes manquantes, les collisions et les cas qui ne sont pas traités. Ajoute explicitement les routes inconnues, les identifiants mal formés et les erreurs d’API.</p>
+<p>Teste chaque route en navigation interne, en accès direct, après rechargement et avec les boutons précédent/suivant. Vérifie que les paramètres survivent lorsque c’est prévu et que les liens restent compréhensibles. Teste également une session expirée, une personne non autorisée et une ressource supprimée entre deux navigations.</p>
+<p>Le choix d’une bibliothèque dépend de la taille du projet, du rendu serveur, des besoins de chargement de données et de l’écosystème. Un routeur minimal peut suffire à une petite application, tandis qu’un framework intégré peut simplifier les routes imbriquées, les layouts et le rendu serveur. Évite de construire un routeur maison si la complexité des cas d’usage dépasse clairement le bénéfice.</p></section><section class="lesson-section">
+<h2>Atelier approfondi — traiter une route comme un contrat</h2>
+<h3>Objectifs ciblés</h3>
+<p>À l’issue de cet atelier, tu sauras décrire une route comme un contrat complet : URL reconnue, paramètres validés, données nécessaires, droits, états d’échec et comportement de navigation. Tu sauras aussi séparer la décision de navigation du contrôle d’accès réel.</p>
+<h3>Construire une table de routes avant le code</h3>
+<p>Une liste de chemins ne suffit pas. Pour chaque route, note ce que signifie l’URL, quelles entrées elle accepte et ce que l’utilisateur doit observer si quelque chose échoue. Cette table sert de plan de test et évite que les cas d’erreur soient ajoutés tardivement.</p>
+<table><thead><tr><th>Route</th><th>Entrées</th><th>Résultat attendu</th><th>Échec à distinguer</th></tr></thead><tbody>
+<tr><td><code>/produits</code></td><td><code>q</code>, <code>page</code>, <code>tri</code></td><td>Liste filtrée et partageable</td><td>Erreur de chargement distincte d’une liste vide</td></tr>
+<tr><td><code>/produits/:id</code></td><td>Identifiant de produit</td><td>Détail d’une ressource existante</td><td>Identifiant mal formé, 404, panne serveur</td></tr>
+<tr><td><code>/compte</code></td><td>Session courante</td><td>Compte de la personne connectée</td><td>Non connecté (401) distinct de non autorisé (403)</td></tr>
+</tbody></table>
+<p>Les codes HTTP sont ceux de l’API ; l’interface peut traduire ces réponses en vues adaptées. Une route frontend ne doit pas transformer arbitrairement une panne en « introuvable », car l’utilisateur perdrait la possibilité de réessayer.</p>
+<h3>Exemple : chargement avec une frontière d’erreur</h3>
+<pre><code>const router = createBrowserRouter([
+  {
+    path: "/produits/:productId",
+    loader: async ({ params }) =&gt; {
+      const id = params.productId;
+      if (!id || !/^[a-z0-9-]+$/i.test(id)) {
+        throw new Response("Identifiant invalide", { status: 400 });
+      }
+
+      const response = await fetch(
+        `/api/products/${encodeURIComponent(id)}`
+      );
+      if (response.status === 404) {
+        throw new Response("Produit introuvable", { status: 404 });
+      }
+      if (!response.ok) {
+        throw new Response("Échec du chargement", {
+          status: response.status
+        });
+      }
+      return response.json();
+    },
+    element: &lt;ProductDetails /&gt;,
+    errorElement: &lt;ProductRouteError /&gt;
+  }
+]);</code></pre>
+<p>Le motif d’identifiant doit correspondre au domaine réel : un UUID, un entier ou un slug n’ont pas la même validation. L’encodage protège la construction du chemin, mais ne remplace ni la validation métier ni l’autorisation serveur. Dans une application qui n’utilise pas de loaders, le même contrat peut être appliqué dans une couche de chargement dédiée.</p>
+<h3>Navigation, redirections et historique</h3>
+<p>Les filtres qui doivent survivre au rechargement appartiennent généralement à la query string. Lorsqu’un filtre change, décide si tu dois créer une entrée d’historique (l’utilisateur peut revenir au filtre précédent) ou remplacer l’entrée courante (par exemple pour une normalisation automatique). Le choix doit être cohérent et testé.</p>
+<p>Après une connexion, si tu conserves une destination, accepte seulement un chemin local prévu par l’application. Ne redirige pas aveuglément vers une URL fournie par un paramètre <code>next</code> : une URL externe pourrait transformer le mécanisme en redirection ouverte. Le contrôle de session côté client améliore l’expérience ; l’API reste responsable de vérifier chaque permission.</p>
+<h3>Pièges spécifiques</h3>
+<ul><li>Un fallback général vers l’accueil masque les vraies erreurs 404 et casse les liens partagés.</li><li>Un paramètre de route est une chaîne non fiable, même si TypeScript lui donne ensuite un type plus précis.</li><li>Une route imbriquée doit gérer le layout, le focus et le titre de la page, pas seulement afficher un composant.</li><li>Une redirection après connexion ne doit pas accepter sans validation une destination externe.</li></ul>
+<h3>Exercice et critères de réussite</h3>
+<p>Construis un catalogue avec liste, détail, recherche par query string et page 404. Écris d’abord la table des routes, puis implémente le chargement. Teste l’accès direct, le rechargement, précédent/suivant, un identifiant mal formé, une ressource absente et une panne réseau. Simule enfin une session expirée et une personne sans droit sur un produit.</p>
+<ul><li>Chaque route a un contrat explicite pour ses entrées et ses états d’échec.</li><li>Les filtres partageables sont restaurés depuis l’URL.</li><li>Une 404, une 403 et une erreur serveur ne sont pas confondues.</li><li>Le serveur refuse les opérations interdites même si la vue est accessible.</li><li>Les redirections ne permettent pas d’envoyer l’utilisateur vers une destination non approuvée.</li></ul>
+</section>
+<section class="lesson-section"><h2>Pièges, limites et compromis</h2><ul><li>Une route côté client doit rester accessible par URL directe si elle est destinée à être partageable.</li><li>Les contrôles d’interface ne remplacent pas l’autorisation serveur.</li><li>Ne confonds pas route inconnue, absence de données et panne réseau.</li><li>Ne place pas de secrets dans les paramètres d’URL.</li><li>Des redirections mal conçues peuvent créer des boucles ou une faille de redirection ouverte.</li><li>La navigation cliente améliore parfois la fluidité, mais ajoute des responsabilités pour le focus, le titre et les états d’attente.</li></ul></section><section class="lesson-section"><h2>Exercice</h2><p>Crée un mini catalogue avec `/produits`, `/produits/:id` et une page 404. Ajoute un filtre de recherche dans les paramètres d’URL, puis vérifie qu’un lien partagé reproduit la même recherche. Simule une API lente, une erreur réseau et un identifiant inexistant. Teste chaque vue par accès direct, rechargement et navigation arrière. Enfin, vérifie qu’une route protégée ne donne jamais accès aux données sans autorisation serveur.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul class="checklist"><li>Je sais distinguer chemin, paramètres de requête et état local.</li><li>Les liens internes ont une sémantique adaptée et fonctionnent au clavier.</li><li>Les routes sont rechargeables et partageables lorsque nécessaire.</li><li>Les routes inconnues, erreurs et absences de données sont distinctes.</li><li>L’autorisation est vérifiée côté serveur.</li><li>Le titre et le focus restent cohérents lors de la navigation.</li></ul></section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces références sont des points de départ ciblés pour vérifier les notions et poursuivre l’apprentissage. Consulte les documentations officielles à jour pour les détails propres à chaque outil.</p><ol><li><a href="https://reactrouter.com/" target="_blank" rel="noopener noreferrer">React Router — Documentation</a></li><li><a href="https://nextjs.org/docs/app/building-your-application/routing" target="_blank" rel="noopener noreferrer">Next.js — Routage et navigation</a></li><li><a href="https://developer.mozilla.org/en-US/docs/Web/API/URL" target="_blank" rel="noopener noreferrer">MDN — URL et navigation</a></li><li><a href="https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html" target="_blank" rel="noopener noreferrer">W3C — Comprendre les liens</a></li><li><a href="https://react.dev/learn/conditional-rendering" target="_blank" rel="noopener noreferrer">React — Rendu conditionnel</a></li></ol></section>
+<nav class="lesson-nav" aria-label="Navigation entre les leçons">
+<a href="licences-publication-packages.html">← Précédent : Dépendances, licences et publication de packages</a>
+<a href="donnees-distantes-frontend.html">Suivant : Gestion des données distantes →</a>
+</nav>
+</main>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Frontières entre modules
+Domaine documentaire : javascript
+Ces liens sont des points de départ ciblés pour approfondir et vérifier les notions abordées. Leur présence ne signifie pas que chaque page a été lue intégralement ni qu’il s’agit d’un classement exhaustif.
+1. MDN — Modules JavaScript — https://developer.mozilla.org/fr/docs/Web/JavaScript/Guide/Modules
+2. Node.js — Modules ECMAScript — https://nodejs.org/api/esm.html
+3. Martin Fowler — Bounded Context — https://martinfowler.com/bliki/BoundedContext.html
+4. Martin Fowler — Refactoring — https://refactoring.com/
+5. TypeScript — Modules — https://www.typescriptlang.org/docs/handbook/2/modules.html
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Organiser le code autour de responsabilités explicites et limiter les dépendances qui rendent une application difficile à faire évoluer.">
+  <title>Frontières entre modules — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">Architecture et ingénierie Full Stack</p>
+    <h1>Frontières entre modules</h1>
+    <p class="lead">Organiser le code autour de responsabilités explicites et limiter les dépendances qui rendent une application difficile à faire évoluer.</p>
+    <div class="lesson-meta"><span>Leçon approfondie</span><span>Théorie · pratique · validation</span></div>
+    <section class="lesson-section">
+<h2>Objectifs d’apprentissage</h2>
+<p>À la fin de cette leçon, tu dois pouvoir définir le propriétaire d’une règle métier, exposer un contrat stable et repérer les dépendances qui rendent un changement local coûteux.</p>
+<ul>
+<li>Délimiter un module à partir de ses invariants, de son vocabulaire et de ses raisons de changement.</li>
+<li>Créer une API publique minimale sans exporter les détails internes.</li>
+<li>Repérer les cycles, les imports transverses et les dépendances vers des couches inappropriées.</li>
+<li>Choisir entre appel direct et événement en tenant compte de la cohérence et des coûts opérationnels.</li>
+</ul>
+<p><strong>Prérequis :</strong> imports/exports TypeScript ou JavaScript et notions de tests unitaires.</p>
+</section>
+    
+<section class="lesson-section">
+<h2>1. Pourquoi tracer des frontières ?</h2>
+<p>Un module regroupe du code qui évolue pour une raison cohérente et expose une interface à ses consommateurs. Une frontière de module répond à trois questions : qui possède cette règle, quelles opérations sont autorisées, et quelles connaissances doivent rester cachées ? Sans frontière claire, chaque partie de l’application peut lire ou modifier les détails des autres ; un changement local devient alors une modification globale.</p>
+<p>La taille ne suffit pas à définir un bon module. Un fichier unique peut contenir plusieurs responsabilités indépendantes, tandis qu’un ensemble de petits fichiers peut former un seul module cohérent. Il faut regarder les raisons de changement, les invariants, le vocabulaire métier et les dépendances. Par exemple, le module « commandes » peut posséder les règles de transition d’une commande, alors que le module « notifications » sait envoyer un message sans décider si une commande doit être confirmée.</p>
+<p>Un module ne doit pas nécessairement correspondre à un microservice. Dans une application monolithique, les frontières internes peuvent déjà être explicites et testables. Les extraire en processus séparés ajoute des coûts de réseau, de déploiement et d’observabilité ; on le fait pour une raison opérationnelle ou organisationnelle, pas simplement pour obtenir davantage de dossiers.</p>
+</section>
+<section class="lesson-section">
+<h2>2. Définir une interface publique minimale</h2>
+<p>Le consommateur doit dépendre du contrat utile, pas de la structure interne. L’API publique peut exposer quelques fonctions, types ou événements. Les helpers, tables ORM et formats de stockage restent privés tant qu’ils ne constituent pas un contrat nécessaire.</p>
+<pre><code>// commandes/index.ts : point d'entrée public
+export { creerCommande, annulerCommande } from "./service";
+export type { Commande, NouvelleCommande } from "./types";
+
+// commandes/service.ts : implémentation interne
+export async function creerCommande(
+  entree: NouvelleCommande
+): Promise&lt;Commande&gt; {
+  // Valider les règles métier et coordonner le stockage.
+  throw new Error("exemple à implémenter");
+}</code></pre>
+<p>Le point d’entrée du module agit comme une liste explicite de ce que les autres modules sont autorisés à utiliser. Évite les imports profonds tels que <code>commandes/infrastructure/sql/commande-row</code> : ils lient le consommateur à un détail susceptible de changer. Un export large rend les refactorisations plus coûteuses, car chaque export peut devenir une dépendance implicite.</p>
+<p>Ne crée pas automatiquement une interface pour chaque classe. Une abstraction est utile lorsqu’elle protège une règle, permet une substitution réellement nécessaire ou stabilise un contrat. Sinon, elle ajoute une indirection sans bénéfice. Après une modification interne, un test du consommateur doit pouvoir continuer à passer sans changer son code.</p>
+</section>
+<section class="lesson-section">
+<h2>3. Contrôler le sens des dépendances</h2>
+<p>Une frontière n’est réelle que si le code la respecte. Le domaine métier ne devrait pas importer un composant React, un contrôleur HTTP ou un modèle généré par l’ORM. Une couche externe peut appeler le cœur, tandis que le cœur exprime les contrats dont il a besoin sans connaître leur implémentation.</p>
+<pre><code>HTTP / CLI  ──&gt;  cas d'usage  ──&gt;  domaine
+                    ▲
+                    │ contrat défini côté application
+             adaptateur SQL implémente le contrat</code></pre>
+<p>Le dessin représente le sens des dépendances de code, pas nécessairement le chemin d’exécution. Pour détecter les violations, cherche les imports qui traversent plusieurs domaines, les cycles et les dépendances du domaine vers l’infrastructure. Des règles d’import (ESLint ou un outil de vérification d’architecture) peuvent faire échouer la CI si un module importe une couche interdite.</p>
+<p>Face à un cycle A → B → A, ne le résous pas immédiatement en déplaçant tout dans <code>common</code>. Identifie d’abord qui possède la règle. Si les deux modules ont réellement besoin d’un contrat stable, extrais un petit module de contrat ; si l’un appelle l’autre seulement pour une notification, un événement peut être approprié. Les événements apportent toutefois de l’asynchronisme, des doublons et une cohérence éventuellement différée : ils ne remplacent pas automatiquement un appel direct.</p>
+</section>
+<section class="lesson-section">
+<h2>4. Exemple de découpage métier</h2>
+<p>Dans une application de vente, distingue par exemple <strong>catalogue</strong>, <strong>commandes</strong>, <strong>paiement</strong> et <strong>notifications</strong>. Le catalogue possède les prix publiés ; commandes possède le cycle de vie et les lignes commandées ; paiement traduit le protocole du prestataire en résultats internes ; notifications envoie les messages demandés sans décider si la commande est confirmée.</p>
+<p>Écris pour chaque module une phrase de propriété et une liste de données qu’il est seul autorisé à modifier. Par exemple, un autre module peut demander « annuler la commande 501 », mais ne doit pas modifier directement <code>orders.status</code>. Le propriétaire applique les règles de transition, vérifie l’état actuel et émet éventuellement un événement.</p>
+<p>Les frontières ne déterminent pas à elles seules les frontières de déploiement. Des modules internes à un monolithe peuvent partager une transaction de base et rester indépendants au niveau du code. Les répartir en services introduit des pannes réseau, des contrats de version, des déploiements coordonnés ou une cohérence différée. Extrais un service lorsqu’un besoin d’autonomie opérationnelle, de mise à l’échelle ou de responsabilité d’équipe justifie ce coût — pas simplement pour créer plus de dossiers.</p>
+</section>
+<section class="lesson-section">
+<h2>5. Signaux de mauvaise frontière</h2>
+<ul>
+<li>Une modification métier exige de toucher plusieurs modules sans contrat explicite.</li>
+<li>Un module lit ou modifie directement les tables privées d’un autre.</li>
+<li>Des imports circulaires rendent l’ordre d’initialisation fragile.</li>
+<li>Des noms comme <code>Manager</code>, <code>Helper</code> ou <code>Common</code> masquent l’absence de propriétaire.</li>
+<li>Un test d’une règle locale doit démarrer toute l’application parce que les dépendances ne sont pas séparées.</li>
+</ul>
+<p>Ces signes ne sont pas des règles absolues : le partage d’un type stable peut être sain et certains modules doivent évoluer ensemble. Évalue la fréquence des changements, la cohésion des règles, le coût des tests et le nombre de consommateurs. Trop de petits modules créent aussi de la navigation et des contrats artificiels.</p>
+<p>Refactorise par étapes : ajoute d’abord des tests de caractérisation, définis le contrat cible, déplace la responsabilité, remplace les imports directs, puis supprime l’ancien chemin. Chaque étape doit laisser le projet compilable et le comportement observable stable.</p>
+</section>
+<section class="lesson-section">
+<h2>6. Exercice pratique</h2>
+<p>Sur une application de gestion de tâches, propose les modules <code>tasks</code>, <code>users</code>, <code>reminders</code> et <code>persistence</code>. Pour chacun, documente son propriétaire, son API publique, les données qu’il peut modifier et les dépendances interdites.</p>
+<ol>
+<li>Dessine le graphe d’imports et identifie tout cycle ou import vers un détail interne.</li>
+<li>Expose une fonction <code>completeTask(taskId)</code> qui applique la règle métier sans importer l’ORM.</li>
+<li>Écris un test du contrat public qui ne dépend pas du chemin interne des fichiers.</li>
+<li>Décide si le rappel doit être un appel direct ou un événement ; justifie le choix selon la tolérance à la latence, aux doublons et aux retards.</li>
+<li>Décris un plan de refactorisation qui conserve un état fonctionnel après chaque étape.</li>
+</ol>
+</section>
+<section class="lesson-section">
+<h2>Critères de réussite</h2>
+<ul>
+<li>Chaque module possède une responsabilité formulée clairement et un propriétaire de ses invariants.</li>
+<li>Les consommateurs utilisent l’API publique, pas des chemins internes ou des tables privées.</li>
+<li>Le graphe d’imports ne comporte pas de cycle non justifié et les règles de dépendance sont vérifiables.</li>
+<li>Une règle métier peut être testée sans lancer toute l’application.</li>
+<li>Le choix entre appel direct et événement tient compte des exigences de cohérence et des échecs possibles.</li>
+<li>La refactorisation est découpée en étapes testables et réversibles.</li>
+</ul>
+</section>
+
+    <section class="lesson-section">
+      <h2>Sources documentaires</h2>
+      <p>Les ressources ci-dessous sont des références pour poursuivre l’apprentissage. Elles servent de points de départ ciblés ; consulte les sections pertinentes et vérifie les détails qui dépendent de la version des outils ou de ton environnement.</p>
+      <ol><li><a href="https://developer.mozilla.org/fr/docs/Web/JavaScript/Guide/Modules" target="_blank" rel="noopener noreferrer">MDN — Modules JavaScript</a></li>
+<li><a href="https://nodejs.org/api/esm.html" target="_blank" rel="noopener noreferrer">Node.js — Modules ECMAScript</a></li>
+<li><a href="https://martinfowler.com/bliki/BoundedContext.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Bounded Context</a></li>
+<li><a href="https://refactoring.com/" target="_blank" rel="noopener noreferrer">Martin Fowler — Refactoring</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/2/modules.html" target="_blank" rel="noopener noreferrer">TypeScript — Modules</a></li></ol>
+    </section>
+    <nav class="lesson-nav"><a class="nav-link" href="transactions-metier.html">← Transactions et cohérence métier</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="architecture-hexagonale.html">Architecture hexagonale →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

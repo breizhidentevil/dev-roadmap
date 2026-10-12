@@ -1,0 +1,117 @@
+ <!-- SOURCES DOCUMENTAIRES
+- PostgreSQL — ALTER TABLE: https://www.postgresql.org/docs/current/sql-altertable.html
+- GitLab — Database migrations: https://docs.gitlab.com/development/database/
+- Prisma — Database migrations: https://www.prisma.io/docs/orm/prisma-migrate
+- Expand and Contract pattern: https://martinfowler.com/bliki/ParallelChange.html
+- Flyway — Versioned migrations: https://documentation.red-gate.com/flyway/flyway-concepts/migrations/versioned-migrations
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Faire évoluer un schéma de base de données en production en maintenant la compatibilité entre anciennes et nouvelles versions de l’application.">
+<title>Migrations sans interruption — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>Migrations sans interruption</h1>
+<p class="lead">Faire évoluer un schéma de base de données en production en maintenant la compatibilité entre anciennes et nouvelles versions de l’application.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Une migration de schéma modifie la structure ou les règles de la base de données : ajouter une colonne, changer un type, créer un index ou supprimer une table. En production, plusieurs versions de l’application peuvent coexister pendant un déploiement, et une modification peut verrouiller une table ou réécrire beaucoup de données. L’objectif est d’apprendre à planifier des changements compatibles, à séparer les étapes risquées et à prévoir une stratégie de reprise.</p>
+<h2>2. Pourquoi une migration peut interrompre le service</h2>
+<p>Une modification de schéma peut nécessiter un verrou, réécrire les données ou consommer beaucoup d’entrées-sorties. La durée dépend du moteur, de la version, du type d’opération, du volume et de la charge. Même une commande qui paraît instantanée sur une base de développement peut bloquer les requêtes de production. L’expression « sans interruption » décrit un objectif opérationnel, pas une garantie qu’aucun verrou ne sera pris.</p>
+<p>Il faut également tenir compte de la compatibilité applicative. Si une version déployée s’attend à une colonne supprimée, supprimer cette colonne au moment du déploiement peut provoquer des erreurs. Le déploiement et la migration de schéma sont deux processus distincts, même s’ils sont orchestrés ensemble.</p>
+<h2>3. Expand and contract</h2>
+<p>Le pattern « expand and contract » décompose un changement incompatible en étapes qui permettent aux anciennes et nouvelles versions de coexister.</p>
+<ol>
+<li><strong>Expand :</strong> ajouter la nouvelle structure sans supprimer immédiatement l’ancienne.</li>
+<li><strong>Compatibilité :</strong> déployer une version qui peut lire ou écrire selon la nouvelle structure tout en restant compatible avec l’état existant.</li>
+<li><strong>Backfill :</strong> remplir progressivement les nouvelles colonnes ou tables, avec reprise et observabilité.</li>
+<li><strong>Bascule :</strong> faire lire l’application depuis la nouvelle structure et vérifier les résultats.</li>
+<li><strong>Contract :</strong> retirer l’ancienne structure seulement après avoir confirmé qu’aucune version active ne l’utilise.</li>
+</ol>
+<p>Cette méthode augmente temporairement la complexité : deux colonnes ou deux représentations peuvent coexister. Elle réduit cependant le risque de changement irréversible au milieu d’un déploiement. Le plan doit prévoir le comportement en cas d’échec à chaque étape et préciser quand il devient sûr de retirer l’ancien chemin.</p>
+<h2>4. Exemple : renommer une colonne</h2>
+<p>Supposons qu’une colonne <code>full_name</code> doive devenir <code>display_name</code>. La renommer directement peut casser les versions qui utilisent encore l’ancien nom. Une stratégie plus prudente consiste à ajouter la nouvelle colonne, adapter temporairement l’écriture pour maintenir les deux valeurs, remplir progressivement les données historiques, migrer les lectures, puis supprimer l’ancienne colonne lors d’une version ultérieure.</p>
+<pre><code>-- Étape d'expansion : ajouter une nouvelle colonne nullable.
+ALTER TABLE users ADD COLUMN display_name TEXT;</code></pre>
+<p>La commande exacte et son coût dépendent du moteur. Après l’expansion, déployez une version qui écrit de manière cohérente dans les deux colonnes ou qui utilise une autre stratégie de transition. Le backfill doit fonctionner par lots limités, éviter de garder une transaction géante ouverte et pouvoir reprendre après une interruption.</p>
+<p>Ne faites pas confiance uniquement au fait que le nombre de lignes mises à jour égale le nombre attendu. Vérifiez les valeurs, les cas nuls, les caractères spéciaux et les règles métier. Une fois la nouvelle colonne remplie, basculez les lectures, observez les erreurs et gardez une période de retour arrière opérationnel avant de supprimer l’ancien champ.</p>
+<h2>5. Backfills à grande échelle</h2>
+<p>Un backfill modifie un grand nombre de lignes existantes. Exécuter une mise à jour globale en une transaction peut produire beaucoup de journaux, augmenter la réplication différée, bloquer d’autres opérations et rendre l’annulation coûteuse. Traitez les données par lots, avec une taille et une cadence mesurées. Un curseur basé sur une clé stable ou une plage d’identifiants permet souvent de reprendre sans recommencer depuis le début.</p>
+<p>Le processus doit être idempotent ou garder un état de progression fiable. S’il est interrompu, il doit pouvoir reprendre sans altérer les lignes déjà traitées. Suivez les lignes restantes, les erreurs, la latence de base, le retard des réplicas et la charge. Réduisez ou suspendez le rythme si la production se dégrade.</p>
+<h2>6. Contraintes et index</h2>
+<p>Ajouter une contrainte <code>NOT NULL</code>, une clé étrangère ou un index peut entraîner une validation ou un verrou important selon le moteur. Certains moteurs proposent des modes concurrents ou des étapes qui séparent la création de la validation. La syntaxe et les garanties diffèrent ; vérifiez la documentation de la version exacte utilisée et testez sur un volume représentatif.</p>
+<p>Un déploiement sûr peut ajouter d’abord une contrainte de manière moins bloquante, nettoyer les données invalides, puis valider la contrainte. Pour un index, la création concurrente peut réduire les blocages dans certains moteurs, mais elle a ses propres restrictions et peut échouer si les données changent ou si des objets incompatibles existent. Prévoyez de détecter un index incomplet ou invalide et de corriger la situation avant de relancer la migration.</p>
+<h2>7. Verrous, délais et fenêtres de changement</h2>
+<p>Avant une migration, évaluez les verrous acquis, les opérations concurrentes, l’espace disque requis et le comportement de réplication. Un délai maximal d’attente pour les verrous peut empêcher une migration de rester bloquée indéfiniment, mais il faut ensuite gérer l’échec et la reprise proprement. Les migrations les plus risquées doivent être testées dans un environnement comparable et planifiées avec une procédure d’arrêt.</p>
+<p>Un délai court peut faire échouer la migration pendant une pointe de charge ; un délai long peut retenir des ressources et créer une file d’attente. La bonne valeur dépend du système et du runbook. Surveillez les requêtes bloquées et le temps d’attente, et assurez-vous que l’équipe peut interrompre ou diagnostiquer l’opération sans aggraver l’incident.</p>
+<h2>8. Déploiement, rollback et roll-forward</h2>
+<p>Le rollback d’une migration n’est pas toujours l’inverse exact de son application. Après la suppression d’une colonne ou une transformation avec perte d’information, revenir en arrière peut être impossible sans sauvegarde ou copie des anciennes valeurs. Une stratégie « roll-forward » corrige l’état en appliquant une migration supplémentaire plutôt que d’annuler l’historique.</p>
+<p>Les migrations doivent être versionnées, relues, testées et exécutées selon un ordre déterministe. Le système de déploiement doit enregistrer celles qui ont été appliquées et empêcher des exécutions concurrentes non coordonnées. N’éditez pas discrètement une migration déjà exécutée dans des environnements partagés ; ajoutez une nouvelle migration corrective afin de préserver la reproductibilité.</p>
+<h2>9. Erreurs fréquentes</h2>
+<ul>
+<li>Renommer ou supprimer immédiatement une colonne encore utilisée par une version active.</li>
+<li>Faire un backfill massif dans une seule transaction sans mesurer son impact.</li>
+<li>Supposer qu’une migration réussie en développement sera sans risque en production.</li>
+<li>Oublier l’espace disque, les réplicas, les verrous et les délais d’attente.</li>
+<li>Promettre un rollback alors que la transformation a perdu de l’information.</li>
+<li>Retirer l’ancienne structure avant d’avoir observé que le nouveau chemin fonctionne.</li>
+</ul>
+<h2>10. Exercice et critères de réussite</h2>
+<p>Planifiez le passage d’une colonne <code>price_cents</code> à un modèle plus riche avec devise et montant. Décrivez les étapes d’expansion, de double écriture ou de transition, de backfill, de bascule et de contraction. Pour chaque étape, précisez les versions applicatives compatibles, les métriques à surveiller, le critère d’arrêt et la stratégie de récupération.</p>
+<ul class="checklist">
+<li>Je sais découper une migration incompatible en étapes compatibles.</li>
+<li>Je peux faire un backfill par lots, reprenable et observable.</li>
+<li>Je vérifie les verrous et les options propres au moteur de base.</li>
+<li>Je distingue rollback, correction et roll-forward.</li>
+<li>Je ne supprime l’ancienne structure qu’après validation du nouveau chemin.</li>
+</ul>
+    <section class="lesson-workshop">
+<h2>Atelier approfondi — Faire évoluer le schéma pendant un déploiement progressif</h2>
+<h3>Objectifs opérationnels</h3>
+<ul><li>Maintenir la compatibilité entre plusieurs versions de l’application.</li><li>Découper une migration risquée en étapes observables et réversibles.</li><li>Définir les conditions d’arrêt et le plan de retour avant le changement.</li></ul>
+<h3>Explications et exemple guidé</h3>
+<p>Une migration « sans interruption » ne signifie pas qu’aucune opération ne prend de verrou ; elle vise à éviter que les verrous, les conversions ou l’incompatibilité entre versions interrompent les requêtes critiques. Pendant un déploiement progressif, d’anciennes et de nouvelles instances peuvent fonctionner simultanément. Le schéma doit donc tolérer les deux versions pendant la période de transition.</p>
+<p>Pour remplacer <code>customer_name</code> par <code>display_name</code>, applique le modèle expand–migrate–contract : (1) ajouter la nouvelle colonne sans supprimer l’ancienne ; (2) déployer une version qui écrit de façon compatible et lit la nouvelle valeur avec un fallback ; (3) remplir les anciennes lignes par lots idempotents ; (4) comparer les valeurs et observer les métriques ; (5) basculer toutes les lectures ; (6) supprimer l’ancienne colonne seulement après confirmation qu’aucune version ne l’utilise.</p>
+<pre><code>-- PostgreSQL : mettre à jour un lot borné
+-- $1 représente la taille maximale du lot.
+WITH batch AS (
+  SELECT id
+  FROM customers
+  WHERE display_name IS NULL
+  ORDER BY id
+  LIMIT $1
+)
+UPDATE customers AS c
+SET display_name = c.customer_name
+FROM batch
+WHERE c.id = batch.id
+  AND c.display_name IS NULL
+RETURNING c.id;</code></pre>
+<p>Exécute chaque lot dans une transaction courte et recommence jusqu’à ce qu’aucune ligne ne soit renvoyée. Ici, on ne fait pas avancer un curseur au-delà d’identifiants qui auraient pu être ignorés ; le filtre <code>display_name IS NULL</code> rend les nouvelles tentatives possibles. Si plusieurs travailleurs traitent les lots en parallèle, définis une stratégie de verrouillage et vérifie la fin du traitement par un contrôle final des lignes restantes. Pendant le backfill, les anciennes instances peuvent encore modifier <code>customer_name</code> : maintiens une double écriture compatible ou prévois une réconciliation avant la bascule. Pour un index PostgreSQL créé sur une table active, <code>CREATE INDEX CONCURRENTLY</code> réduit certains blocages mais a des contraintes propres et ne s’exécute pas dans un bloc de transaction standard.</p>
+<h3>Pièges et limites</h3>
+<ul><li>Déployer du code qui exige immédiatement une colonne ou une contrainte absente sur certaines instances.</li><li>Faire un backfill massif dans une transaction unique : verrous longs, réplication en retard et saturation des journaux.</li><li>Supposer qu’un rollback applicatif annule une migration destructive ou les données déjà transformées.</li><li>Ajouter une contrainte sans vérifier le coût de validation sur les données existantes.</li></ul>
+<h3>Exercice</h3>
+<p>Planifie une migration d’une colonne texte vers une structure normalisée. Écris la séquence de déploiements, les requêtes de backfill par lots, les métriques à suivre, le seuil d’arrêt et la procédure de roll-forward. Indique à quel moment précis l’ancienne représentation peut être supprimée.</p>
+<h3>Critères de réussite</h3>
+<ul><li>Chaque étape est compatible avec les versions applicatives qui peuvent encore tourner.</li><li>Le backfill est borné, idempotent et reprenable.</li><li>Les conditions d’arrêt et les métriques de verrouillage, latence et retard de réplication sont explicites.</li><li>La suppression de l’ancien schéma intervient après preuve d’absence d’usage, pas simplement après le déploiement.</li></ul>
+</section>
+    
+
+<section class="sources"><h2>Sources documentaires</h2><p>Références pour approfondir les concepts et vérifier les détails propres aux versions et aux fournisseurs.</p><ul><li><a href="https://www.postgresql.org/docs/current/sql-altertable.html" target="_blank" rel="noopener noreferrer">PostgreSQL — ALTER TABLE</a></li>
+<li><a href="https://docs.gitlab.com/development/database/" target="_blank" rel="noopener noreferrer">GitLab — Database migrations</a></li>
+<li><a href="https://www.prisma.io/docs/orm/prisma-migrate" target="_blank" rel="noopener noreferrer">Prisma — Database migrations</a></li>
+<li><a href="https://martinfowler.com/bliki/ParallelChange.html" target="_blank" rel="noopener noreferrer">Expand and Contract pattern</a></li>
+<li><a href="https://documentation.red-gate.com/flyway/flyway-concepts/migrations/versioned-migrations" target="_blank" rel="noopener noreferrer">Flyway — Versioned migrations</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="strategie-sauvegarde-restauration.html">← Précédent : Sauvegarde et restauration</a><a rel="next" href="recherche-textuelle-pagination.html">Suivant : Recherche textuelle et pagination efficace →</a></nav>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!-- SOURCES DOCUMENTAIRES
+- TypeScript Handbook — Conditional Types: https://www.typescriptlang.org/docs/handbook/2/conditional-types.html
+- TypeScript Handbook — Mapped Types: https://www.typescriptlang.org/docs/handbook/2/mapped-types.html
+- TypeScript Handbook — keyof Type Operator: https://www.typescriptlang.org/docs/handbook/2/keyof-types.html
+- TypeScript Handbook — Indexed Access Types: https://www.typescriptlang.org/docs/handbook/2/indexed-access-types.html
+- TypeScript Handbook — Utility Types: https://www.typescriptlang.org/docs/handbook/utility-types.html
+Ces liens sont des points de départ documentaires ciblés ; ils ne signifient pas que chaque ressource a été lue intégralement.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Créer des types dérivés en fonction d’autres types, transformer les propriétés d’un objet et reconnaître quand une abstraction devient trop complexe.">
+<title>TypeScript : types conditionnels et types mappés — Parcours Full Stack</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header"><a href="/" target="_top">Parcours Full Stack</a><nav aria-label="Navigation principale"><a href="/" target="_top">Sommaire</a></nav></header>
+<main class="lesson">
+<p class="eyebrow">Tutoriel technique</p>
+<h1>TypeScript : types conditionnels et types mappés</h1>
+<p class="lead">Créer des types dérivés en fonction d’autres types, transformer les propriétés d’un objet et reconnaître quand une abstraction devient trop complexe.</p>
+
+<h2>1. Objectifs et prérequis</h2>
+<p>Les types conditionnels et mappés servent à construire un type à partir d’un autre. Ils sont à la base de nombreux utilitaires TypeScript, mais peuvent aussi produire des signatures difficiles à lire. À la fin du module, vous saurez écrire un type conditionnel simple, transformer les propriétés d’un objet, comprendre le comportement distributif sur les unions et choisir une solution plus simple quand elle suffit. Il faut déjà maîtriser les génériques, <code>keyof</code>, les unions et les types indexés.</p>
+<h2>2. Types conditionnels : choisir un type à partir d’une relation</h2>
+<p>Un type conditionnel utilise la forme <code>T extends U ? X : Y</code>. Il pose une question de compatibilité de types : si <code>T</code> est assignable à <code>U</code>, le résultat est <code>X</code>, sinon <code>Y</code>. Il s’agit d’une opération au niveau du système de types, pas d’un <code>if</code> exécuté en JavaScript.</p>
+<pre><code>type IsString&lt;T&gt; = T extends string ? true : false;
+
+type A = IsString&lt;"bonjour"&gt;; // true
+type B = IsString&lt;42&gt;;        // false</code></pre>
+<p>Le résultat est un type, pas une valeur booléenne disponible à l’exécution. Un type conditionnel est pertinent lorsque la forme du résultat dépend réellement du type d’entrée. Pour une fonction métier ordinaire, une condition JavaScript reste nécessaire si le programme doit agir sur une valeur réelle.</p>
+<h2>3. Extraire une information d’un type</h2>
+<p>Le mot-clé <code>infer</code> permet de nommer un type à l’intérieur de la condition lorsque TypeScript peut l’inférer à partir d’une structure. Un exemple conceptuel est l’extraction du type de retour d’une fonction :</p>
+<pre><code>type ReturnOf&lt;T&gt; = T extends (...args: never[]) =&gt; infer R
+  ? R
+  : never;
+
+type Result = ReturnOf&lt;() =&gt; Promise&lt;number&gt;&gt;;
+// Promise&lt;number&gt;</code></pre>
+<p>Dans cette définition, <code>R</code> est capturé à partir de la signature de fonction. En pratique, le type utilitaire intégré <code>ReturnType&lt;T&gt;</code> remplit déjà ce rôle et doit être préféré sauf si vous apprenez ou avez une exigence spécifique. Évitez de réinventer un utilitaire standard sans raison claire.</p>
+<h2>4. Distribution sur les unions</h2>
+<p>Lorsqu’un type conditionnel agit sur un paramètre générique nu, il se distribue sur les membres d’une union. Par exemple, une condition qui transforme les chaînes en tableaux s’applique séparément à chaque membre d’une union :</p>
+<pre><code>type ToArray&lt;T&gt; = T extends unknown ? T[] : never;
+type Values = ToArray&lt;string | number&gt;;
+// string[] | number[]</code></pre>
+<p>Le résultat est une union de tableaux, pas un tableau qui mélange librement chaînes et nombres. Si vous voulez tester l’union entière sans distribution, enveloppez les deux côtés dans un tuple :</p>
+<pre><code>type ToArrayWhole&lt;T&gt; = [T] extends [unknown] ? T[] : never;
+type Whole = ToArrayWhole&lt;string | number&gt;;
+// (string | number)[]</code></pre>
+<p>Cette différence est subtile mais importante. Avant d’ajouter une condition à un type générique, testez-la sur un type concret, une union et parfois <code>never</code>. Le TypeScript Playground aide à inspecter le résultat réellement calculé.</p>
+<h2>5. Types mappés : transformer chaque propriété</h2>
+<p>Un type mappé parcourt les clés d’un type existant. La forme générale <code>{ [K in keyof T]: ... }</code> produit un nouvel objet dont les propriétés sont dérivées de celles de <code>T</code>.</p>
+<pre><code>type ReadonlyLike&lt;T&gt; = {
+  readonly [K in keyof T]: T[K];
+};
+
+type User = {
+  id: string;
+  name: string;
+};
+
+type ReadonlyUser = ReadonlyLike&lt;User&gt;;</code></pre>
+<p>TypeScript fournit déjà <code>Readonly&lt;T&gt;</code>, équivalent pour ce besoin courant. L’intérêt pédagogique est de comprendre que le compilateur parcourt les clés et réutilise le type de chaque propriété grâce à <code>T[K]</code>. Les modificateurs comme <code>readonly</code> et <code>?</code> peuvent être ajoutés ou retirés dans un type mappé.</p>
+<h2>6. Transformer les propriétés sélectionnées</h2>
+<p>Les types mappés deviennent puissants lorsqu’ils combinent une sélection de clés avec une transformation. Voici une version simple d’un type qui rend toutes les propriétés facultatives :</p>
+<pre><code>type OptionalFields&lt;T&gt; = {
+  [K in keyof T]?: T[K];
+};
+
+type Profile = { id: string; displayName: string };
+type ProfilePatch = OptionalFields&lt;Profile&gt;;
+// { id?: string; displayName?: string }</code></pre>
+<p>En code applicatif, utilisez généralement <code>Partial&lt;Profile&gt;</code>. Gardez en tête que rendre toutes les propriétés facultatives peut être trop permissif : un objet vide devient acceptable. Pour une commande de mise à jour, vous devrez peut-être exiger au moins une propriété ou définir un type dédié à l’opération.</p>
+<p>Les clés peuvent aussi être filtrées par un type conditionnel. Cette technique permet d’identifier les propriétés dont les valeurs satisfont une condition, mais elle augmente rapidement la complexité. Préférez une définition explicite si le type calculé devient difficile à expliquer à un collègue.</p>
+<h2>7. Remappage des clés</h2>
+<p>Avec la clause <code>as</code> dans un type mappé, il est possible de transformer les noms de propriétés ou d’écarter certaines clés en les remappant vers <code>never</code>. Par exemple, on peut retirer les propriétés qui ne sont pas des chaînes :</p>
+<pre><code>type StringKeys&lt;T&gt; = {
+  [K in keyof T as T[K] extends string ? K : never]: T[K];
+};
+
+type Settings = {
+  theme: string;
+  retries: number;
+  locale: string;
+};
+
+type TextSettings = StringKeys&lt;Settings&gt;;
+// { theme: string; locale: string }</code></pre>
+<p>Ce mécanisme est utile pour construire des vues dérivées, mais il ne valide pas les données à l’exécution et ne change pas l’objet JavaScript. Le type n’est qu’une description statique. Si une valeur vient d’un formulaire ou d’un serveur, sa forme réelle doit être contrôlée séparément.</p>
+<h2>8. Erreurs fréquentes et limites</h2>
+<ul>
+<li>Confondre une transformation de type et une transformation de valeur au runtime.</li>
+<li>Oublier la distribution des types conditionnels sur une union.</li>
+<li>Construire un utilitaire compliqué alors qu’un type intégré existe déjà.</li>
+<li>Créer des types qui donnent une illusion de validation pour des données externes.</li>
+<li>Empiler trop de conditions, ce qui ralentit parfois le compilateur et nuit à la lisibilité.</li>
+</ul>
+<p>La meilleure abstraction est celle que l’équipe peut comprendre et modifier. Les types sophistiqués sont justifiés quand ils évitent des erreurs récurrentes ou améliorent clairement l’expérience d’utilisation d’une API ; ils ne constituent pas un objectif en soi.</p>
+<h2>Atelier guidé — dériver un type sans masquer son comportement</h2>
+<p>Les types conditionnels et mappés sont des outils de métaprogrammation au niveau des types. Ils sont utiles pour supprimer les duplications, mais rendent les erreurs plus difficiles à lire si leur résultat n’est pas vérifiable simplement.</p>
+<pre><code>type ApiResult&lt;T&gt; = T extends { error: unknown }
+  ? { ok: false; error: T["error"] }
+  : { ok: true; data: T };
+
+type ApiUser = { id: number; name: string };
+type ApiUserResult = ApiResult&lt;ApiUser&gt;;
+// { ok: true; data: ApiUser }
+
+type ApiError = { error: { message: string } };
+type ErrorResult = ApiResult&lt;ApiError&gt;;
+// { ok: false; error: { message: string } }</code></pre>
+<p>Pour comprendre le résultat, évaluez d’abord la condition <code>T extends ...</code>, puis la branche choisie. Si <code>T</code> est un paramètre générique nu qui reçoit une union, le type conditionnel peut se distribuer sur chaque membre. Pour éviter cette distribution dans certains cas, on peut encadrer les côtés du test avec des tuples, par exemple <code>[T] extends [U]</code>.</p>
+<p>Avant de publier un utilitaire de type, ajoutez des exemples de types d’entrée simples, unions, types limites et propriétés optionnelles. Survolez le type résultant dans l’éditeur ou utilisez des tests de types. Si l’équipe ne peut pas expliquer le résultat sans plusieurs minutes de navigation, préférez plusieurs alias nommés et une transformation plus simple.</p>
+
+<h2>9. Exercice</h2>
+<p>Définissez un type <code>Config</code> avec des propriétés chaîne, nombre et booléenne. Créez un type mappé qui conserve seulement les propriétés de type chaîne. Puis écrivez un type conditionnel qui enveloppe un type dans un tableau. Testez le résultat sur <code>string | number</code> et comparez la version distributive à la version qui enveloppe l’union entière. Utilisez le Playground pour vérifier les résultats.</p>
+<h2>10. Critères de réussite</h2>
+<ul class="checklist">
+<li>Je sais lire et écrire <code>T extends U ? X : Y</code>.</li>
+<li>Je comprends le rôle de <code>infer</code> dans une condition.</li>
+<li>Je peux expliquer la distribution sur les unions.</li>
+<li>Je sais transformer les propriétés avec <code>keyof</code> et un type mappé.</li>
+<li>Je préfère les utilitaires standards lorsque leur contrat suffit.</li>
+</ul>
+
+<section class="sources"><h2>Sources documentaires</h2><p>Consultez ces références pour approfondir les concepts et vérifier les détails liés aux versions.</p><ul><li><a href="https://www.typescriptlang.org/docs/handbook/2/conditional-types.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Conditional Types</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/2/mapped-types.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Mapped Types</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/2/keyof-types.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — keyof Type Operator</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/2/indexed-access-types.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Indexed Access Types</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/utility-types.html" target="_blank" rel="noopener noreferrer">TypeScript Handbook — Utility Types</a></li></ul></section>
+<nav class="lesson-navigation" aria-label="Navigation entre les leçons"><a rel="prev" href="typescript-unions-intersections.html">← Précédent : TypeScript : unions, intersections et narrowing</a><a rel="next" href="typescript-utilitaires.html">Suivant : Types utilitaires : Pick, Omit, Partial et Record →</a></nav>
+</main>
+<footer><p>Parcours Full Stack — apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

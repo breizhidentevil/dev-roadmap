@@ -1,0 +1,56 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : DNS, TLS et proxy
+Références retenues comme points de départ documentaires ; vérifier leur actualité et leur adéquation au projet.
+1. Cloudflare — What is DNS? — https://www.cloudflare.com/learning/dns/what-is-dns/
+2. Cloudflare — What is TLS? — https://www.cloudflare.com/learning/ssl/transport-layer-security-tls/
+3. Let's Encrypt — How it works — https://letsencrypt.org/how-it-works/
+4. NGINX — Reverse proxy — https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/
+5. RFC 8446 — TLS 1.3 — https://www.rfc-editor.org/rfc/rfc8446
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Comprendre la résolution de noms, la validation des certificats et le rôle des proxys dans une architecture web.">
+  <title>DNS, TLS et proxy — Roadmap Full Stack 2026</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+  <main class="lesson">
+    <p class="eyebrow">0. Informatique générale et fonctionnement des systèmes</p>
+    <h1>DNS, TLS et proxy</h1>
+    <p class="lead">Comprendre la résolution de noms, le chiffrement des connexions et les intermédiaires réseau.</p>
+    <div class="lesson-meta"><span>Tutoriel complet · Niveau intermédiaire</span><span>Durée indicative : 1 h 45</span></div>
+<section class="lesson-section"><h2>Objectifs pédagogiques</h2><ul><li>Expliquer les principales étapes entre une URL et une connexion HTTPS.</li><li>Lire les notions essentielles d’un certificat TLS.</li><li>Distinguer proxy direct, reverse proxy et terminaison TLS.</li></ul></section>
+<section class="lesson-section"><h2>1. De l’URL à la connexion</h2><p>Lorsqu’un navigateur ouvre une URL, il identifie le schéma, le nom d’hôte, le port et le chemin. Il résout ensuite le nom via DNS, établit une connexion vers l’adresse obtenue, négocie TLS pour HTTPS, puis échange des messages HTTP. Des caches, proxies, connexions déjà ouvertes et protocoles plus récents peuvent modifier le détail du trajet, mais cette séquence est une bonne base de diagnostic.</p><p>Une erreur de résolution DNS survient avant la connexion au serveur ; une erreur de certificat intervient pendant la négociation TLS ; une réponse HTTP 404 indique que la communication applicative a abouti mais que la ressource n’a pas été trouvée selon le serveur.</p></section>
+<section class="lesson-section"><h2>2. DNS et TTL</h2><p>DNS permet de retrouver des enregistrements associés à un nom : adresses IPv4 ou IPv6, serveurs de messagerie, alias et autres données. Le TTL indique combien de temps une réponse peut rester en cache. Changer un enregistrement n’efface pas instantanément les réponses déjà mises en cache : la propagation observée dépend des TTL précédents, des résolveurs et des caches intermédiaires.</p><p>Pour un changement de production, préparez la valeur cible, vérifiez les enregistrements avant et après la modification, et prévoyez le temps nécessaire aux caches existants pour expirer.</p></section>
+<section class="lesson-section"><h2>3. TLS et certificats</h2><p>TLS protège les échanges en chiffrant les données, en détectant les modifications et en authentifiant le serveur selon le certificat présenté et les règles de validation du client. Le nom demandé doit correspondre aux noms couverts par le certificat ; la chaîne de certification doit être valide et le certificat doit être dans sa période de validité.</p><p>Ne contournez pas une erreur de certificat en désactivant la validation. Recherchez plutôt le nom incorrect, le certificat expiré, la chaîne intermédiaire manquante, l’horloge système erronée ou une autorité non reconnue.</p></section>
+<section class="lesson-section"><h2>4. Proxy direct et reverse proxy</h2><p>Un proxy direct est généralement configuré côté client pour relayer les requêtes vers l’extérieur. Un reverse proxy se place devant un ou plusieurs serveurs applicatifs : il peut distribuer la charge, terminer TLS, appliquer des limites, servir des ressources statiques et ajouter des en-têtes. Il devient une frontière importante et doit être configuré comme telle.</p><p>Si l’application fait confiance à <code>X-Forwarded-For</code> ou à d’autres en-têtes de proxy, elle doit n’accepter ces valeurs que depuis des proxys explicitement approuvés. Sinon, un client pourrait falsifier son adresse apparente ou des informations de schéma.</p></section>
+<section class="lesson-section"><h2>5. Vérifications pratiques</h2><p></p><pre><code>dig example.com A
+dig example.com AAAA
+curl -Iv https://example.com
+openssl s_client -connect example.com:443 -servername example.com
+</code></pre><p><code>dig</code> inspecte DNS, <code>curl -I</code> affiche les informations de la réponse et <code>openssl s_client</code> permet d’observer la négociation TLS et le certificat. Les sorties peuvent contenir des informations d’infrastructure : ne les publiez pas sans les examiner.</p></section>
+<section class="lesson-section"><h2>6. Exercice</h2><p>Sur un environnement de test, comparez trois erreurs simulées : mauvais enregistrement DNS, certificat ne correspondant pas au nom, et reverse proxy pointant vers un service indisponible. Pour chaque cas, notez le symptôme côté client, le niveau concerné et le test qui permet de confirmer l’hypothèse.</p><h3>Critères de réussite</h3><ul><li>Vous savez distinguer DNS, TLS et HTTP.</li><li>Vous comprenez le rôle du TTL.</li><li>La validation des certificats reste activée.</li><li>Les en-têtes de proxy ne sont fiables que depuis une source de confiance.</li></ul></section>
+
+<section class="lesson-section"><h2>7. Certificats et en-têtes de proxy : pièges de production</h2>
+<p>Un certificat valide n’est pas seulement un certificat dont la date n’est pas dépassée. Le client vérifie notamment la chaîne de confiance, le nom d’hôte et les règles applicables. Une erreur de nom peut indiquer que le certificat correspond à un autre domaine ; une chaîne incomplète peut signifier que le serveur n’envoie pas les certificats intermédiaires attendus. Désactiver la vérification pour « faire fonctionner » la connexion supprime une protection essentielle et ne constitue pas une correction.</p>
+<p>Pour inspecter une négociation, utilise un outil tel que <code>openssl s_client</code> avec le nom d’hôte et le SNI appropriés, puis vérifie la sortie. Les options diffèrent selon la version d’OpenSSL et le service testé. Complète ce diagnostic par une requête cliente normale, car la chaîne de confiance locale et les comportements peuvent différer.</p>
+<pre><code># Exemple de diagnostic TLS avec SNI
+openssl s_client -connect example.com:443 -servername example.com
+
+# Vérifier les en-têtes de réponse
+curl -sS -D - -o /dev/null https://example.com</code></pre>
+<p>Un reverse proxy peut terminer TLS puis transmettre la requête à un service interne. Les en-têtes comme <code>Forwarded</code> ou <code>X-Forwarded-For</code> ne sont fiables que si l’application sait quels proxies les ont ajoutés et ignore ou remplace les valeurs fournies par des clients non fiables. Sinon, un client peut falsifier son adresse apparente et contourner des règles de journalisation ou de limitation.</p>
+<p>Vérifie aussi la cohérence du schéma externe. Si le proxy reçoit HTTPS mais transmet HTTP à l’application, celle-ci doit comprendre qu’elle est derrière un proxy de confiance pour construire les bonnes URL et appliquer les cookies sécurisés. N’active pas la confiance dans les en-têtes de proxy depuis n’importe quelle adresse ; configure explicitement les intermédiaires autorisés.</p></section>
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://www.cloudflare.com/learning/dns/what-is-dns/" target="_blank" rel="noopener noreferrer">Cloudflare — What is DNS?</a></li><li><a href="https://www.cloudflare.com/learning/ssl/transport-layer-security-tls/" target="_blank" rel="noopener noreferrer">Cloudflare — What is TLS?</a></li><li><a href="https://letsencrypt.org/how-it-works/" target="_blank" rel="noopener noreferrer">Let&#x27;s Encrypt — How it works</a></li><li><a href="https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/" target="_blank" rel="noopener noreferrer">NGINX — Reverse proxy</a></li><li><a href="https://www.rfc-editor.org/rfc/rfc8446" target="_blank" rel="noopener noreferrer">RFC 8446 — TLS 1.3</a></li></ul></section>
+<section class="lesson-section checklist"><h2>Validation des acquis</h2><label><input type="checkbox"> Je sais suivre les étapes DNS → connexion → TLS → HTTP.</label><label><input type="checkbox"> Je peux diagnostiquer les erreurs de certificat sans désactiver la validation.</label><label><input type="checkbox"> Je sais pourquoi un reverse proxy doit être une frontière de confiance.</label></section>
+<nav class="lesson-nav"><a class="nav-link" href="reseaux-tcp-ip.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="terminal-shell-bash.html">Compétence suivante →</a></nav>
+  </main>
+  <footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : TypeScript avec React
+Références de départ pour approfondir les notions ; le tutoriel est une synthèse pédagogique originale.
+1. React — Utiliser TypeScript — https://react.dev/learn/typescript
+2. TypeScript — JSX — https://www.typescriptlang.org/docs/handbook/jsx.html
+3. TypeScript — Types d’objets — https://www.typescriptlang.org/docs/handbook/2/objects.html
+4. React TypeScript Cheatsheets — https://react-typescript-cheatsheet.netlify.app/
+5. TypeScript — Narrowing — https://www.typescriptlang.org/docs/handbook/2/narrowing.html
+-->
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Typer props, événements, états et données d’API." name="description"/>
+<title>TypeScript avec React — Roadmap Full Stack 2026</title>
+<link href="../style.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/" target="_top">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">2. Frontend</p>
+<h1>TypeScript avec React</h1>
+<p class="lead">Typer les props, événements et états React pour détecter les erreurs à la compilation sans alourdir inutilement le code.</p>
+<div class="lesson-meta"><span>Tutoriel détaillé</span><span>Lot 8 · 2026</span></div>
+<section class="lesson-section"><h2>Objectifs d’apprentissage</h2>
+<ul><li>Définir les types des props.</li><li>Typer événements et état React.</li><li>Modéliser props optionnelles et unions discriminées.</li><li>Éviter les assertions forcées et les types trop larges.</li></ul>
+</section><section class="lesson-section"><h2>Fil directeur</h2><p>Le typage d’une interface React doit rendre explicites les contrats entre composants et les états possibles de l’application. Il améliore l’autocomplétion et détecte des incohérences à la compilation, mais ne valide pas les données reçues à l’exécution.</p></section><section class="lesson-section"><h2>1. Définir le contrat des props</h2><p>Déclare les propriétés attendues avec un type ou une interface. Distingue les champs obligatoires, optionnels et les callbacks. Un type doit exprimer ce que le composant exige réellement, sans rendre chaque prop optionnelle « par commodité ».</p><pre><code>type Product = { id: string; name: string; price: number };
+type ProductCardProps = {
+  product: Product;
+  onSelect: (id: string) =&gt; void;
+};</code></pre><p>Les props sont en lecture seule par convention et par conception : le composant signale une intention au parent via un callback plutôt que de muter la donnée reçue.</p></section><section class="lesson-section"><h2>2. Typer les événements et les contrôles</h2><p>Utilise les types d’événements React appropriés plutôt que `any`. Pour un champ texte, `React.ChangeEvent&lt;HTMLInputElement&gt;` donne accès à la cible typée ; pour un formulaire, `React.FormEvent&lt;HTMLFormElement&gt;` convient à la soumission.</p><pre><code>function handleChange(event: React.ChangeEvent&lt;HTMLInputElement&gt;) {
+  setQuery(event.currentTarget.value);
+}</code></pre><p>Lorsque le contexte JSX suffit à inférer le type du gestionnaire, une annotation explicite peut être inutile. Privilégie le type le plus simple qui conserve la sécurité.</p></section><section class="lesson-section"><h2>3. Représenter correctement l’état</h2><p>Type l’état à partir de ses valeurs réelles. Si une valeur commence à `null` puis reçoit un résultat, exprime ce cas dans le type. Pour les états de chargement, utilise une union discriminée plutôt que des booléens indépendants qui peuvent se contredire.</p><pre><code>type LoadState&lt;T&gt; =
+  | { status: "loading" }
+  | { status: "success"; data: T }
+  | { status: "error"; message: string };</code></pre><p>Le champ `status` permet à TypeScript de réduire le type : les données n’existent que dans la branche `success`, ce qui force le code à traiter les autres cas.</p></section><section class="lesson-section"><h2>4. Valider les données externes à l’exécution</h2><p>TypeScript n’inspecte pas la réponse JSON à l’exécution. Une annotation comme `response.json() as Product[]` ne vérifie pas que la réponse contient effectivement des produits. Traite les données réseau comme inconnues, vérifie leur structure ou utilise un schéma runtime, puis convertis-les en type applicatif.</p><p>Le typage aide à garantir la cohérence du code après validation ; il ne remplace ni la validation des entrées ni les contrôles d’autorisation du serveur.</p></section><section class="lesson-section"><h2>Erreurs fréquentes et diagnostic</h2><ul><li>Utiliser `any` pour faire disparaître une erreur de type.</li><li>Forcer un type avec `as` sans validation de la donnée.</li><li>Oublier le cas `null` ou l’état de chargement.</li><li>Modéliser le même état par plusieurs booléens contradictoires.</li><li>Annoter des callbacks alors que l’inférence fournit déjà le bon type.</li></ul></section><section class="lesson-section"><h2>Exercice guidé</h2><p>Crée un composant `ProductCard` avec des props strictes et un callback de sélection. Ajoute un chargement typé avec une union discriminée, puis écris une fonction de validation des données inconnues reçues d’une API avant de les transmettre au composant.</p></section><section class="lesson-section"><h2>Critères de réussite</h2><ul><li>Les props obligatoires et optionnelles sont explicites.</li><li>Les événements utilisent des types React adaptés.</li><li>Les états de succès, chargement et erreur sont exhaustifs.</li><li>Aucune assertion de type ne remplace la validation des données externes.</li><li>La compilation stricte passe sans recourir à `any` injustifié.</li></ul></section>
+
+
+
+
+
+
+
+<section class="lesson-section"><h2>Sources à étudier</h2><ul><li><a href="https://react.dev/learn/typescript" rel="noopener noreferrer" target="_blank">React — Utiliser TypeScript</a></li><li><a href="https://www.typescriptlang.org/docs/handbook/jsx.html" rel="noopener noreferrer" target="_blank">TypeScript — JSX</a></li><li><a href="https://www.typescriptlang.org/docs/handbook/2/objects.html" rel="noopener noreferrer" target="_blank">TypeScript — Types d’objets</a></li><li><a href="https://react-typescript-cheatsheet.netlify.app/" rel="noopener noreferrer" target="_blank">React TypeScript Cheatsheets</a></li><li><a href="https://www.typescriptlang.org/docs/handbook/2/narrowing.html" rel="noopener noreferrer" target="_blank">TypeScript — Narrowing</a></li></ul></section>
+<nav class="lesson-nav"><a class="nav-link" href="gestion-etat.html">← Compétence précédente</a><a class="nav-link" href="/" target="_top">↑ Retour au chapitrage</a><a class="nav-link next" href="tailwind-composants.html">Compétence suivante →</a></nav>
+</main>
+<footer class="footer">Roadmap Full Stack Developer · Parcours personnel d’apprentissage</footer>
+</body>
+</html>

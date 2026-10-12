@@ -1,0 +1,68 @@
+<!--
+SOURCES DOCUMENTAIRES — SÉLECTION CIBLÉE
+Compétence : Lire et contribuer à l’open source
+Références de départ adaptées au sujet ; leur présence ne signifie pas que chaque ressource a été lue intégralement.
+1. GitHub Docs — Contributing to projects — https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project
+2. GitHub Docs — About pull requests — https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests
+3. GitHub Docs — Fork a repository — https://docs.github.com/en/get-started/quickstart/fork-a-repo
+4. Contributor Covenant — Code of Conduct — https://www.contributor-covenant.org/version/2/1/code_of_conduct/
+5. GitHub Docs — About issues — https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Explorer un dépôt, comprendre ses conventions et proposer des contributions maintenables.">
+<title>Lire et contribuer à l’open source — Roadmap Full Stack 2026</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar"><a href="/" target="_top" class="brand">Roadmap Full Stack <span>2026</span></a><span class="topbar-note">Parcours d’apprentissage</span></header>
+<main class="lesson">
+<p class="eyebrow">Parcours Full Stack · Pratique et qualité</p>
+<h1>Lire et contribuer à l’open source</h1>
+<p class="lead">Contribuer à un projet open source demande autant de lecture et de communication que de code. Une contribution utile répond à un besoin réel, respecte les conventions du dépôt et facilite la revue par les mainteneurs.</p>
+<div class="lesson-meta"><span>Tutoriel approfondi</span><span>Compétence Full Stack</span></div>
+<section class="lesson-section"><h2>Objectifs et prérequis</h2>
+<p>Un dépôt open source possède souvent des règles explicites sur les issues, les branches, les tests, le style et les demandes de fusion. Une contribution réussie ne consiste pas seulement à écrire du code correct : elle doit être compréhensible, vérifiable et conforme à l’intention du projet.</p><ul><li>Évaluer rapidement l’activité et les conventions d’un dépôt.</li><li>Reproduire un problème avant de proposer une correction.</li><li>Préparer une modification petite, testée et documentée.</li><li>Communiquer clairement avec les mainteneurs et accepter les retours.</li></ul>
+</section>
+<section class="lesson-section"><h2>1. Choisir un projet et comprendre ses attentes</h2>
+<p>Commencez par un outil que vous utilisez ou un problème que vous pouvez reproduire. Lisez le README, la licence, le guide de contribution, le code de conduite et les modèles d’issue ou de pull request. Vérifiez le langage, les commandes de test et la version prise en charge.</p><p>Regardez l’activité récente, les issues ouvertes, les discussions et la façon dont les contributions sont revues. Un dépôt peu actif n’est pas nécessairement mauvais, mais il peut être difficile d’obtenir une réponse. Les labels « good first issue » ou « help wanted » sont des pistes, pas une promesse qu’une tâche est facile ou disponible.</p><p>Avant de commencer un changement conséquent, vérifiez qu’il répond à un besoin accepté. Une discussion courte peut éviter de développer une fonctionnalité que les mainteneurs ne souhaitent pas intégrer.</p>
+</section>
+<section class="lesson-section"><h2>2. Reproduire avant de corriger</h2>
+<p>Pour un bug, construisez un cas minimal qui montre le comportement attendu et le comportement réel. Notez la version, le système, les étapes de reproduction, les entrées et le résultat observé. Une issue précise permet à d’autres personnes de confirmer le problème sans devoir deviner votre environnement.</p><p>Explorez le code depuis le point d’entrée et suivez les appels vers la logique concernée. Lisez les tests existants avant de modifier l’implémentation : ils décrivent souvent des garanties qui ne sont pas évidentes dans le README. Exécutez la suite pertinente avant le changement pour distinguer une régression nouvelle d’un échec préexistant.</p><p>Ne publiez pas de données privées, de clés API, de jetons ou de journaux contenant des informations personnelles. Si le problème est une vulnérabilité de sécurité, suivez la politique de divulgation responsable du projet plutôt que de publier les détails exploitables dans une issue publique.</p>
+</section>
+<section class="lesson-section"><h2>3. Préparer une contribution maintenable</h2>
+<ol><li>Forker le dépôt si les règles du projet l’exigent, puis créer une branche au nom clair.</li><li>Avant d’exécuter les commandes d’installation ou de démarrage, inspecter les scripts déclarés et le code de bootstrap ; pour un dépôt inconnu, utiliser un environnement isolé, sans secrets ni privilèges inutiles.</li><li>Installer ensuite les dépendances avec les commandes documentées et respecter la version d’environnement.</li><li>Écrire un test qui échoue avant la correction lorsque c’est possible.</li><li>Modifier le minimum de code nécessaire pour résoudre le problème.</li><li>Exécuter les tests, le linter et le formatage prévus par le dépôt.</li><li>Mettre à jour la documentation si le comportement visible change.</li><li>Créer des commits lisibles et ouvrir une pull request décrivant le problème, la solution et les tests.</li></ol><p>Évitez les changements hors sujet dans la même PR : reformatage global, renommage massif ou refactorisation opportuniste rendent la revue plus difficile. Si une amélioration supplémentaire est utile, proposez-la séparément.</p>
+</section>
+<section class="lesson-section"><h2>4. Revue, retours et collaboration</h2>
+<p>Une pull request est une proposition de changement, pas une déclaration que le travail est terminé. Décrivez ce qui change, pourquoi, comment le tester et ce qui reste hors périmètre. Les captures d’écran peuvent aider pour l’interface ; les logs et commandes sont utiles pour les outils de ligne de commande.</p><p>Lorsqu’un mainteneur demande une modification, cherchez d’abord à comprendre le risque ou la convention derrière le commentaire. Répondez avec des changements ou une explication technique, sans transformer la revue en débat personnel. Si vous n’êtes pas d’accord, présentez les contraintes et les conséquences de chaque option.</p><p>Les mainteneurs peuvent refuser une contribution pour des raisons de périmètre, de maintenance, de compatibilité ou de calendrier. Un refus n’implique pas nécessairement que le code est mauvais. Vous pouvez garder le changement dans votre fork, chercher un projet mieux adapté ou proposer une version plus ciblée.</p>
+</section>
+<section class="lesson-section"><h2>5. Pièges fréquents et sécurité</h2>
+<ul><li><strong>PR trop large :</strong> scindez le travail pour rendre chaque décision vérifiable.</li><li><strong>Test absent :</strong> une correction sans test peut laisser revenir le bug.</li><li><strong>Style ignoré :</strong> des conventions non respectées ajoutent du travail de revue, même si le code fonctionne.</li><li><strong>Issue vague :</strong> les mainteneurs doivent pouvoir reproduire le problème à partir des informations fournies.</li><li><strong>Attente immédiate :</strong> les projets sont souvent maintenus bénévolement ; suivez les canaux et délais indiqués sans relances répétées.</li><li><strong>Licence oubliée :</strong> vérifiez les conditions du projet et les droits sur le code ou les données que vous proposez.</li><li><strong>Secrets exposés :</strong> retirez-les du changement et traitez toute clé publiée comme compromise ; supprimer le texte d’un commit ne garantit pas qu’il a disparu de l’historique ou des copies.</li></ul><p>La meilleure première contribution peut être une correction de documentation ou un test ciblé. Elle permet d’apprendre le processus sans introduire une grande surface de risque.</p>
+</section>
+<section class="lesson-section"><h2>6. Fermer la boucle : preuve, CI et périmètre de la pull request</h2>
+<p>Une contribution n’est pas vérifiée parce que le code paraît correct sur votre machine. Avant le changement, exécutez au moins le test ciblé et, si le temps le permet, les contrôles prévus par le dépôt. Après le changement, relancez les mêmes commandes. Cette comparaison permet de distinguer un échec préexistant d’une régression introduite par votre branche. Respectez les commandes documentées du projet : ne remplacez pas arbitrairement le gestionnaire de paquets ou la version du runtime.</p>
+<p>Si la CI échoue, classez l’échec avant de modifier le code : test fonctionnel, lint/formatage, compilation, environnement ou service externe. Ouvrez le premier échec utile dans les logs et cherchez la différence entre le résultat attendu et le résultat obtenu. Un échec d’infrastructure ne justifie pas automatiquement de modifier le test ; un test qui échoue localement après votre changement doit être compris avant l’ouverture de la PR.</p>
+<p>Avant de publier, inspectez le diff complet : fichiers inattendus, artefacts générés, secrets, modifications de dépendances et changements de formatage sans rapport. Un commit peut contenir une clé même si elle a été supprimée dans le commit suivant ; toute clé exposée doit être révoquée ou renouvelée. Pour une vulnérabilité, utilisez la procédure privée indiquée par le projet.</p>
+<pre><code>Problème : quel comportement manque ou est incorrect ?
+Changement : quelle modification minimale le corrige ?
+Preuve : quels tests/contrôles ont été exécutés et avec quel résultat ?
+Périmètre : quels cas ne sont pas couverts ?
+Risques : y a-t-il une migration, une incompatibilité ou un point sécurité ?</code></pre>
+<p>Cette structure aide les mainteneurs à évaluer la proposition sans reconstruire votre raisonnement. Si le résultat n’est pas évident, joignez un cas reproductible ou une capture pertinente, en supprimant toute donnée sensible.</p>
+</section>
+<section class="lesson-section"><h2>Exercice guidé</h2>
+<p>Choisissez un dépôt public d’un outil que vous connaissez. Sans modifier le code immédiatement, faites un diagnostic du projet et préparez une proposition de correction documentaire ou un test manquant.</p><ol><li>Où se trouvent les consignes de contribution et la licence ?</li><li>Comment installer et exécuter les tests ?</li><li>Quel problème précis voulez-vous résoudre, et comment le reproduire ?</li><li>Quelle preuve montrera que votre contribution fonctionne ?</li><li>Rédigez le titre et le résumé d’une pull request en indiquant les tests exécutés.</li></ol><p><strong>Critères de réussite :</strong> vous respectez les règles du dépôt, proposez une modification limitée, fournissez un moyen de la vérifier, n’exposez aucun secret et communiquez le contexte nécessaire à la revue.</p>
+</section>
+<section class="lesson-section"><h2>Sources documentaires</h2><p>Ces références permettent d’approfondir les notions et de vérifier les détails propres aux outils. Les exemples du tutoriel sont synthétiques ; vérifiez la version et le contexte avant une application en production.</p><ol><li><a href="https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project" target="_blank" rel="noopener noreferrer">GitHub Docs — Contributing to projects</a></li>
+<li><a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests" target="_blank" rel="noopener noreferrer">GitHub Docs — About pull requests</a></li>
+<li><a href="https://docs.github.com/en/get-started/quickstart/fork-a-repo" target="_blank" rel="noopener noreferrer">GitHub Docs — Fork a repository</a></li>
+<li><a href="https://www.contributor-covenant.org/version/2/1/code_of_conduct/" target="_blank" rel="noopener noreferrer">Contributor Covenant — Code of Conduct</a></li>
+<li><a href="https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues" target="_blank" rel="noopener noreferrer">GitHub Docs — About issues</a></li></ol></section>
+<nav class="lesson-nav" aria-label="Navigation entre les compétences"><a href="documentation-officielle.html">← Compétence précédente</a><a href="usage-ia.html">Compétence suivante →</a></nav>
+</main>
+<footer class="site-footer"><p>Roadmap Full Stack 2026 · Apprendre, pratiquer, vérifier.</p></footer>
+</body>
+</html>

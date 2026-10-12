@@ -15,17 +15,21 @@
 
 ## Le parcours en chiffres
 
-| Chapitres | Compétences | Projets | Tutoriels HTML |
-|:---:|:---:|:---:|:---:|
-| **25** | **169** | **5** | **174** |
+| Chapitres | Compétences | Projets | Langages | Concepts de cours |
+|:---:|:---:|:---:|:---:|:---:|
+| **25** | **169** | **5** | **8** | **56** |
 
 ## Ce que l’application propose
 
 - Recherche tolérante à la casse et aux accents.
 - Filtre séparé pour les compétences et les projets.
 - Lecture des tutoriels HTML conservés dans une iframe sandboxée.
+- Parcours distincts pour HTML, CSS, JavaScript, TypeScript, React, Node.js, SQL et PostgreSQL ; chaque langage forme une section du catalogue.
+- Une page par grand concept, avec navigation précédente/suivante et hashtags qui lancent une recherche ciblée.
+- Le cours HTML comprend 21 concepts détaillés, 15 références WHATWG, MDN et WAI, du code colorisé et un sélecteur **Code source / Aperçu HTML** sandboxé.
 - Thème clair ou sombre, mémorisé et appliqué aussi aux tutoriels.
 - Mise en page adaptée au mobile, à la tablette et au navigateur desktop.
+- Distinction explicite entre les cours (`/course/:slug`) et les fiches historiques de compétences (`/lesson/:slug`).
 - Routes HashRouter et workflow GitHub Actions prêts pour GitHub Pages.
 
 ## Démarrage rapide
@@ -70,7 +74,7 @@ Le déploiement réel et le rendu complet sur GitHub Pages restent à confirmer.
 
 ## État de la migration
 
-Les contrôles locaux actuels passent : **7 tests**, typecheck, build de production et validation de 25 chapitres, 174 entrées et 174 fichiers pédagogiques.
+Les contrôles locaux actuels passent : **13 tests**, typecheck, build de production et validation de 25 chapitres, 174 compétences/projets et 174 fichiers pédagogiques. Les concepts de cours restent séparés du catalogue source.
 
 Avant de considérer la migration complète :
 

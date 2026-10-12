@@ -121,4 +121,44 @@ Les statuts et blocages ci-dessous décrivent chaque passe au moment où elle a 
 - **Navigateur :** Vite local testé à 390, 768 et 1280 px ; respectivement 1, 2 et 3 colonnes, sans débordement horizontal du document ou de l’en-tête de leçon.
 - **Tests :** `npm test` — réussi, 7/7 ; `npm run build` et `npm run validate:catalog` réussis.
 - **Limites :** test du build de production dans un navigateur et audit d’autres largeurs restent à faire.
+
+## Passe MIG-012 — Cours HTML approfondi fondé sur les standards
+
+- **Date :** 2026-10-12
+- **Sources consultées :** 11 références : standard WHATWG, guides MDN sur syntaxe, structure, liens, images, métadonnées, formulaires et tableaux ; tutoriels WAI sur structure de page, libellés de formulaires et tableaux accessibles.
+- **Contenu :** le cours HTML passe à 15 modules couvrant syntaxe/parsing, document et métadonnées, texte, sémantique, URL, images responsives, médias/iframes, tableaux, formulaires, contrôles natifs, soumission/sécurité, éléments interactifs, chargement CSS/JS, accessibilité/internationalisation et validation.
+- **Code et exercices :** 21 blocs de code avec exemples complets, plus un exercice par module et un projet final. Les explications sont rédigées en synthèse ; les 11 sources sont liées en fin de page.
+- **Tests :** `npm test` — réussi, 11/11 ; `npm run typecheck`, `npm run build` et `npm run validate:catalog` réussis.
+- **Navigateur :** `/course/html` affiche 15 modules, 21 exemples, 11 références et 15 liens de sommaire ; à 390 px, aucune barre de défilement horizontale.
+- **Prochaine tâche :** MIG-014, comparaison exhaustive du catalogue source.
+
+## Passe MIG-013 — Sections de langages et pages de concept
+
+- **Date :** 2026-10-12
+- **Catalogue :** remplacement de la section unique « Cours complets » par huit sections — HTML, CSS, JavaScript, TypeScript, React, Node.js, SQL et PostgreSQL — contenant 50 cartes de concepts.
+- **Routes :** chaque carte ouvre `/course/:langage/:concept`; l’ancienne route `/course/:langage` redirige vers son premier concept. Les routes `/lesson/:slug` des compétences restent inchangées.
+- **Hashtags :** chaque page affiche les hashtags du langage et du concept ; un clic ouvre le catalogue avec la recherche préremplie. L’index de recherche couvre résumé, notions, exercice et sections du concept.
+- **Tests :** `npm test` — réussi, 12/12 ; `npm run typecheck`, `npm run build` et `npm run validate:catalog` réussis.
+- **Navigateur :** huit sections et 50 concepts vérifiés ; `#syntaxe` préremplit la recherche et retourne le concept HTML ciblé ; 390 px sans débordement horizontal.
+- **Prochaine tâche :** MIG-014, comparaison exhaustive du catalogue source.
+
+## Passe MIG-014 — Audit HTML et exemples interactifs
+
+- **Date :** 2026-10-12
+- **Audit des sources :** comparaison du programme aux grandes familles du WHATWG HTML Living Standard, au répertoire des éléments, catégories de contenu et attributs globaux MDN, ainsi qu’aux guides WAI. Les références consultées sont liées dans la page ; le cours est rédigé en synthèse.
+- **Cours HTML :** 21 concepts, notamment catégories/modèles de contenu, attributs globaux/popover, templates et Web Components, microdata/JSON-LD, éléments spécialisés, éléments obsolètes et compatibilité HTML/XHTML.
+- **Exemples :** PrismLight colore les langages utilisés. Chaque exemple HTML propose Code source/Aperçu HTML ; l’aperçu extrait le body, désactive les scripts avec une iframe sandboxée et interdit les chargements réseau via CSP.
+- **Tests :** `npm test` — réussi, 13/13, dont coloration, bascule et politique CSP.
+- **Navigateur :** coloration Prism visible ; document complet affiché dans l’aperçu ; retour au code source vérifié.
+- **Prochaine tâche :** MIG-015, comparaison exhaustive du catalogue source.
+
+## Passe MIG-011 — Cours complets séparés des compétences
+
+- **Date :** 2026-10-12
+- **Modèle :** type `Course` indépendant de `Lesson`, avec catégorie, niveau, prérequis, objectifs, modules, exercices, exemples de code et projet final.
+- **Cours créés :** HTML, CSS, JavaScript, TypeScript, React, Node.js, SQL et PostgreSQL. Cinq modules distincts par technologie ; HTML/CSS et JavaScript/TypeScript ne sont pas regroupés.
+- **Navigation :** filtre « Cours » et routes `/course/:slug` ; les routes `/lesson/:slug` et les 174 pages HTML existantes restent inchangées.
+- **Tests :** `npm test` — réussi, 10/10 ; `npm run typecheck`, `npm run build` et `npm run validate:catalog` réussis.
+- **Navigateur :** les huit cours sont listés séparément ; `/course/css` affiche ses cinq modules et son projet final ; test mobile à 390 px sans débordement.
+- **Prochaine tâche :** MIG-012, comparaison exhaustive du catalogue historique avec la source.
 - **Prochaine tâche :** MIG-011, comparer intégralement les 174 entrées du catalogue avec la source.

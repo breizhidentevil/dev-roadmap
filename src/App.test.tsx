@@ -1,7 +1,8 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
+import { courses } from './data/courses';
 import catalog from './data/catalog.json';
 
 afterEach(() => {
@@ -26,12 +27,12 @@ describe('catalogue de migration', () => {
   it('affiche le catalogue et son volume initial', () => {
     renderApp();
     expect(screen.getByRole('heading', { name: 'Devenir développeur Full Stack' })).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('174 entrée(s) affichée(s)');
+    expect(screen.getByRole('status').textContent).toContain('230 entrée(s) affichée(s)');
   });
 
   it('filtre les compétences sans tenir compte des accents', () => {
     renderApp();
-    const search = screen.getByRole('searchbox', { name: 'Rechercher une compétence' });
+    const search = screen.getByRole('searchbox', { name: 'Rechercher dans le catalogue' });
     fireEvent.change(search, { target: { value: 'accessibilite' } });
     expect(screen.getByRole('status').textContent).toContain('résultat(s) pour « accessibilite »');
     expect(screen.getByRole('link', { name: /Accessibilité Web/ })).toBeTruthy();
@@ -39,7 +40,7 @@ describe('catalogue de migration', () => {
 
   it('annonce explicitement une recherche sans résultat', () => {
     renderApp();
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher une compétence' }), { target: { value: 'zzzz-introuvable' } });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher dans le catalogue' }), { target: { value: 'zzzz-introuvable' } });
     expect(screen.getByRole('status').textContent).toContain('0 résultat');
     expect(screen.getByText('Aucune entrée ne correspond à ces filtres.')).toBeTruthy();
   });
@@ -71,5 +72,63 @@ describe('catalogue de migration', () => {
     Object.defineProperty(iframe, 'contentDocument', { configurable: true, value: iframeDocument });
     fireEvent.load(iframe);
     expect(iframeDocument.documentElement.dataset.theme).toBe('dark');
+  });
+
+  it('présente 56 concepts répartis en huit sections par technologie', () => {
+    expect(courses.map((course) => course.id)).toEqual(['html', 'css', 'javascript', 'typescript', 'react', 'nodejs', 'sql', 'postgresql']);
+    const { container } = renderApp();
+    fireEvent.click(screen.getByRole('button', { name: 'Cours' }));
+    expect(screen.getByRole('status').textContent).toContain('56 entrée(s) affichée(s)');
+    expect(screen.getAllByRole('link')).toHaveLength(56);
+    expect(container.querySelectorAll('.course-section')).toHaveLength(8);
+    expect(container.querySelector('[aria-labelledby="course-html"]')?.querySelectorAll('.course-card')).toHaveLength(21);
+    expect(screen.getByRole('link', { name: /Syntaxe, éléments, attributs et parsing/ }).getAttribute('href')).toBe('/course/html/syntaxe');
+    expect(screen.queryByRole('heading', { name: /Compétences professionnelles/ })).toBeNull();
+  });
+
+  it('affiche un concept CSS sur sa route dédiée, sans iframe legacy', () => {
+    render(<MemoryRouter initialEntries={['/course/css']}><App /></MemoryRouter>);
+    expect(screen.getByRole('heading', { name: 'CSS — Règles, cascade et sélecteurs' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Points à retenir' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /HTML|catalogue/i })).toBeTruthy();
+    expect(screen.queryByTitle('Cours CSS')).toBeNull();
+  });
+
+  it('expose le cours HTML approfondi avec 21 concepts, du code et 15 sources', () => {
+    const { container } = render(<MemoryRouter initialEntries={['/course/html/syntaxe']}><App /></MemoryRouter>);
+    expect(screen.getByRole('heading', { name: 'HTML — Syntaxe, éléments, attributs et parsing' })).toBeTruthy();
+    const htmlCourse = courses.find((course) => course.id === 'html');
+    expect(htmlCourse?.modules).toHaveLength(21);
+    expect(htmlCourse?.modules.reduce((total, module) => total + (module.sections?.reduce((sectionTotal, section) => sectionTotal + (section.examples?.length ?? 0), 0) ?? 0), 0)).toBeGreaterThan(15);
+    expect(container.querySelectorAll('.course-subsection pre code')).toHaveLength(2);
+    expect(container.querySelectorAll('.course-references a')).toHaveLength(15);
+    expect(screen.getByRole('link', { name: /2\. Document complet, doctype et métadonnées/ })).toBeTruthy();
+  });
+
+  it('colorise les exemples HTML et permet de basculer vers un aperçu sans scripts', () => {
+    const { container } = render(<MemoryRouter initialEntries={['/course/html/syntaxe']}><App /></MemoryRouter>);
+    const coloredTokens = container.querySelectorAll('.code-example pre code span.token[style]');
+    expect(coloredTokens.length).toBeGreaterThan(0);
+    expect(new Set(Array.from(coloredTokens, (token) => token.getAttribute('style'))).size).toBeGreaterThan(1);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Aperçu HTML' })[0]);
+    const preview = screen.getAllByTitle(/Aperçu HTML/)[0] as HTMLIFrameElement;
+    expect(preview.getAttribute('sandbox')).toBe('');
+    expect(preview.srcdoc).toContain("default-src 'none'");
+    expect(preview.srcdoc).toContain('<p class="introduction">');
+    expect(screen.getAllByRole('button', { name: 'Code source' })[0].getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('utilise un hashtag de concept pour préremplir la recherche', async () => {
+    render(<MemoryRouter initialEntries={['/course/html/syntaxe']}><App /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('link', { name: '#syntaxe' }));
+    const search = screen.getByRole('searchbox', { name: 'Rechercher dans le catalogue' });
+    await waitFor(() => expect((search as HTMLInputElement).value).toBe('syntaxe'));
+    const matchingConceptLinks = screen.getAllByRole('link').filter((link) => link.getAttribute('href')?.startsWith('/course/'));
+    expect(matchingConceptLinks.some((link) => link.getAttribute('href') === '/course/html/syntaxe')).toBe(true);
+  });
+
+  it('conserve la route HTML des fiches de compétence', () => {
+    render(<MemoryRouter initialEntries={['/lesson/react-composants']}><App /></MemoryRouter>);
+    expect(screen.getByTitle('React : composants, props et state').getAttribute('src')).toContain('/lessons/react-composants.html');
   });
 });

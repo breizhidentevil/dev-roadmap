@@ -1,6 +1,6 @@
 # Plan de migration — Roadmap Full Stack 2026 vers React
 
-**Statut :** prototype P0 créé ; catalogue classifié (169 compétences, 5 projets) ; tests, typecheck, build et vues responsive locales validés ; thème clair/sombre vérifié  
+**Statut :** prototype P0 créé ; catalogue classifié (169 compétences, 5 projets) ; 56 concepts par langage ; cours HTML audité, code colorisé et aperçu sandboxé ; tests, typecheck et build validés  
 **Référence utilisée à ce stade :** inventaire V41 (SHA-256 : `592e9b1213ee640b93d7951329d25c096adf7ba82fb4d743a335bbe4245fad1b`) ; index, tutoriels et CSS identiques à V40  
 **Stack cible proposée :** React + TypeScript strict + Vite  
 **Principe :** préserver le contenu existant, migrer par étapes vérifiables et conserver la version HTML de référence.
@@ -145,6 +145,7 @@ Ne créer cette arborescence qu’après inspection réelle des fichiers source.
 - [x] Ajouter des filtres basés sur la séparation source du chapitre `24-projets-pratiques`.
 - [x] Gérer résultats vides et nombre de résultats.
 - [x] Vérifier statiquement les routes catalogue et les liens HTML locaux avec `scripts/validate-catalog.mjs` ; test navigateur encore requis.
+- [x] Organiser huit langages en sections et 56 concepts en pages `/course/:slug/:conceptId`, avec hashtags menant à la recherche ; conserver les fiches `/lesson/:slug`.
 - [ ] Comparer le catalogue affiché au catalogue source.
 
 **Sortie :** aucune entrée source perdue ; fonctions principales accessibles sans navigation cassée.
@@ -279,9 +280,9 @@ La couverture de code ne remplace ni les tests des parcours critiques ni la comp
 
 ## 12. Prochaines étapes
 
-Les exécutions et résultats détaillés sont conservés dans [le journal de migration](MIGRATION_LOG.md). Les contrôles locaux de MIG-008 sont réussis ; les tâches restantes sont :
+Les exécutions et résultats détaillés sont conservés dans [le journal de migration](MIGRATION_LOG.md). Les contrôles locaux jusqu’à MIG-014 sont réussis ; les tâches restantes sont :
 
-1. **MIG-011 — Comparer le catalogue à la source :** vérifier l’ensemble des identifiants, titres, descriptions, ordre et chemins des 174 entrées.
+1. **MIG-015 — Comparer le catalogue à la source :** vérifier l’ensemble des identifiants, titres, descriptions, ordre et chemins des 174 entrées.
 2. **Validation navigateur complète :** tester routes directes et inconnues, navigation retour, plusieurs tutoriels et iframes, largeurs mobile/desktop et build de production.
 3. **Phase 5 — Progression et favoris :** définir les états, stocker et restaurer les données versionnées, gérer les données invalides et ajouter les tests correspondants.
 4. **Livraison :** finir les contrôles d’accessibilité et de performance, exécuter GitHub Actions sur le dépôt cible, puis produire et vérifier une archive de livraison.

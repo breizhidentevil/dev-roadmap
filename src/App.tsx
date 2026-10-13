@@ -212,7 +212,7 @@ function CourseConceptPage({ theme, onToggleTheme }: ThemeProps) {
     </section>}
     {course.references && <section className="course-references" aria-labelledby="references-heading">
       <details>
-        <summary id="references-heading">Références du cours HTML ({course.references.length})</summary>
+        <summary id="references-heading">Références du cours {course.title} ({course.references.length})</summary>
         <ol>{course.references.map((reference) => <li key={reference.url}><a href={reference.url} target="_blank" rel="noreferrer">{reference.title}</a></li>)}</ol>
       </details>
     </section>}

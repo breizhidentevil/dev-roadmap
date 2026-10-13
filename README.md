@@ -17,7 +17,7 @@
 
 | Chapitres | Compétences | Projets | Langages | Concepts de cours |
 |:---:|:---:|:---:|:---:|:---:|
-| **25** | **169** | **5** | **8** | **56** |
+| **25** | **169** | **5** | **8** | **93** |
 
 ## Ce que l’application propose
 
@@ -26,7 +26,9 @@
 - Lecture des tutoriels HTML conservés dans une iframe sandboxée.
 - Parcours distincts pour HTML, CSS, JavaScript, TypeScript, React, Node.js, SQL et PostgreSQL ; chaque langage forme une section du catalogue.
 - Une page par grand concept, avec navigation précédente/suivante et hashtags qui lancent une recherche ciblée.
-- Le cours HTML comprend 21 concepts détaillés, 15 références WHATWG, MDN et WAI, du code colorisé et un sélecteur **Code source / Aperçu HTML** sandboxé.
+- Le cours HTML comprend 21 concepts détaillés, des références normatives et pédagogiques, du code colorisé et un sélecteur **Code source / Aperçu HTML** sandboxé.
+- Le cours CSS comprend 21 concepts, 63 sections pédagogiques, 64 exemples intégrés aux sections, 14 références documentaires et un projet final responsive.
+- Le cours JavaScript moderne comprend 26 modules, 78 sections pédagogiques, 77 exemples de code commentés, 26 exercices, 11 références documentaires et un projet final connecté.
 - Thème clair ou sombre, mémorisé et appliqué aussi aux tutoriels.
 - Mise en page adaptée au mobile, à la tablette et au navigateur desktop.
 - Distinction explicite entre les cours (`/course/:slug`) et les fiches historiques de compétences (`/lesson/:slug`).
@@ -74,7 +76,7 @@ Le déploiement réel et le rendu complet sur GitHub Pages restent à confirmer.
 
 ## État de la migration
 
-Les contrôles locaux actuels passent : **13 tests**, typecheck, build de production et validation de 25 chapitres, 174 compétences/projets et 174 fichiers pédagogiques. Les concepts de cours restent séparés du catalogue source.
+La validation statique du catalogue passe : 25 chapitres, 174 entrées (169 compétences et 5 projets), identifiants uniques et 174 fichiers pédagogiques résolus. Les tests React, le typecheck et le build n’ont pas été relancés après les dernières corrections pédagogiques ; ils doivent être vérifiés dans Codex. Les concepts de cours restent séparés du catalogue source.
 
 Avant de considérer la migration complète :
 

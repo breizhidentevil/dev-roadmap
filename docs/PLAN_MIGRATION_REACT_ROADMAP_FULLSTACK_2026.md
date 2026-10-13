@@ -1,6 +1,6 @@
 # Plan de migration — Roadmap Full Stack 2026 vers React
 
-**Statut :** prototype P0 créé ; catalogue classifié (169 compétences, 5 projets) ; 56 concepts par langage ; cours HTML audité, code colorisé et aperçu sandboxé ; tests, typecheck et build validés  
+**Statut :** prototype P0 créé ; catalogue classifié (169 compétences, 5 projets) ; 72 concepts répartis sur huit cours, dont 21 concepts HTML et 21 CSS ; validation statique du catalogue réussie. Les tests, le typecheck et le build ne sont pas revalidés dans la dernière passe.  
 **Référence utilisée à ce stade :** inventaire V41 (SHA-256 : `592e9b1213ee640b93d7951329d25c096adf7ba82fb4d743a335bbe4245fad1b`) ; index, tutoriels et CSS identiques à V40  
 **Stack cible proposée :** React + TypeScript strict + Vite  
 **Principe :** préserver le contenu existant, migrer par étapes vérifiables et conserver la version HTML de référence.
@@ -145,7 +145,7 @@ Ne créer cette arborescence qu’après inspection réelle des fichiers source.
 - [x] Ajouter des filtres basés sur la séparation source du chapitre `24-projets-pratiques`.
 - [x] Gérer résultats vides et nombre de résultats.
 - [x] Vérifier statiquement les routes catalogue et les liens HTML locaux avec `scripts/validate-catalog.mjs` ; test navigateur encore requis.
-- [x] Organiser huit langages en sections et 56 concepts en pages `/course/:slug/:conceptId`, avec hashtags menant à la recherche ; conserver les fiches `/lesson/:slug`.
+- [x] Organiser huit langages en sections et 72 concepts en pages `/course/:slug/:conceptId`, avec hashtags menant à la recherche ; conserver les fiches `/lesson/:slug`.
 - [ ] Comparer le catalogue affiché au catalogue source.
 
 **Sortie :** aucune entrée source perdue ; fonctions principales accessibles sans navigation cassée.

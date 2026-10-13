@@ -24,6 +24,28 @@ describe('catalogue de migration', () => {
     expect(new Set(entries.map((entry) => entry.id)).size).toBe(entries.length);
   });
 
+  it('propose un cours JavaScript moderne approfondi', () => {
+    const javascript = courses.find((course) => course.id === 'javascript');
+    expect(javascript).toBeTruthy();
+    expect(javascript!.modules.length).toBe(26);
+    expect(javascript!.modules.some((module) => module.id === 'promesses-async')).toBe(true);
+    expect(javascript!.modules.some((module) => module.id === 'securite-javascript')).toBe(true);
+    expect(javascript!.references?.length).toBeGreaterThanOrEqual(10);
+    expect(javascript!.finalProject.criteria.length).toBeGreaterThanOrEqual(8);
+
+    const javascriptExamples = javascript!.modules.flatMap((module) =>
+      (module.sections ?? []).flatMap((section) => section.examples ?? []),
+    );
+    const conversionExample = javascriptExamples.find((example) => example.code.includes('function parsePositiveAmount'));
+    expect(conversionExample?.code).toContain("typeof input !== 'string'");
+    expect(conversionExample?.code).toContain("input.trim() === ''");
+    const nullishExample = javascriptExamples.find((example) => example.code.includes('const safeName = user?.profile?.name'));
+    expect(nullishExample?.code).toContain('const user = null;');
+    const securityExample = javascriptExamples.find((example) => example.code.includes("fetch('/api/orders'"));
+    expect(securityExample?.code).toContain("'Content-Type': 'application/json'");
+    expect(securityExample?.code).toContain('if (!response.ok)');
+  });
+
   it('affiche le catalogue et son volume initial', () => {
     renderApp();
     expect(screen.getByRole('heading', { name: 'Devenir développeur Full Stack' })).toBeTruthy();
@@ -74,12 +96,12 @@ describe('catalogue de migration', () => {
     expect(iframeDocument.documentElement.dataset.theme).toBe('dark');
   });
 
-  it('présente 56 concepts répartis en huit sections par technologie', () => {
+  it('présente 72 concepts répartis en huit sections par technologie', () => {
     expect(courses.map((course) => course.id)).toEqual(['html', 'css', 'javascript', 'typescript', 'react', 'nodejs', 'sql', 'postgresql']);
     const { container } = renderApp();
     fireEvent.click(screen.getByRole('button', { name: 'Cours' }));
-    expect(screen.getByRole('status').textContent).toContain('56 entrée(s) affichée(s)');
-    expect(screen.getAllByRole('link')).toHaveLength(56);
+    expect(screen.getByRole('status').textContent).toContain('72 entrée(s) affichée(s)');
+    expect(screen.getAllByRole('link')).toHaveLength(72);
     expect(container.querySelectorAll('.course-section')).toHaveLength(8);
     expect(container.querySelector('[aria-labelledby="course-html"]')?.querySelectorAll('.course-card')).toHaveLength(21);
     expect(screen.getByRole('link', { name: /Syntaxe, éléments, attributs et parsing/ }).getAttribute('href')).toBe('/course/html/syntaxe');
@@ -88,10 +110,22 @@ describe('catalogue de migration', () => {
 
   it('affiche un concept CSS sur sa route dédiée, sans iframe legacy', () => {
     render(<MemoryRouter initialEntries={['/course/css']}><App /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: 'CSS — Règles, cascade et sélecteurs' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'CSS — Modèle mental, syntaxe et branchement à HTML' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Points à retenir' })).toBeTruthy();
     expect(screen.getByRole('link', { name: /HTML|catalogue/i })).toBeTruthy();
     expect(screen.queryByTitle('Cours CSS')).toBeNull();
+  });
+
+  it('expose un cours CSS approfondi avec 21 concepts, au moins 60 sections et 13 références', () => {
+    const cssCourse = courses.find((course) => course.id === 'css');
+    expect(cssCourse?.modules).toHaveLength(21);
+    expect(cssCourse?.modules.reduce((total, module) => total + (module.sections?.length ?? 0), 0)).toBeGreaterThanOrEqual(60);
+    expect(cssCourse?.modules.every((module) => module.exercise.trim().length > 30)).toBe(true);
+    expect(cssCourse?.modules.reduce((total, module) => total + (module.sections?.reduce((count, section) => count + (section.examples?.length ?? 0), 0) ?? 0), 0)).toBeGreaterThanOrEqual(60);
+    expect(cssCourse?.references?.length).toBeGreaterThanOrEqual(13);
+    render(<MemoryRouter initialEntries={['/course/css/valeurs-unites']}><App /></MemoryRouter>);
+    expect(screen.getByRole('heading', { name: /CSS — Valeurs, unités, fonctions et propriétés personnalisées/ })).toBeTruthy();
+    expect(screen.getByText(/ne répare pas une valeur présente mais incompatible/)).toBeTruthy();
   });
 
   it('expose le cours HTML approfondi avec 21 concepts, du code et 15 sources', () => {

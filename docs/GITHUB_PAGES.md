@@ -10,7 +10,7 @@
 
 ## Ce que fait le workflow
 
-- Installe les dépendances avec npm.
+- Installe exactement les dépendances consignées dans `package-lock.json` avec `npm ci`.
 - Valide les 25 chapitres et les 174 entrées du catalogue source V40.
 - Exécute le contrôle TypeScript et les tests Vitest.
 - Construit le site avec Vite et déploie le répertoire `dist`.
@@ -29,4 +29,4 @@ Le workflow n'a pas encore été exécuté sur GitHub depuis cet environnement. 
 
 ## Reproductibilité des dépendances
 
-Les dépendances sont déclarées dans `package.json` et `package-lock.json` est maintenant généré localement. Le workflow exécute encore `npm install` et vérifie le lockfile. Pour des installations CI strictement reproductibles, versionner le lockfile puis remplacer cette commande par `npm ci`. Le cache npm de `setup-node` reste désactivé tant que ce changement n'est pas fait.
+Les dépendances sont déclarées dans `package.json` et verrouillées dans `package-lock.json`. Le workflow utilise `npm ci`, qui échoue si le lockfile est absent ou incohérent avec le manifeste. Le cache npm n’est pas activé dans ce workflow.

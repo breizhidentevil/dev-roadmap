@@ -1,46 +1,12 @@
 import type { Course } from './types';
 import { htmlCourse } from './htmlCourse';
+import { cssCourse } from './cssCourse';
+import { javascriptCourse } from './javascriptCourse';
 
 export const courses: Course[] = [
   htmlCourse,
-  {
-    id: 'css',
-    title: 'CSS',
-    category: 'Langage',
-    tags: ['css', 'mise-en-page', 'responsive', 'styles'],
-    description: 'Mettre en forme des interfaces lisibles et responsives avec la cascade, les systèmes de layout et des composants réutilisables.',
-    level: 'Débutant à intermédiaire',
-    duration: '4 à 5 heures',
-    prerequisites: ['Connaître la structure de base d’un document HTML.'],
-    objectives: ['Comprendre cascade, héritage et spécificité.', 'Composer des layouts Flexbox et Grid.', 'Construire une mise en page mobile-first.', 'Maintenir styles, états de focus et préférences utilisateur.'],
-    modules: [
-      { id: 'cascade', title: '1. Règles, cascade et sélecteurs', summary: 'Le navigateur calcule chaque propriété selon origine, importance, spécificité et ordre des règles.', concepts: ['Sélecteurs d’élément, classe, attribut et pseudo-classe', 'Cascade, héritage et spécificité', 'Variables CSS pour centraliser les décisions visuelles'], exercise: 'Crée une palette de couleurs et un système de titres avec variables, puis élimine les règles contradictoires.', example: { language: 'css', code: ':root {\n  --ink: #18302b;\n  --paper: #f4f7f2;\n  --accent: #b54831;\n}\n\n.card {\n  color: var(--ink);\n  background: var(--paper);\n}' } },
-      { id: 'boite', title: '2. Modèle de boîte et typographie', summary: 'Dimensions, padding, bordure et marges déterminent l’espace réel occupé par chaque élément.', concepts: ['box-sizing, dimensions fluides et unités relatives', 'Marges, padding, débordement et contexte de formatage', 'Échelle typographique, line-height et largeur de lecture'], exercise: 'Mets en page une fiche éditoriale dont le texte reste lisible sans largeur fixe sur écran étroit.' },
-      { id: 'layouts', title: '3. Flexbox et Grid', summary: 'Flexbox distribue l’espace sur un axe ; Grid organise les éléments sur deux axes avec des pistes explicites.', concepts: ['Alignement, distribution et retour à la ligne avec Flexbox', 'Colonnes, lignes et minmax avec Grid', 'Choix du layout en fonction du contenu, pas de l’appareil'], exercise: 'Réalise une barre de navigation en Flexbox et une galerie de cartes en Grid.' },
-      { id: 'responsive', title: '4. Responsive mobile-first', summary: 'Un layout robuste part du contenu et s’élargit par breakpoints lorsque l’espace disponible le justifie.', concepts: ['Media queries fondées sur la largeur du contenu', 'Images fluides, minmax et tailles max', 'Préférences reduced-motion et contrastes lisibles'], exercise: 'Adapte une page à 360, 768 et 1280 px ; vérifie qu’aucun élément ne déborde horizontalement.' },
-      { id: 'architecture', title: '5. États et architecture CSS', summary: 'Des conventions simples rendent les composants et leurs états prévisibles sans augmenter inutilement la spécificité.', concepts: ['États hover, focus-visible, disabled et invalid', 'Classes de composants et séparation des responsabilités', 'Thèmes par propriétés personnalisées et mode impression'], exercise: 'Crée un composant bouton avec variantes et thèmes clair/sombre, puis contrôle le parcours clavier.' },
-    ],
-    finalProject: { title: 'Interface responsive de réservation', description: 'Conçois la page d’un lieu culturel avec navigation, filtres, grille d’événements et formulaire.', criteria: ['Trois largeurs testées sans débordement.', 'Layout construit avec Grid/Flexbox plutôt que des positions arbitraires.', 'Focus visible, contraste et états interactifs.', 'Couleurs et espacements gérés par variables.'] },
-  },
-  {
-    id: 'javascript',
-    title: 'JavaScript',
-    category: 'Langage',
-    tags: ['javascript', 'dom', 'evenements', 'asynchrone'],
-    description: 'Apprendre le langage du Web côté navigateur : données, fonctions, DOM, événements, réseau et programmation asynchrone.',
-    level: 'Débutant à intermédiaire',
-    duration: '5 à 6 heures',
-    prerequisites: ['Savoir lire une page HTML et utiliser les outils du navigateur.'],
-    objectives: ['Manipuler valeurs, collections et fonctions.', 'Réagir aux événements sans perdre l’état de l’interface.', 'Appeler une API et traiter erreurs et attentes.', 'Organiser et déboguer un programme navigateur.'],
-    modules: [
-      { id: 'bases', title: '1. Valeurs, conditions et fonctions', summary: 'JavaScript exécute des instructions sur des valeurs typées dynamiquement ; des fonctions nommées clarifient chaque transformation.', concepts: ['const/let, types primitifs et conversions', 'Conditions, boucles et opérateurs logiques', 'Fonctions, paramètres, retour et portée'], exercise: 'Écris des fonctions pures pour calculer un prix, appliquer une remise et formater un reçu.', example: { language: 'javascript', code: 'function totalWithDiscount(price, discountRate) {\n  if (price < 0 || discountRate < 0 || discountRate > 1) {\n    throw new Error("Invalid price or discount");\n  }\n  return price * (1 - discountRate);\n}' } },
-      { id: 'collections', title: '2. Objets et collections', summary: 'Les tableaux et objets modélisent des collections et des entités ; map, filter et reduce expriment des transformations sans mutation cachée.', concepts: ['Objets, tableaux et déstructuration', 'map, filter, find et reduce', 'Copie, référence et immutabilité'], exercise: 'À partir d’une liste de produits, filtre les articles disponibles, trie-les par prix et calcule le total.' },
-      { id: 'dom', title: '3. DOM et événements', summary: 'Le DOM représente le document courant ; les gestionnaires d’événements relient l’action utilisateur à un changement d’état explicite.', concepts: ['Sélection et création d’éléments', 'Événements, propagation et preventDefault', 'Formulaires, validation et rendu de listes'], exercise: 'Crée une liste de tâches avec ajout, suppression et état terminé sans injecter de HTML non fiable.' },
-      { id: 'async', title: '4. Réseau et asynchronisme', summary: 'Les promesses représentent un résultat futur ; async/await simplifie l’écriture sans supprimer les erreurs à traiter.', concepts: ['Promise, async/await et try/catch', 'fetch, statuts HTTP et parsing JSON', 'États chargement, succès, vide et erreur'], exercise: 'Charge une collection depuis une API publique et affiche chargement, erreurs et résultats.' },
-      { id: 'modules', title: '5. Modules, débogage et qualité', summary: 'Les modules isolent les responsabilités ; le débogueur et les tests permettent de vérifier les comportements plutôt que de deviner.', concepts: ['import/export et séparation des fichiers', 'Breakpoints, console et inspection réseau', 'Tests de fonctions et gestion des cas limites'], exercise: 'Découpe l’application précédente en modules et teste une fonction de filtrage avec cas nominal et données vides.' },
-    ],
-    finalProject: { title: 'Catalogue connecté', description: 'Construis un catalogue de livres filtrable qui charge ses données à distance et conserve une liste de favoris.', criteria: ['Fonctions métier testables séparément du DOM.', 'États réseau et erreurs visibles.', 'Événements accessibles au clavier.', 'Modules distincts pour données, rendu et interactions.'] },
-  },
+  cssCourse,
+  javascriptCourse,
   {
     id: 'typescript',
     title: 'TypeScript',

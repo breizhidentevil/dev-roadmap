@@ -162,3 +162,29 @@ Les statuts et blocages ci-dessous décrivent chaque passe au moment où elle a 
 - **Navigateur :** les huit cours sont listés séparément ; `/course/css` affiche ses cinq modules et son projet final ; test mobile à 390 px sans débordement.
 - **Prochaine tâche :** MIG-012, comparaison exhaustive du catalogue historique avec la source.
 - **Prochaine tâche :** MIG-011, comparer intégralement les 174 entrées du catalogue avec la source.
+
+
+## Passe CSS-001 — Cours CSS approfondi
+
+- **Date :** 2026-10-14
+- **Structure :** remplacement du cours CSS initial à cinq modules par un parcours de 21 concepts, calqué sur la granularité du cours HTML.
+- **Contenu :** syntaxe et liaison à HTML ; sélecteurs ; cascade, spécificité et couches ; unités et propriétés personnalisées ; modèle de boîte ; typographie ; couleurs ; flux et positionnement ; Flexbox ; Grid ; responsive design ; médias ; pseudo-éléments ; formulaires ; accessibilité ; architecture ; animations ; container queries ; débogage ; performance ; impression et revue finale.
+- **Pédagogie :** objectifs et prérequis du cours, explications structurées par section, exemples de code, notions à retenir, exercices par concept, cinq références externes et projet final avec critères de réussite.
+- **Intégration :** le cours est exporté depuis `src/data/cssCourse.ts` et `src/data/cssAdvancedModules.ts`, puis ajouté à la liste des cours ; les références affichées sont désormais libellées dynamiquement selon le cours courant. Le nombre de concepts dans le README passe de 56 à 72.
+- **Contrôle statique :** 21 titres de modules numérotés, identifiants de modules uniques, 45 exemples de code et 43 sections pédagogiques. Le comptage lexical a également repéré 21 titres numérotés et aucun identifiant dupliqué.
+- **Tests et dépendances :** aucune installation de dépendances, aucun test d’exécution et aucun build n’ont été lancés dans cette passe, conformément à la consigne de travail hors Codex.
+
+
+## Passe CSS-002 — Évaluation pédagogique et correction du cours CSS
+
+- **Date :** 2026-10-14
+- **Évaluation initiale :** 7/10. Le plan couvrait les domaines essentiels et proposait 21 concepts, mais les explications étaient souvent limitées à deux sections par concept, les références étaient trop peu nombreuses, et certaines formulations techniques méritaient une précision supplémentaire.
+- **Corrections :** ajout d’une troisième section pédagogique à chacun des 20 modules avancés ; correction de l’explication du fallback de `var()` ; explication plus précise de la cascade et des couches ; précisions sur les polices variables, les contextes d’empilement, les débordements, l’ordre Flexbox/Grid et l’usage de `content`. Les exemples de réduction du mouvement ne neutralisent plus globalement toutes les animations avec `!important`.
+- **Ressources :** 14 références documentaires couvrant MDN, W3C/WAI et web.dev, sans doublon d’URL dans la liste du cours.
+- **Pédagogie après correction :** 21 concepts, 63 sections, 64 exemples dans les sections, exercices individuels et projet final.
+- **Tests de non-régression ajoutés :** assertions de volume et de contenu du cours CSS dans `src/App.test.tsx`. Ces tests ont été écrits mais pas exécutés hors Codex.
+- **Documentation :** README et journal mis à jour pour ne pas laisser entendre que les tests et le build ont été relancés après cette passe.
+- **Validation exécutée :** `node scripts/validate-catalog.mjs` — réussi : 25 chapitres, 174 entrées, 169 compétences, 5 projets, 174 identifiants uniques, 174 fichiers source résolus, feuille de style présente et références HTML locales validées. Contrôle statique des données du cours : 21 modules au total, 63 sections, 64 exemples intégrés aux sections et 14 références.
+- **Non exécutés conformément à la consigne de travail hors Codex :** installation des dépendances, tests, typecheck, build et navigateur.
+- **Évaluation après correction :** 8,5/10 sur le contenu et la structure pédagogiques. Les 1,5 point restants correspondent principalement à l’absence d’une relecture interactive dans le navigateur, à l’absence de corrigés détaillés pour chaque exercice et à la nécessité de tester les exemples sur les navigateurs réellement visés.
+- **Prochaine action :** ouvrir les routes CSS dans Codex, exécuter les tests ajoutés, puis faire une passe de validation pratique sur les exemples de cascade, responsive, préférences et impression.

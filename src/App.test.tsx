@@ -5,7 +5,6 @@ import App from './App';
 import { courses } from './data/courses';
 import catalog from './data/catalog.json';
 
-const catalogEntryCount = catalog.chapters.reduce((total, chapter) => total + chapter.lessons.length, 0);
 const courseConceptCount = courses.reduce((total, course) => total + course.modules.length, 0);
 
 afterEach(() => {

@@ -5,6 +5,9 @@ import App from './App';
 import { courses } from './data/courses';
 import catalog from './data/catalog.json';
 
+const catalogEntryCount = catalog.chapters.reduce((total, chapter) => total + chapter.lessons.length, 0);
+const courseConceptCount = courses.reduce((total, course) => total + course.modules.length, 0);
+
 afterEach(() => {
   cleanup();
   localStorage.removeItem('roadmap-theme');
@@ -49,7 +52,7 @@ describe('catalogue de migration', () => {
   it('affiche le catalogue et son volume initial', () => {
     renderApp();
     expect(screen.getByRole('heading', { name: 'Devenir développeur Full Stack' })).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('230 entrée(s) affichée(s)');
+    expect(screen.getByRole('status').textContent).toContain(`${catalogEntryCount + courseConceptCount} entrée(s) affichée(s)`);
   });
 
   it('filtre les compétences sans tenir compte des accents', () => {
@@ -96,12 +99,12 @@ describe('catalogue de migration', () => {
     expect(iframeDocument.documentElement.dataset.theme).toBe('dark');
   });
 
-  it('présente 72 concepts répartis en huit sections par technologie', () => {
+  it('présente les concepts des huit technologies et calcule leur volume', () => {
     expect(courses.map((course) => course.id)).toEqual(['html', 'css', 'javascript', 'typescript', 'react', 'nodejs', 'sql', 'postgresql']);
     const { container } = renderApp();
     fireEvent.click(screen.getByRole('button', { name: 'Cours' }));
-    expect(screen.getByRole('status').textContent).toContain('72 entrée(s) affichée(s)');
-    expect(screen.getAllByRole('link')).toHaveLength(72);
+    expect(screen.getByRole('status').textContent).toContain(`${courseConceptCount} entrée(s) affichée(s)`);
+    expect(screen.getAllByRole('link').filter((link) => link.getAttribute('href')?.startsWith('/course/'))).toHaveLength(courseConceptCount);
     expect(container.querySelectorAll('.course-section')).toHaveLength(8);
     expect(container.querySelector('[aria-labelledby="course-html"]')?.querySelectorAll('.course-card')).toHaveLength(21);
     expect(screen.getByRole('link', { name: /Syntaxe, éléments, attributs et parsing/ }).getAttribute('href')).toBe('/course/html/syntaxe');

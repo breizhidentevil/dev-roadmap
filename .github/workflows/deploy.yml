@@ -25,9 +25,7 @@ jobs:
         with:
           node-version: 22
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Verify generated dependency lockfile
-        run: test -s package-lock.json
+        run: npm ci --no-audit --no-fund
       - name: Validate catalogue
         run: npm run validate:catalog
       - name: Type-check

@@ -188,3 +188,10 @@ Les statuts et blocages ci-dessous décrivent chaque passe au moment où elle a 
 - **Non exécutés conformément à la consigne de travail hors Codex :** installation des dépendances, tests, typecheck, build et navigateur.
 - **Évaluation après correction :** 8,5/10 sur le contenu et la structure pédagogiques. Les 1,5 point restants correspondent principalement à l’absence d’une relecture interactive dans le navigateur, à l’absence de corrigés détaillés pour chaque exercice et à la nécessité de tester les exemples sur les navigateurs réellement visés.
 - **Prochaine action :** ouvrir les routes CSS dans Codex, exécuter les tests ajoutés, puis faire une passe de validation pratique sur les exemples de cascade, responsive, préférences et impression.
+
+## Correction — compteurs de tests devenus obsolètes (2026-10-14)
+
+- Les assertions de l’accueil attendaient 230 entrées alors que les données affichent désormais 267 (174 entrées du catalogue et 93 concepts de cours).
+- Le filtre « Cours » attendait 72 concepts alors que les huit cours contiennent désormais 93 modules.
+- Les assertions utilisent maintenant les volumes calculés depuis `catalog.json` et `courses`, afin que les prochaines extensions pédagogiques ne provoquent pas un échec uniquement dû à un nombre codé en dur.
+- Aucun test n’a été exécuté ici, conformément à la consigne de ne pas lancer de tests hors de Codex.

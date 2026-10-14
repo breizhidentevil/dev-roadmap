@@ -103,11 +103,15 @@ describe('catalogue de migration', () => {
     expect(courses.map((course) => course.id)).toEqual(['html', 'css', 'javascript', 'typescript', 'react', 'gestion-etat-react', 'nodejs', 'sql', 'postgresql']);
     const { container } = renderApp();
     fireEvent.click(screen.getByRole('button', { name: 'Cours' }));
-    expect(screen.getByRole('status').textContent).toContain(`${courseConceptCount} entrée(s) affichée(s)`);
-    expect(screen.getAllByRole('link').filter((link) => link.getAttribute('href')?.startsWith('/course/'))).toHaveLength(courseConceptCount);
-    expect(container.querySelectorAll('.course-section')).toHaveLength(9);
-    expect(container.querySelector('[aria-labelledby="course-html"]')?.querySelectorAll('.course-card')).toHaveLength(21);
+    expect(screen.getByRole('status').textContent).toContain(`${courses.length} cours · ${courseConceptCount} modules au total`);
+    expect(container.querySelectorAll('.course-sidebar-item')).toHaveLength(courses.length);
+    expect(container.querySelectorAll('.course-section')).toHaveLength(0);
+    expect(container.querySelectorAll('.course-module-row')).toHaveLength(courses[0].modules.length);
+    expect(screen.getAllByRole('link').filter((link) => link.getAttribute('href')?.startsWith('/course/'))).toHaveLength(courses[0].modules.length);
     expect(screen.getByRole('link', { name: /Syntaxe, éléments, attributs et parsing/ }).getAttribute('href')).toBe('/course/html/syntaxe');
+    fireEvent.click(screen.getByRole('button', { name: /^React/ }));
+    expect(screen.getByRole('heading', { name: 'React' })).toBeTruthy();
+    expect(container.querySelectorAll('.course-module-row')).toHaveLength(courses.find((course) => course.id === 'react')!.modules.length);
     expect(screen.queryByRole('heading', { name: /Compétences professionnelles/ })).toBeNull();
   });
 

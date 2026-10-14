@@ -26,6 +26,7 @@ SyntaxHighlighter.registerLanguage('tsx', tsxLanguage);
 SyntaxHighlighter.registerLanguage('sql', sqlLanguage);
 
 const catalog = catalogData as Catalog;
+const courseConceptCount = courses.reduce((total, course) => total + course.modules.length, 0);
 const lessons = catalog.chapters.flatMap((chapter) => chapter.lessons.map((lesson) => ({
   ...lesson,
   kind: chapter.id === '24-projets-pratiques' ? 'project' as const : 'skill' as const,
@@ -52,6 +53,7 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
   const [kindFilter, setKindFilter] = useState<CatalogFilter>('all');
+  const [selectedCourseId, setSelectedCourseId] = useState(courses[0]?.id ?? '');
   useEffect(() => setQuery(searchParams.get('q') ?? ''), [searchParams]);
   const normalized = query.trim().toLocaleLowerCase('fr');
   const filtered = useMemo(() => catalog.chapters.map((chapter) => ({
@@ -73,6 +75,7 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
     }),
   })).filter((course) => course.modules.length > 0), [kindFilter, normalized]);
   const resultCount = filtered.reduce((total, chapter) => total + chapter.lessons.length, 0) + filteredCourses.reduce((total, course) => total + course.modules.length, 0);
+  const activeCourse = filteredCourses.find((course) => course.id === selectedCourseId) ?? filteredCourses[0];
   return <main className="container">
     <header className="hero">
       <div className="hero-top">
@@ -91,14 +94,43 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
         <button type="button" aria-pressed={kindFilter === 'course'} onClick={() => setKindFilter('course')}>Cours</button>
       </div>
       <p className="search-results" id="search-results" role="status" aria-live="polite">
-        {normalized ? `${resultCount} résultat(s) pour « ${query.trim()} »` : `${resultCount} entrée(s) affichée(s)`}
+        {kindFilter === 'course'
+          ? normalized ? `${resultCount} module(s) correspondant(s) dans ${filteredCourses.length} cours` : `${courses.length} cours · ${courseConceptCount} modules au total`
+          : normalized ? `${resultCount} résultat(s) pour « ${query.trim()} »` : `${resultCount} entrée(s) affichée(s)`}
       </p>
     </header>
     <div className="catalogue">{filtered.map((chapter) => <section className="chapter" id={chapter.id} key={chapter.id}>
       <div className="chapter-heading"><span className="chapter-number">{chapter.number}</span><div><h2>{chapter.title}</h2><p>{chapter.lessons.length} entrée(s)</p></div></div>
       <div className="lesson-grid">{chapter.lessons.map((lesson) => <Link className="lesson-card" to={`/lesson/${lesson.id}`} key={lesson.id}><strong>{lesson.title}</strong><span>{lesson.description}</span><span className="arrow" aria-hidden="true">↗</span></Link>)}</div>
     </section>)}</div>
-    {filteredCourses.map((course) => <section className="course-section" aria-labelledby={`course-${course.id}`} key={course.id}>
+    {kindFilter === 'course' ? <section className="course-library" aria-label="Bibliothèque de cours">
+      <aside className="course-sidebar">
+        <div className="course-sidebar-heading"><h2>Les cours</h2><span>{filteredCourses.length}</span></div>
+        <nav className="course-sidebar-list" aria-label="Choisir un cours">
+          {filteredCourses.map((course) => <button className="course-sidebar-item" type="button" key={course.id} aria-pressed={activeCourse?.id === course.id} onClick={() => setSelectedCourseId(course.id)}>
+            <span className="course-sidebar-item-title">{course.title}</span>
+            <span className="course-sidebar-item-meta">{course.category} · {course.modules.length} modules</span>
+          </button>)}
+        </nav>
+      </aside>
+      <div className="course-library-content">
+        {activeCourse ? <>
+          <header className="course-library-header">
+            <p className="course-kicker">{activeCourse.category} · {activeCourse.level}</p>
+            <h2>{activeCourse.title}</h2>
+            <p>{activeCourse.description}</p>
+            <div className="course-library-meta"><span>{activeCourse.modules.length} modules</span><span>{activeCourse.duration}</span></div>
+          </header>
+          <nav className="course-module-list" aria-label={`Modules du cours ${activeCourse.title}`}>
+            {activeCourse.modules.map((module, index) => <Link className="course-module-row" to={`/course/${activeCourse.id}/${module.id}`} key={module.id}>
+              <span className="course-module-index" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+              <span className="course-module-copy"><strong>{module.title}</strong><span>{module.summary}</span></span>
+              <span className="course-module-meta">{module.concepts.length} notions <span aria-hidden="true">↗</span></span>
+            </Link>)}
+          </nav>
+        </> : <p className="empty-state">Aucun cours ne correspond à cette recherche.</p>}
+      </div>
+    </section> : filteredCourses.map((course) => <section className="course-section" aria-labelledby={`course-${course.id}`} key={course.id}>
       <div className="chapter-heading"><span className="chapter-number" aria-hidden="true">{course.title.slice(0, 2)}</span><div><h2 id={`course-${course.id}`}>{course.title}</h2><p>{course.modules.length} grand(s) concept(s) · {course.category}</p></div></div>
       <div className="lesson-grid course-grid">{course.modules.map((module) => <ConceptCard course={course} module={module} key={module.id} />)}</div>
     </section>)}

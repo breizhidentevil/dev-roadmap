@@ -169,7 +169,7 @@ describe('catalogue de migration', () => {
     expect(typescript!.finalProject.criteria.length).toBeGreaterThanOrEqual(8);
 
     render(<MemoryRouter initialEntries={['/course/typescript/modele-types']}><App /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: 'TypeScript approfondi — Modèle mental du système de types' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: typescript!.modules.find((module) => module.id === 'modele-types')!.title.replace(/^\d+\.\s*/, '') })).toBeTruthy();
     expect(screen.getAllByText(/Approfondissement —/).length).toBeGreaterThan(0);
   });
 
@@ -185,7 +185,7 @@ describe('catalogue de migration', () => {
     expect(reactCourse!.finalProject.criteria.length).toBeGreaterThanOrEqual(8);
 
     render(<MemoryRouter initialEntries={['/course/react/etat-usestate']}><App /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: 'React — État local, useState et snapshots' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: reactCourse!.modules.find((module) => module.id === 'etat-usestate')!.title.replace(/^\d+\.\s*/, '') })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Points à retenir' })).toBeTruthy();
     expect(screen.getByText(/forme fonctionnelle garantit/)).toBeTruthy();
   });
@@ -209,13 +209,13 @@ describe('catalogue de migration', () => {
     expect(queryExample?.code).toContain('items.filter(isTodo)');
 
     render(<MemoryRouter initialEntries={['/course/gestion-etat-react/zustand']}><App /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: 'Gestion d’état avancée avec React — Zustand : store léger et sélecteurs' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: stateCourse!.modules.find((module) => module.id === 'zustand')!.title.replace(/^\d+\.\s*/, '') })).toBeTruthy();
     expect(screen.getByText(/Sélecteurs pour ne s’abonner qu’à une portion utile/)).toBeTruthy();
   });
 
   it('affiche un concept CSS sur sa route dédiée, sans iframe legacy', () => {
     render(<MemoryRouter initialEntries={['/course/css']}><App /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: 'CSS — Modèle mental, syntaxe et branchement à HTML' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: courses.find((course) => course.id === 'css')!.modules.find((module) => module.id === 'fondations')!.title.replace(/^\d+\.\s*/, '') })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Points à retenir' })).toBeTruthy();
     expect(screen.getByRole('link', { name: /HTML|catalogue/i })).toBeTruthy();
     expect(screen.queryByTitle('Cours CSS')).toBeNull();
@@ -229,13 +229,13 @@ describe('catalogue de migration', () => {
     expect(cssCourse?.modules.reduce((total, module) => total + (module.sections?.reduce((count, section) => count + (section.examples?.length ?? 0), 0) ?? 0), 0)).toBeGreaterThanOrEqual(60);
     expect(cssCourse?.references?.length).toBeGreaterThanOrEqual(13);
     render(<MemoryRouter initialEntries={['/course/css/valeurs-unites']}><App /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: /CSS — Valeurs, unités, fonctions et propriétés personnalisées/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: cssCourse!.modules.find((module) => module.id === 'valeurs-unites')!.title.replace(/^\d+\.\s*/, '') })).toBeTruthy();
     expect(screen.getByText(/ne répare pas une valeur présente mais incompatible/)).toBeTruthy();
   });
 
   it('expose le cours HTML approfondi avec 21 concepts, du code et 15 sources', () => {
     const { container } = render(<MemoryRouter initialEntries={['/course/html/syntaxe']}><App /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: 'HTML — Syntaxe, éléments, attributs et parsing' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: courses.find((course) => course.id === 'html')!.modules.find((module) => module.id === 'syntaxe')!.title.replace(/^\d+\.\s*/, '') })).toBeTruthy();
     const htmlCourse = courses.find((course) => course.id === 'html');
     expect(htmlCourse?.modules).toHaveLength(21);
     expect(htmlCourse?.modules.reduce((total, module) => total + (module.sections?.reduce((sectionTotal, section) => sectionTotal + (section.examples?.length ?? 0), 0) ?? 0), 0)).toBeGreaterThan(15);

@@ -108,8 +108,8 @@ describe('catalogue de migration', () => {
     expect(iframeDocument.documentElement.dataset.theme).toBe('dark');
   });
 
-  it('présente les dix cours et calcule leur volume', () => {
-    expect(courses.map((course) => course.id)).toEqual(['html', 'css', 'javascript', 'typescript', 'react', 'gestion-etat-react', 'nodejs', 'sql', 'nosql', 'postgresql']);
+  it('présente les cours historiques et les cours de migration, puis calcule leur volume', () => {
+    expect(courses.map((course) => course.id)).toEqual(['html', 'css', 'javascript', 'typescript', 'react', 'gestion-etat-react', 'nodejs', 'sql', 'nosql', 'postgresql', 'c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08']);
     const nodeCourse = courses.find((course) => course.id === 'nodejs')!;
     expect(nodeCourse.title).toBe('Node.js et npm');
     expect(nodeCourse.modules.length).toBeGreaterThanOrEqual(20);

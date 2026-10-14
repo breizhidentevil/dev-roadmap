@@ -99,16 +99,85 @@ describe('catalogue de migration', () => {
     expect(iframeDocument.documentElement.dataset.theme).toBe('dark');
   });
 
-  it('présente les concepts des huit technologies et calcule leur volume', () => {
-    expect(courses.map((course) => course.id)).toEqual(['html', 'css', 'javascript', 'typescript', 'react', 'nodejs', 'sql', 'postgresql']);
+  it('présente les neuf cours et calcule leur volume', () => {
+    expect(courses.map((course) => course.id)).toEqual(['html', 'css', 'javascript', 'typescript', 'react', 'gestion-etat-react', 'nodejs', 'sql', 'postgresql']);
     const { container } = renderApp();
     fireEvent.click(screen.getByRole('button', { name: 'Cours' }));
     expect(screen.getByRole('status').textContent).toContain(`${courseConceptCount} entrée(s) affichée(s)`);
     expect(screen.getAllByRole('link').filter((link) => link.getAttribute('href')?.startsWith('/course/'))).toHaveLength(courseConceptCount);
-    expect(container.querySelectorAll('.course-section')).toHaveLength(8);
+    expect(container.querySelectorAll('.course-section')).toHaveLength(9);
     expect(container.querySelector('[aria-labelledby="course-html"]')?.querySelectorAll('.course-card')).toHaveLength(21);
     expect(screen.getByRole('link', { name: /Syntaxe, éléments, attributs et parsing/ }).getAttribute('href')).toBe('/course/html/syntaxe');
     expect(screen.queryByRole('heading', { name: /Compétences professionnelles/ })).toBeNull();
+  });
+
+  it('propose un cours TypeScript approfondi sans reprendre les fondamentaux JavaScript', () => {
+    const typescript = courses.find((course) => course.id === 'typescript');
+    expect(typescript).toBeTruthy();
+    expect(typescript!.modules).toHaveLength(20);
+    expect(typescript!.modules.reduce((total, module) => total + (module.sections?.length ?? 0), 0)).toBe(60);
+    expect(typescript!.modules.reduce((total, module) => total + (module.sections?.reduce((count, section) => count + (section.examples?.length ?? 0), 0) ?? 0), 0)).toBe(80);
+    expect(typescript!.modules.every((module) => module.exercise.trim().length > 60)).toBe(true);
+    expect(typescript!.references?.length).toBeGreaterThanOrEqual(10);
+    expect(typescript!.finalProject.criteria.length).toBeGreaterThanOrEqual(8);
+    expect(typescript!.prerequisites.join(' ')).toContain('cours JavaScript moderne');
+
+    render(<MemoryRouter initialEntries={['/course/typescript/modele-types']}><App /></MemoryRouter>);
+    expect(screen.getByRole('heading', { name: 'TypeScript approfondi — Modèle mental du système de types' })).toBeTruthy();
+  });
+
+  it('expose un cours TypeScript approfondi avec des exercices guidés', () => {
+    const typescript = courses.find((course) => course.id === 'typescript');
+    expect(typescript).toBeTruthy();
+    expect(typescript!.modules).toHaveLength(20);
+    expect(typescript!.modules.reduce((total, module) => total + (module.sections?.length ?? 0), 0)).toBe(60);
+    expect(typescript!.modules.reduce((total, module) => total + (module.sections?.reduce((count, section) => count + (section.examples?.length ?? 0), 0) ?? 0), 0)).toBe(80);
+    expect(typescript!.modules.every((module) => module.exercise.includes('Critères d’acceptation'))).toBe(true);
+    expect(typescript!.references?.length).toBeGreaterThanOrEqual(13);
+    expect(typescript!.finalProject.criteria.length).toBeGreaterThanOrEqual(8);
+
+    render(<MemoryRouter initialEntries={['/course/typescript/modele-types']}><App /></MemoryRouter>);
+    expect(screen.getByRole('heading', { name: 'TypeScript approfondi — Modèle mental du système de types' })).toBeTruthy();
+    expect(screen.getByText(/Approfondissement —/)).toBeTruthy();
+  });
+
+  it('expose un cours React approfondi avec 21 modules, sections, exemples et références', () => {
+    const reactCourse = courses.find((course) => course.id === 'react');
+    expect(reactCourse).toBeTruthy();
+    expect(reactCourse!.modules).toHaveLength(21);
+    expect(reactCourse!.modules.reduce((total, module) => total + (module.sections?.length ?? 0), 0)).toBeGreaterThanOrEqual(60);
+    expect(reactCourse!.modules.reduce((total, module) => total + (module.sections?.reduce((count, section) => count + (section.examples?.length ?? 0), 0) ?? 0), 0)).toBeGreaterThanOrEqual(60);
+    expect(reactCourse!.modules.every((module) => module.exercise.trim().length > 30)).toBe(true);
+    expect(reactCourse!.references?.length).toBeGreaterThanOrEqual(10);
+    expect(reactCourse!.finalProject.criteria.length).toBeGreaterThanOrEqual(8);
+
+    render(<MemoryRouter initialEntries={['/course/react/etat-usestate']}><App /></MemoryRouter>);
+    expect(screen.getByRole('heading', { name: 'React — État local, useState et snapshots' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Points à retenir' })).toBeTruthy();
+    expect(screen.getByText(/forme fonctionnelle garantit/)).toBeTruthy();
+  });
+
+  it('expose un cours approfondi sur les stores et la gestion de l’état', () => {
+    const stateCourse = courses.find((course) => course.id === 'gestion-etat-react');
+    expect(stateCourse).toBeTruthy();
+    expect(stateCourse!.modules).toHaveLength(8);
+    expect(stateCourse!.modules.reduce((total, module) => total + (module.sections?.length ?? 0), 0)).toBe(41);
+    expect(stateCourse!.modules.reduce((total, module) => total + (module.sections?.reduce((count, section) => count + (section.examples?.length ?? 0), 0) ?? 0), 0)).toBe(41);
+    expect(stateCourse!.references?.length).toBeGreaterThanOrEqual(9);
+    expect(stateCourse!.finalProject.title).toContain('Zustand contre Redux Toolkit');
+    expect(stateCourse!.modules.some((module) => module.id === 'tanstack-query')).toBe(true);
+    const stateExamples = stateCourse!.modules.flatMap((module) =>
+      (module.sections ?? []).flatMap((section) => section.examples ?? []),
+    );
+    const zustandCart = stateExamples.find((example) => example.title === 'Store de panier minimal');
+    expect(zustandCart?.code).toContain('quantity: item.quantity + 1');
+    const queryExample = stateExamples.find((example) => example.title === 'Requête typée');
+    expect(queryExample?.code).toContain('const items: unknown[] = payload');
+    expect(queryExample?.code).toContain('items.filter(isTodo)');
+
+    render(<MemoryRouter initialEntries={['/course/gestion-etat-react/zustand']}><App /></MemoryRouter>);
+    expect(screen.getByRole('heading', { name: 'Gestion d’état avancée avec React — Zustand : store léger et sélecteurs' })).toBeTruthy();
+    expect(screen.getByText(/Sélecteurs pour ne s’abonner qu’à une portion utile/)).toBeTruthy();
   });
 
   it('affiche un concept CSS sur sa route dédiée, sans iframe legacy', () => {

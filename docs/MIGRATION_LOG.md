@@ -195,3 +195,20 @@ Les statuts et blocages ci-dessous décrivent chaque passe au moment où elle a 
 - Le filtre « Cours » attendait 72 concepts alors que les huit cours contiennent désormais 93 modules.
 - Les assertions utilisent maintenant les volumes calculés depuis `catalog.json` et `courses`, afin que les prochaines extensions pédagogiques ne provoquent pas un échec uniquement dû à un nombre codé en dur.
 - Aucun test n’a été exécuté ici, conformément à la consigne de ne pas lancer de tests hors de Codex.
+
+## 2026-10-14 — Cours React approfondi
+
+- Remplacement du cours React introductif par 21 modules progressifs et détaillés.
+- Ajout d’explications, d’exemples, d’exercices et de références officielles.
+- Couverture : fondations, JSX, composants, état, Hooks, effets, API, formulaires, Context, Router, TypeScript, React 19, accessibilité, tests, performance, résilience et production.
+- Ajout du plan complet dans `docs/COURS_REACT_APPROFONDI.md`.
+- Aucun package ajouté ; aucune installation, aucun test, typecheck ou build exécuté dans cet environnement.
+
+## 2026-10-14 — Cours dédié à la gestion d’état React
+
+- Ajout du cours autonome `gestion-etat-react`, sans remplacer le cours React généraliste.
+- Programme : modèles d’état et critères de choix ; Context + `useReducer` ; Zustand ; Redux Toolkit ; Jotai ; TanStack Query ; tests/persistance/concurrence/sécurité ; comparaison et migration.
+- Structure : 8 modules, 25 sections et 25 exemples de code ; 9 références documentaires ; projet final comparant deux gestionnaires de tâches Zustand et Redux Toolkit.
+- Distinction explicitée entre état local, état client partagé, état dérivé et cache de données serveur. Les bibliothèques restent des dépendances optionnelles du projet d’apprentissage et ne sont pas ajoutées au bundle de la roadmap.
+- README et tests structurels mis à jour pour le nouveau cours et les neuf cours du catalogue.
+- Validation statique du catalogue exécutée et réussie. Aucune dépendance installée, aucun test Vitest, typecheck ou build exécuté hors Codex.

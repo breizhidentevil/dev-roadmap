@@ -2,49 +2,45 @@ import type { Course } from './types';
 import { htmlCourse } from './htmlCourse';
 import { cssCourse } from './cssCourse';
 import { javascriptCourse } from './javascriptCourse';
+import { typescriptCourse } from './typescriptCourse';
+import { reactAdvancedModules } from './reactAdvancedModules';
+import { stateManagementCourse } from './stateManagementCourse';
 
 export const courses: Course[] = [
   htmlCourse,
   cssCourse,
   javascriptCourse,
-  {
-    id: 'typescript',
-    title: 'TypeScript',
-    category: 'Langage',
-    tags: ['typescript', 'types', 'typage-statique'],
-    description: 'Renforcer JavaScript avec des types utiles, des unions discriminées, des génériques et une validation sûre des données externes.',
-    level: 'Intermédiaire',
-    duration: '5 à 6 heures',
-    prerequisites: ['Connaître les bases de JavaScript : fonctions, objets, tableaux et modules.'],
-    objectives: ['Configurer TypeScript en mode strict.', 'Modéliser données et états avec unions.', 'Créer des fonctions génériques réutilisables.', 'Traiter les entrées externes sans faire confiance aux assertions.'],
-    modules: [
-      { id: 'configuration', title: '1. Configuration et inférence', summary: 'TypeScript vérifie le programme avant exécution ; l’inférence évite de répéter les types que le compilateur connaît déjà.', concepts: ['tsconfig, strict et noEmit', 'Types primitifs, tableaux, tuples et objets', 'Annotations nécessaires aux paramètres publics'], exercise: 'Configure un projet strict et type une fonction de calcul sans utiliser any.', example: { language: 'typescript', code: 'type Product = { id: string; price: number };\n\nfunction total(products: Product[]): number {\n  return products.reduce((sum, product) => sum + product.price, 0);\n}' } },
-      { id: 'unions', title: '2. Unions et narrowing', summary: 'Une union décrit plusieurs formes possibles ; le contrôle de discriminant permet de traiter chaque cas avec exhaustivité.', concepts: ['Unions, intersections et littéraux', 'unknown plutôt que any pour les données inconnues', 'never et vérification exhaustive'], exercise: 'Modélise les états d’une requête (idle/loading/success/error) et traite tous les cas dans une fonction de rendu.' },
-      { id: 'generiques', title: '3. Génériques', summary: 'Un générique relie plusieurs entrées et sorties tout en conservant leur information de type.', concepts: ['Paramètres de type et contraintes extends', 'Fonctions et structures génériques', 'Utilitaires Pick, Omit, Partial et Record'], exercise: 'Écris une fonction getById générique qui préserve le type des éléments et signale proprement une absence.' },
-      { id: 'frontieres', title: '4. Modules et frontières de confiance', summary: 'Les types décrivent le code compilé, mais ne valident pas les données reçues du réseau, du stockage ou d’un formulaire.', concepts: ['Types exportés et dépendances de modules', 'Parsing depuis unknown avec contrôles explicites', 'Différence entre assertion et validation runtime'], exercise: 'Écris un parseur de configuration qui accepte unknown et retourne un résultat discriminé valide/invalide.' },
-      { id: 'qualite', title: '5. API publiques et qualité', summary: 'Des signatures lisibles et des erreurs explicites rendent une bibliothèque plus simple à utiliser et à faire évoluer.', concepts: ['Types de retour et API minimales', 'Overloads seulement quand ils clarifient les appels', 'Tests de comportement et compilation en CI'], exercise: 'Publie un petit module de pagination avec types, cas limites et tests vérifiant données vides et pages hors limites.' },
-    ],
-    finalProject: { title: 'Client API typé', description: 'Crée un client qui valide les réponses, expose des états de chargement discriminés et transforme les erreurs HTTP.', criteria: ['Mode strict sans any.', 'Données réseau contrôlées avant utilisation.', 'Unions exhaustives pour les états.', 'Tests couvrant erreurs, valeurs absentes et cas nominal.'] },
-  },
+  typescriptCourse,
   {
     id: 'react',
     title: 'React',
     category: 'Bibliothèque',
-    tags: ['react', 'composants', 'interface'],
-    description: 'Composer des interfaces à partir de composants, gérer leur état et construire des parcours accessibles et testables.',
-    level: 'Intermédiaire',
-    duration: '5 à 6 heures',
-    prerequisites: ['Bases solides en JavaScript ou TypeScript.', 'Comprendre HTML, CSS et les événements du navigateur.'],
-    objectives: ['Décomposer une interface en composants cohérents.', 'Gérer état local, listes et formulaires.', 'Synchroniser les données distantes et états de chargement.', 'Tester les parcours utilisateur et la navigation.'],
-    modules: [
-      { id: 'composants', title: '1. Composants, JSX et props', summary: 'Un composant décrit une partie de l’interface à partir de props ; JSX exprime la structure, pas une chaîne HTML.', concepts: ['Fonctions composants et JSX', 'Props, composition et children', 'Rendu conditionnel et listes avec clés stables'], exercise: 'Transforme une page de catalogue en composants Header, ProductList et ProductCard.', example: { language: 'tsx', code: 'type ProductCardProps = { title: string; price: number };\n\nfunction ProductCard({ title, price }: ProductCardProps) {\n  return <article><h2>{title}</h2><p>{price} €</p></article>;\n}' } },
-      { id: 'state', title: '2. État, événements et formulaires', summary: 'L’état décrit les données qui évoluent ; chaque mise à jour déclenche un nouveau rendu déterministe.', concepts: ['useState et mises à jour fonctionnelles', 'Événements et formulaires contrôlés', 'État dérivé plutôt que duplication'], exercise: 'Ajoute recherche, filtres et formulaire de création à une liste sans stocker deux fois les mêmes données.' },
-      { id: 'effects', title: '3. Effets et données distantes', summary: 'Un effet synchronise React avec un système externe ; il doit gérer nettoyage, annulation et états asynchrones.', concepts: ['useEffect et dépendances', 'Fetch avec annulation et prévention des réponses obsolètes', 'États chargement, erreur, vide et succès'], exercise: 'Charge des données en annulant la requête au démontage et garde un rendu dédié pour chaque état.' },
-      { id: 'architecture', title: '4. État partagé et architecture', summary: 'L’état reste au niveau le plus proche de ses usages ; Context ou un routeur ne se justifient que par un besoin partagé réel.', concepts: ['Remonter l’état et découper les responsabilités', 'Context pour les dépendances réellement globales', 'Routes, paramètres et navigation déclarative'], exercise: 'Construis un petit espace de cours avec liste, détail, état favori et navigation directe par URL.' },
-      { id: 'tests', title: '5. Tests, accessibilité et performance', summary: 'Les tests de composants vérifient les interactions visibles ; l’optimisation vient après la mesure.', concepts: ['Testing Library et requêtes par rôles accessibles', 'Labels, focus, clavier et annonces de statut', 'Mesure des rendus et fractionnement des routes'], exercise: 'Teste au clavier une recherche, un état vide et une navigation vers un détail ; vérifie les noms accessibles.' },
+    tags: ['react', 'react-dom', 'jsx', 'hooks', 'typescript', 'accessibilité', 'tests', 'react-19'],
+    description: 'Cours approfondi de React moderne : composants, JSX, état, Hooks, effets, API, formulaires, Context, routage, TypeScript, React 19, accessibilité, tests, performance et mise en production.',
+    level: 'Débutant à avancé',
+    duration: '20 à 30 heures selon les exercices',
+    prerequisites: ['JavaScript moderne : fonctions, modules, tableaux, objets, promesses et async/await.', 'Bases de HTML, CSS et HTTP.', 'TypeScript recommandé pour les exemples typés, mais les concepts restent transposables à JavaScript.'],
+    objectives: ['Construire une interface complète avec composants fonctionnels et JSX.', 'Modéliser un état fiable et des transitions explicites.', 'Synchroniser les données distantes et traiter les erreurs asynchrones.', 'Concevoir formulaires, navigation et interfaces accessibles.', 'Écrire des tests centrés sur les comportements utilisateur.', 'Mesurer les performances et préparer une application pour la production.'],
+    modules: reactAdvancedModules,
+    references: [
+      { title: 'Documentation officielle React — Learn', url: 'https://react.dev/learn' },
+      { title: 'Documentation officielle — Describing the UI', url: 'https://react.dev/learn/describing-the-ui' },
+      { title: 'Documentation officielle — Adding Interactivity', url: 'https://react.dev/learn/adding-interactivity' },
+      { title: 'Documentation officielle — Managing State', url: 'https://react.dev/learn/managing-state' },
+      { title: 'Documentation officielle — Escape Hatches', url: 'https://react.dev/learn/escape-hatches' },
+      { title: 'Documentation officielle — React 19', url: 'https://react.dev/blog/2024/12/05/react-19' },
+      { title: 'React Router — Documentation', url: 'https://reactrouter.com/' },
+      { title: 'Testing Library — React', url: 'https://testing-library.com/docs/react-testing-library/intro/' },
+      { title: 'WAI — WAI-ARIA Authoring Practices', url: 'https://www.w3.org/WAI/ARIA/apg/' },
+      { title: 'TypeScript — JSX', url: 'https://www.typescriptlang.org/docs/handbook/jsx.html' }
     ],
-    finalProject: { title: 'Application de suivi de cours', description: 'Crée une application React de catalogue avec filtres, route de détail, progression locale et tests d’interaction.', criteria: ['URL de détail ouvrable directement.', 'Composants et état organisés selon leurs responsabilités.', 'Tous les états asynchrones représentés.', 'Parcours clavier et tests des interactions principales.'] },
+    finalProject: {
+      title: 'Application complète de gestion de cours',
+      description: 'Construis une SPA React + TypeScript pour gérer un catalogue de cours : recherche, filtres, détail par URL, progression, favoris, formulaire de création, chargement d’une API, erreurs récupérables et préférences persistées. Le projet doit être déployable et documenté.',
+      criteria: ['Composants et modules organisés par responsabilités.', 'État minimal, mises à jour immuables et transitions cohérentes.', 'Routes ouvrables directement et page 404.', 'Chargement, succès, vide, erreur et annulation des requêtes traités.', 'Formulaires validés côté client et contrôles critiques côté serveur.', 'Labels, clavier, focus et messages de statut accessibles.', 'Tests de composants couvrant les parcours essentiels.', 'Aucune clé secrète dans le bundle client.', 'Typecheck, tests et build exécutés en CI ; procédure de déploiement documentée.']
+    }
   },
+  stateManagementCourse,
   {
     id: 'nodejs',
     title: 'Node.js',

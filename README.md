@@ -15,16 +15,18 @@
 
 ## Le parcours en chiffres
 
-| Chapitres | Compétences | Projets | Langages | Concepts de cours |
+| Chapitres | Compétences | Projets | Cours | Concepts de cours |
 |:---:|:---:|:---:|:---:|:---:|
-| **25** | **169** | **5** | **8** | **93** |
+| **25** | **169** | **5** | **9** | **101** |
 
 ## Ce que l’application propose
 
 - Recherche tolérante à la casse et aux accents.
 - Filtre séparé pour les compétences et les projets.
 - Lecture des tutoriels HTML conservés dans une iframe sandboxée.
-- Parcours distincts pour HTML, CSS, JavaScript, TypeScript, React, Node.js, SQL et PostgreSQL ; chaque langage forme une section du catalogue.
+- Parcours distincts pour HTML, CSS, JavaScript, TypeScript, React, gestion d’état React, Node.js, SQL et PostgreSQL ; chaque cours forme une section du catalogue.
+- Le cours React approfondi couvre 21 modules, 63 sections pédagogiques et 63 exemples, des bases aux Hooks, React 19, tests, accessibilité, performance et déploiement.
+- Le cours de gestion d’état React comprend 8 modules, 25 sections et 25 exemples sur Context + useReducer, Zustand, Redux Toolkit, Jotai, TanStack Query, persistance, tests, sécurité et choix d’architecture ; son projet final compare Zustand et Redux Toolkit.
 - Une page par grand concept, avec navigation précédente/suivante et hashtags qui lancent une recherche ciblée.
 - Le cours HTML comprend 21 concepts détaillés, des références normatives et pédagogiques, du code colorisé et un sélecteur **Code source / Aperçu HTML** sandboxé.
 - Le cours CSS comprend 21 concepts, 63 sections pédagogiques, 64 exemples intégrés aux sections, 14 références documentaires et un projet final responsive.
@@ -90,3 +92,12 @@ Le [plan de migration](docs/PLAN_MIGRATION_REACT_ROADMAP_FULLSTACK_2026.md) et l
 ## Source pédagogique
 
 Le catalogue et les 174 pages proviennent de V40. Le manifeste V41 confirme que l’index, les tutoriels et la feuille de style sont identiques ; seules les documentations source diffèrent. Les références V40/V41 sont conservées dans [`docs/source-reference/`](docs/source-reference/).
+
+## Cours React approfondis
+
+Les cours React et Gestion d’état avancée ont été enrichis le 14 octobre 2026 avec des sections d’approfondissement et des ateliers corrigés dans chaque module. Voir `docs/REVUE_COURS_REACT_ET_GESTION_ETAT_2026-10-14.md` et `docs/GUIDE_ETUDE_REACT_ET_GESTION_ETAT.md`.
+
+
+## Cours TypeScript approfondi
+
+Le cours TypeScript est un parcours de 20 modules et 60 sections approfondies, avec 80 exemples commentés, exercices guidés avec critères d’acceptation, références officielles et projet de synthèse. Les modules traitent aussi des limites du typage statique, des cas limites, des tests de types et des frontières de validation runtime. Il suppose les bases de JavaScript acquises et se concentre sur le système de types, les contrats, les types calculés, la configuration stricte, les déclarations, la validation runtime et les API typées. Les 20 ateliers disposent de corrigés commentés dans `docs/ATELIERS_TYPESCRIPT_CORRIGES.md`, avec une grille d’autoévaluation et un barème du projet final. Le rapport de revue V3 est disponible dans `docs/REVUE_COURS_TYPESCRIPT_V3.md`.

@@ -66,7 +66,7 @@ describe('catalogue de migration', () => {
   it('annonce explicitement une recherche sans résultat', () => {
     renderApp();
     fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher dans le catalogue' }), { target: { value: 'zzzz-introuvable' } });
-    expect(screen.getByRole('status').textContent).toContain('0 résultat');
+    expect(screen.getByRole('status').textContent).toContain('0 module(s) correspondant(s) dans 0 cours');
     expect(screen.getByText('Aucun cours ne correspond à cette recherche.')).toBeTruthy();
   });
 
@@ -99,8 +99,9 @@ describe('catalogue de migration', () => {
 
   it('synchronise le thème sombre avec le document de leçon', () => {
     localStorage.setItem('roadmap-theme', 'dark');
-    render(<MemoryRouter initialEntries={['/lesson/projet-1-site-frontend']}><App /></MemoryRouter>);
-    const iframe = screen.getByTitle('Projet 1 — Site frontend');
+    const lesson = catalog.chapters[0].lessons[0];
+    render(<MemoryRouter initialEntries={[`/lesson/${lesson.id}`]}><App /></MemoryRouter>);
+    const iframe = screen.getByTitle(lesson.title);
     const iframeDocument = document.implementation.createHTMLDocument('Leçon');
     Object.defineProperty(iframe, 'contentDocument', { configurable: true, value: iframeDocument });
     fireEvent.load(iframe);

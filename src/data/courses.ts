@@ -2,6 +2,7 @@ import type { Course } from './types';
 import { htmlCourse } from './htmlCourse';
 import { cssCourse } from './cssCourse';
 import { javascriptCourse } from './javascriptCourse';
+import { typescriptCourse } from './typescriptCourse';
 import { reactAdvancedModules } from './reactAdvancedModules';
 import { stateManagementCourse } from './stateManagementCourse';
 
@@ -9,25 +10,7 @@ export const courses: Course[] = [
   htmlCourse,
   cssCourse,
   javascriptCourse,
-  {
-    id: 'typescript',
-    title: 'TypeScript',
-    category: 'Langage',
-    tags: ['typescript', 'types', 'typage-statique'],
-    description: 'Renforcer JavaScript avec des types utiles, des unions discriminées, des génériques et une validation sûre des données externes.',
-    level: 'Intermédiaire',
-    duration: '5 à 6 heures',
-    prerequisites: ['Connaître les bases de JavaScript : fonctions, objets, tableaux et modules.'],
-    objectives: ['Configurer TypeScript en mode strict.', 'Modéliser données et états avec unions.', 'Créer des fonctions génériques réutilisables.', 'Traiter les entrées externes sans faire confiance aux assertions.'],
-    modules: [
-      { id: 'configuration', title: '1. Configuration et inférence', summary: 'TypeScript vérifie le programme avant exécution ; l’inférence évite de répéter les types que le compilateur connaît déjà.', concepts: ['tsconfig, strict et noEmit', 'Types primitifs, tableaux, tuples et objets', 'Annotations nécessaires aux paramètres publics'], exercise: 'Configure un projet strict et type une fonction de calcul sans utiliser any.', example: { language: 'typescript', code: 'type Product = { id: string; price: number };\n\nfunction total(products: Product[]): number {\n  return products.reduce((sum, product) => sum + product.price, 0);\n}' } },
-      { id: 'unions', title: '2. Unions et narrowing', summary: 'Une union décrit plusieurs formes possibles ; le contrôle de discriminant permet de traiter chaque cas avec exhaustivité.', concepts: ['Unions, intersections et littéraux', 'unknown plutôt que any pour les données inconnues', 'never et vérification exhaustive'], exercise: 'Modélise les états d’une requête (idle/loading/success/error) et traite tous les cas dans une fonction de rendu.' },
-      { id: 'generiques', title: '3. Génériques', summary: 'Un générique relie plusieurs entrées et sorties tout en conservant leur information de type.', concepts: ['Paramètres de type et contraintes extends', 'Fonctions et structures génériques', 'Utilitaires Pick, Omit, Partial et Record'], exercise: 'Écris une fonction getById générique qui préserve le type des éléments et signale proprement une absence.' },
-      { id: 'frontieres', title: '4. Modules et frontières de confiance', summary: 'Les types décrivent le code compilé, mais ne valident pas les données reçues du réseau, du stockage ou d’un formulaire.', concepts: ['Types exportés et dépendances de modules', 'Parsing depuis unknown avec contrôles explicites', 'Différence entre assertion et validation runtime'], exercise: 'Écris un parseur de configuration qui accepte unknown et retourne un résultat discriminé valide/invalide.' },
-      { id: 'qualite', title: '5. API publiques et qualité', summary: 'Des signatures lisibles et des erreurs explicites rendent une bibliothèque plus simple à utiliser et à faire évoluer.', concepts: ['Types de retour et API minimales', 'Overloads seulement quand ils clarifient les appels', 'Tests de comportement et compilation en CI'], exercise: 'Publie un petit module de pagination avec types, cas limites et tests vérifiant données vides et pages hors limites.' },
-    ],
-    finalProject: { title: 'Client API typé', description: 'Crée un client qui valide les réponses, expose des états de chargement discriminés et transforme les erreurs HTTP.', criteria: ['Mode strict sans any.', 'Données réseau contrôlées avant utilisation.', 'Unions exhaustives pour les états.', 'Tests couvrant erreurs, valeurs absentes et cas nominal.'] },
-  },
+  typescriptCourse,
   {
     id: 'react',
     title: 'React',

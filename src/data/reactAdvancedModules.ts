@@ -1104,7 +1104,7 @@ export const reactAdvancedModules: CourseModule[] = [
             {
               "title": "Action autonome pour useActionState",
               "language": "tsx",
-              "code": "type SaveState = { message: string };\nasync function saveNameToApi(name: string): Promise<void> {\n  const response = await fetch("/api/profile/name", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });\n  if (!response.ok) throw new Error(`HTTP ${response.status}`);\n}\nasync function saveName(_previous: SaveState, formData: FormData): Promise<SaveState> {\n  const name = String(formData.get(\"name\") ?? \"\").trim();\n  if (name.length < 2) return { message: \"Le nom doit contenir au moins deux caractères.\" };\n  try { await saveNameToApi(name); return { message: \"Nom enregistré.\" }; }\n  catch { return { message: \"Enregistrement impossible.\" }; }\n}"
+              "code": "type SaveState = { message: string };\nasync function saveNameToApi(name: string): Promise<void> {\n  const response = await fetch(\"/api/profile/name\", { method: \"PUT\", headers: { \"Content-Type\": \"application/json\" }, body: JSON.stringify({ name }) });\n  if (!response.ok) throw new Error(`HTTP ${response.status}`);\n}\nasync function saveName(_previous: SaveState, formData: FormData): Promise<SaveState> {\n  const name = String(formData.get(\"name\") ?? \"\").trim();\n  if (name.length < 2) return { message: \"Le nom doit contenir au moins deux caractères.\" };\n  try { await saveNameToApi(name); return { message: \"Nom enregistré.\" }; }\n  catch { return { message: \"Enregistrement impossible.\" }; }\n}"
             }
           ]
         },

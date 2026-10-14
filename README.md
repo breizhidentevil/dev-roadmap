@@ -96,8 +96,3 @@ Le catalogue et les 174 pages proviennent de V40. Le manifeste V41 confirme que 
 ## Cours React approfondis
 
 Les cours React et Gestion d’état avancée ont été enrichis le 14 octobre 2026 avec des sections d’approfondissement et des ateliers corrigés dans chaque module. Voir `docs/REVUE_COURS_REACT_ET_GESTION_ETAT_2026-10-14.md` et `docs/GUIDE_ETUDE_REACT_ET_GESTION_ETAT.md`.
-
-
-## Cours TypeScript approfondi
-
-Le cours TypeScript est un parcours de 20 modules et 60 sections approfondies, avec 80 exemples commentés, exercices guidés avec critères d’acceptation, références officielles et projet de synthèse. Les modules traitent aussi des limites du typage statique, des cas limites, des tests de types et des frontières de validation runtime. Il suppose les bases de JavaScript acquises et se concentre sur le système de types, les contrats, les types calculés, la configuration stricte, les déclarations, la validation runtime et les API typées. Les 20 ateliers disposent de corrigés commentés dans `docs/ATELIERS_TYPESCRIPT_CORRIGES.md`, avec une grille d’autoévaluation et un barème du projet final. Le rapport de revue V3 est disponible dans `docs/REVUE_COURS_TYPESCRIPT_V3.md`.

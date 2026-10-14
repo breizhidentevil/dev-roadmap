@@ -111,36 +111,6 @@ describe('catalogue de migration', () => {
     expect(screen.queryByRole('heading', { name: /Compétences professionnelles/ })).toBeNull();
   });
 
-  it('propose un cours TypeScript approfondi sans reprendre les fondamentaux JavaScript', () => {
-    const typescript = courses.find((course) => course.id === 'typescript');
-    expect(typescript).toBeTruthy();
-    expect(typescript!.modules).toHaveLength(20);
-    expect(typescript!.modules.reduce((total, module) => total + (module.sections?.length ?? 0), 0)).toBe(60);
-    expect(typescript!.modules.reduce((total, module) => total + (module.sections?.reduce((count, section) => count + (section.examples?.length ?? 0), 0) ?? 0), 0)).toBe(80);
-    expect(typescript!.modules.every((module) => module.exercise.trim().length > 60)).toBe(true);
-    expect(typescript!.references?.length).toBeGreaterThanOrEqual(10);
-    expect(typescript!.finalProject.criteria.length).toBeGreaterThanOrEqual(8);
-    expect(typescript!.prerequisites.join(' ')).toContain('cours JavaScript moderne');
-
-    render(<MemoryRouter initialEntries={['/course/typescript/modele-types']}><App /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: 'TypeScript approfondi — Modèle mental du système de types' })).toBeTruthy();
-  });
-
-  it('expose un cours TypeScript approfondi avec des exercices guidés', () => {
-    const typescript = courses.find((course) => course.id === 'typescript');
-    expect(typescript).toBeTruthy();
-    expect(typescript!.modules).toHaveLength(20);
-    expect(typescript!.modules.reduce((total, module) => total + (module.sections?.length ?? 0), 0)).toBe(60);
-    expect(typescript!.modules.reduce((total, module) => total + (module.sections?.reduce((count, section) => count + (section.examples?.length ?? 0), 0) ?? 0), 0)).toBe(80);
-    expect(typescript!.modules.every((module) => module.exercise.includes('Critères d’acceptation'))).toBe(true);
-    expect(typescript!.references?.length).toBeGreaterThanOrEqual(13);
-    expect(typescript!.finalProject.criteria.length).toBeGreaterThanOrEqual(8);
-
-    render(<MemoryRouter initialEntries={['/course/typescript/modele-types']}><App /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: 'TypeScript approfondi — Modèle mental du système de types' })).toBeTruthy();
-    expect(screen.getByText(/Approfondissement —/)).toBeTruthy();
-  });
-
   it('expose un cours React approfondi avec 21 modules, sections, exemples et références', () => {
     const reactCourse = courses.find((course) => course.id === 'react');
     expect(reactCourse).toBeTruthy();

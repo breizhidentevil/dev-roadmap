@@ -108,8 +108,37 @@ describe('catalogue de migration', () => {
     expect(iframeDocument.documentElement.dataset.theme).toBe('dark');
   });
 
-  it('présente les neuf cours et calcule leur volume', () => {
-    expect(courses.map((course) => course.id)).toEqual(['html', 'css', 'javascript', 'typescript', 'react', 'gestion-etat-react', 'nodejs', 'sql', 'postgresql']);
+  it('présente les dix cours et calcule leur volume', () => {
+    expect(courses.map((course) => course.id)).toEqual(['html', 'css', 'javascript', 'typescript', 'react', 'gestion-etat-react', 'nodejs', 'sql', 'nosql', 'postgresql']);
+    const nodeCourse = courses.find((course) => course.id === 'nodejs')!;
+    expect(nodeCourse.title).toBe('Node.js et npm');
+    expect(nodeCourse.modules.length).toBeGreaterThanOrEqual(20);
+    expect(nodeCourse.modules.some((module) => module.title.includes('npm'))).toBe(true);
+    expect(nodeCourse.modules.every((module) => (module.sections?.length ?? 0) >= 3)).toBe(true);
+    expect(nodeCourse.references?.length).toBeGreaterThanOrEqual(10);
+    const sqlCourse = courses.find((course) => course.id === 'sql')!;
+    expect(sqlCourse.modules).toHaveLength(26);
+    expect(sqlCourse.modules.reduce((total, module) => total + (module.sections?.length ?? 0), 0)).toBe(78);
+    expect(sqlCourse.modules.every((module) => (module.sections?.length ?? 0) === 3)).toBe(true);
+    expect(sqlCourse.references?.length).toBeGreaterThanOrEqual(12);
+    expect(sqlCourse.finalProject.title).toContain('réservation');
+
+    const noSqlCourse = courses.find((course) => course.id === 'nosql')!;
+    expect(noSqlCourse.modules).toHaveLength(26);
+    expect(noSqlCourse.modules.every((module) => (module.sections?.length ?? 0) === 3)).toBe(true);
+    expect(noSqlCourse.modules.reduce((total, module) => total + (module.sections?.length ?? 0), 0)).toBe(78);
+    expect(noSqlCourse.references?.length).toBeGreaterThanOrEqual(14);
+    expect(noSqlCourse.finalProject.title).toContain('MongoDB');
+    const postgresql = courses.find((course) => course.id === 'postgresql')!;
+    expect(postgresql.modules).toHaveLength(28);
+    expect(postgresql.modules.reduce((total, module) => total + (module.sections?.length ?? 0), 0)).toBe(84);
+    expect(postgresql.modules.every((module) => (module.sections?.length ?? 0) === 3)).toBe(true);
+    expect(postgresql.modules.every((module) => Boolean(module.solution?.trim()))).toBe(true);
+    expect(postgresql.modules.reduce((total, module) => total + (module.solution ? 1 : 0), 0)).toBe(28);
+    expect(postgresql.references?.length).toBeGreaterThanOrEqual(18);
+    expect(postgresql.modules.some((module) => module.id === 'mvcc')).toBe(true);
+    expect(postgresql.modules.some((module) => module.id === 'explain')).toBe(true);
+    expect(postgresql.finalProject.title).toContain('réservation');
     const { container } = renderApp();
     fireEvent.click(screen.getByRole('button', { name: 'Cours' }));
     expect(screen.getByRole('status').textContent).toContain(`${courses.length} cours · ${courseConceptCount} modules au total`);

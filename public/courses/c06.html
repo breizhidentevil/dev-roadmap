@@ -1,0 +1,420 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>C06 — Architecture backend TypeScript</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>C06 — Architecture backend TypeScript</h1>
+<p><strong>Parcours :</strong> spécialisation TypeScript / Node.js · <strong>Niveau :</strong> intermédiaire à avancé · <strong>Durée indicative :</strong> 14 à 20 heures<br />
+<strong>Prérequis :</strong> C01 HTTP et réseaux, C02 API HTTP, C03 tests backend, C04 sécurité web, C05 accès aux données ; modules ES et TypeScript strict.</p>
+<h2>Objectifs pédagogiques</h2>
+<p>À la fin du cours, l'apprenant doit pouvoir :</p>
+<ul>
+<li>structurer un monolithe modulaire par domaines et responsabilités, sans créer de couches mécaniques inutiles ;</li>
+<li>distinguer domaine métier, cas d'utilisation, adaptateurs HTTP et persistance ;</li>
+<li>orienter les dépendances vers les règles métier et injecter les ports nécessaires ;</li>
+<li>placer la validation et la traduction des erreurs aux frontières adaptées ;</li>
+<li>charger une configuration typée et échouer tôt lorsqu'elle est invalide ;</li>
+<li>gérer correctement les transactions traversant plusieurs opérations métier ;</li>
+<li>tester les règles métier sans serveur HTTP ni base réelle, puis tester les adaptateurs séparément ;</li>
+<li>documenter les décisions structurantes avec des ADR courtes.</li>
+</ul>
+<h2>Plan</h2>
+<ol>
+<li>Architecture comme gestion des responsabilités et des coûts.</li>
+<li>Monolithe modulaire et frontières de domaine.</li>
+<li>Architecture en couches et hexagonale.</li>
+<li>Dépendances, ports, adaptateurs et injection.</li>
+<li>Domaine, cas d'utilisation et validation.</li>
+<li>Erreurs aux frontières et configuration typée.</li>
+<li>Transactions et cohérence entre opérations métier.</li>
+<li>Tests, observabilité et évolutivité proportionnée.</li>
+<li>Découpage des modules, anti-patterns et ADR.</li>
+<li>Projet intégrateur et critères de qualité.</li>
+</ol>
+<hr />
+<h1>Module 1 — Architecture : gérer les responsabilités</h1>
+<h2>1.1 L'architecture sert les changements attendus</h2>
+<p>L'architecture décrit les frontières, les responsabilités, les dépendances et les décisions difficiles à inverser. Elle ne se mesure pas au nombre de dossiers, d'interfaces ou de frameworks. Une petite API peut être correctement structurée sans microservices, bus d'événements ni conteneur d'injection sophistiqué.</p>
+<p>Une décision d'architecture devrait répondre à un risque ou à un coût concret : règles métier difficiles à tester, dépendance à un fournisseur qui change, accès aux données dispersé, transactions incohérentes ou responsabilités mêlées dans les contrôleurs.</p>
+<h2>1.2 Couplage et cohésion</h2>
+<ul>
+<li><strong>Cohésion :</strong> les éléments d'un module contribuent à une responsabilité liée.</li>
+<li><strong>Couplage :</strong> le degré de connaissance qu'un module possède des détails d'un autre.</li>
+<li><strong>Frontière :</strong> contrat explicite par lequel deux parties collaborent.</li>
+</ul>
+<p>Le but n'est pas de supprimer toute dépendance, mais de rendre les dépendances utiles, explicites et stables. Un module métier peut dépendre d'une interface de dépôt ; il ne devrait pas devoir importer Express ou le client PostgreSQL pour appliquer une règle métier.</p>
+<h3>Exemple</h3>
+<pre><code class="language-ts">// Domaine : aucune dépendance au transport HTTP.
+export type OrderStatus = &quot;draft&quot; | &quot;confirmed&quot;;
+
+export interface Order {
+  readonly id: string;
+  readonly totalCents: number;
+  readonly status: OrderStatus;
+}
+
+export function confirmOrder(order: Order): Order {
+  if (order.status !== &quot;draft&quot;) {
+    throw new Error(&quot;ORDER_NOT_CONFIRMABLE&quot;);
+  }
+  if (!Number.isSafeInteger(order.totalCents) || order.totalCents &lt;= 0) {
+    throw new Error(&quot;ORDER_TOTAL_INVALID&quot;);
+  }
+  return { ...order, status: &quot;confirmed&quot; };
+}
+</code></pre>
+<p>Le code illustre une règle pure. Dans une application complète, on préférera souvent des erreurs métier dédiées plutôt que des chaînes génériques ; l'exemple garde le domaine minimal pour montrer la frontière.</p>
+<p><strong>Exercice 1.</strong> Une route Express vérifie le stock, calcule le total, écrit trois tables et construit la réponse HTTP. Identifiez quatre responsabilités distinctes.</p>
+<p><strong>Corrigé.</strong> Le contrôleur traduit HTTP et valide la forme de la requête ; le cas d'utilisation orchestre l'opération ; le domaine porte les invariants et calculs métier ; les ports/adaptateurs d'infrastructure lisent et écrivent les données. La transaction est définie autour de l'unité métier cohérente, pas au gré des appels HTTP.</p>
+<hr />
+<h1>Module 2 — Monolithe modulaire et frontières de domaine</h1>
+<h2>2.1 Commencer par les capacités métier</h2>
+<p>Un monolithe modulaire est une application déployée comme une unité, organisée en modules aux responsabilités et contrats explicites. Il évite le coût réseau et opérationnel des microservices tout en permettant de limiter le couplage interne.</p>
+<p>Découper selon les capacités métier — par exemple <code>orders</code>, <code>catalog</code>, <code>accounts</code> — est souvent plus robuste que de placer toute l'application dans des dossiers globaux <code>controllers</code>, <code>services</code>, <code>repositories</code>. Le découpage par couches reste possible à l'intérieur de chaque module ; la frontière de domaine reste visible au premier niveau.</p>
+<pre><code class="language-text">src/
+  modules/
+    orders/
+      domain/
+      application/
+      infrastructure/
+      http/
+    catalog/
+      domain/
+      application/
+      infrastructure/
+      http/
+  shared/
+    errors/
+    observability/
+  app.ts
+  main.ts
+</code></pre>
+<p>Cette structure est une proposition pédagogique, pas une obligation à recopier. Un module petit peut réunir certains fichiers si les responsabilités restent compréhensibles. <code>shared</code> doit contenir du code réellement transversal, pas un dépotoir de fonctions difficiles à attribuer.</p>
+<h2>2.2 Protéger les frontières</h2>
+<p>Le module <code>orders</code> ne devrait pas modifier directement les tables internes de <code>catalog</code>. Il appelle un contrat public ou reçoit les données nécessaires par un cas d'utilisation explicite. Éviter les imports profonds qui contournent l'API d'un module.</p>
+<p>Une frontière n'exige pas systématiquement un package npm séparé. Dans un dépôt simple, les règles d'import, l'organisation des dossiers et des tests d'architecture légers peuvent suffire.</p>
+<p><strong>Exercice 2.</strong> Deux équipes modifient régulièrement le même fichier <code>common.ts</code>, qui contient validation de commandes, formatage de dates et accès SQL. Proposez une première action de découpage.</p>
+<p><strong>Corrigé.</strong> Relever les consommateurs et responsabilités, puis déplacer chaque comportement vers le module qui en possède la règle. Garder dans <code>shared</code> uniquement les abstractions véritablement communes. Ne pas créer trois packages ou services déployables avant d'avoir un besoin démontré.</p>
+<hr />
+<h1>Module 3 — Architecture en couches et architecture hexagonale</h1>
+<h2>3.1 Les couches</h2>
+<ul>
+<li><strong>Domaine :</strong> règles et invariants métier indépendants des détails techniques.</li>
+<li><strong>Application :</strong> cas d'utilisation, orchestration et politiques de transaction.</li>
+<li><strong>Adaptateurs entrants :</strong> HTTP, tâche planifiée ou message ; ils traduisent l'entrée vers un cas d'utilisation.</li>
+<li><strong>Adaptateurs sortants :</strong> base de données, service externe, système de fichiers ; ils implémentent les contrats nécessaires.</li>
+<li><strong>Composition :</strong> point où les implémentations concrètes sont assemblées.</li>
+</ul>
+<p>L'architecture hexagonale (ports et adaptateurs) met l'accent sur la séparation entre le cœur applicatif et ses interactions. Les couches sont un moyen de matérialiser cette séparation, pas une obligation de multiplier les fichiers.</p>
+<h2>3.2 Direction des dépendances</h2>
+<p>Les détails techniques dépendent des contrats dont le cœur a besoin, plutôt que le cœur ne dépende de tous les détails. Le domaine n'importe pas Express, <code>pg</code>, Drizzle ou un SDK externe. Le contrôleur peut dépendre d'un cas d'utilisation ; l'adaptateur PostgreSQL peut implémenter un port défini côté application.</p>
+<pre><code class="language-ts">export interface OrderRepository {
+  findById(id: string): Promise&lt;Order | undefined&gt;;
+  save(order: Order): Promise&lt;void&gt;;
+}
+
+export interface TransactionRunner {
+  run&lt;T&gt;(work: (repositories: { orders: OrderRepository }) =&gt; Promise&lt;T&gt;): Promise&lt;T&gt;;
+}
+</code></pre>
+<p>Le contrat ci-dessus est schématique : dans une implémentation réelle, il faut garantir que le dépôt fourni dans <code>work</code> utilise la même transaction que les autres écritures. Exposer un simple <code>transaction()</code> sans clarifier la portée de ses dépôts peut donner une fausse impression de cohérence.</p>
+<p><strong>Exercice 3.</strong> Un fichier de domaine importe <code>Request</code> depuis Express pour accéder à <code>req.user</code>. Quelle est la violation et comment la corriger ?</p>
+<p><strong>Corrigé.</strong> Le domaine dépend du transport et de son modèle de requête. L'adaptateur HTTP extrait l'identité authentifiée, puis transmet au cas d'utilisation un contexte applicatif explicite (par exemple <code>actorId</code>) après les contrôles de validation et d'autorisation requis.</p>
+<hr />
+<h1>Module 4 — Ports, adaptateurs et injection de dépendances</h1>
+<h2>4.1 Injection sans conteneur</h2>
+<p>L'injection de dépendances consiste à fournir une collaboration depuis l'extérieur au lieu de la construire à l'intérieur du module. Elle peut se faire par paramètres de fonction, constructeur ou fabrique. Un conteneur automatique n'est pas nécessaire pour quelques dépendances.</p>
+<pre><code class="language-ts">export interface Clock {
+  now(): Date;
+}
+
+export interface OrderStore {
+  save(order: Order): Promise&lt;void&gt;;
+}
+
+export function createPlaceOrder(deps: {
+  store: OrderStore;
+  clock: Clock;
+}) {
+  return async (input: { id: string; totalCents: number }): Promise&lt;Order&gt; =&gt; {
+    if (!Number.isSafeInteger(input.totalCents) || input.totalCents &lt;= 0) {
+      throw new Error(&quot;ORDER_TOTAL_INVALID&quot;);
+    }
+    const order: Order = {
+      id: input.id,
+      totalCents: input.totalCents,
+      status: &quot;draft&quot;,
+    };
+    // Le temps est injecté pour être contrôlable en test, même si cette
+    // version minimale ne stocke pas encore createdAt.
+    deps.clock.now();
+    await deps.store.save(order);
+    return order;
+  };
+}
+</code></pre>
+<p>Les ports doivent représenter des besoins métier ou applicatifs utiles, pas recopier toutes les méthodes d'un fournisseur. Une interface par classe concrète, sans variation ou besoin de substitution, ajoute parfois plus de maintenance que de valeur.</p>
+<h2>4.2 Composition à la racine</h2>
+<p>Le point de composition crée les adaptateurs concrets puis injecte les dépendances. Le code métier n'a pas besoin de savoir si <code>OrderStore</code> est implémenté par PostgreSQL, un fake en test ou un service externe.</p>
+<pre><code class="language-ts">// Pseudocode d'assemblage : les constructeurs concrets dépendent
+// de bibliothèques et de variables d'environnement propres au projet.
+const store = createPostgresOrderStore(pool);
+const clock = { now: () =&gt; new Date() };
+const placeOrder = createPlaceOrder({ store, clock });
+const app = createHttpApp({ placeOrder });
+</code></pre>
+<p><strong>Exercice 4.</strong> Faut-il injecter <code>Array.map</code> derrière une interface pour tester une transformation simple ?</p>
+<p><strong>Corrigé.</strong> Non. Une dépendance stable et intrinsèque au langage ne justifie pas une abstraction. Injecter une horloge, un générateur d'identifiants, un stockage ou un fournisseur externe peut en revanche améliorer le contrôle et l'isolation.</p>
+<hr />
+<h1>Module 5 — Domaine, cas d'utilisation et validation</h1>
+<h2>5.1 TypeScript ne valide pas les entrées à l'exécution</h2>
+<p>Une annotation comme <code>input: CreateOrderInput</code> n'empêche pas un client HTTP d'envoyer un objet invalide. Les données externes sont <code>unknown</code> jusqu'à validation. Le contrôleur ou un adaptateur valide leur forme ; le domaine protège les invariants qui doivent rester vrais quelle que soit la provenance de l'appel.</p>
+<p>Il faut distinguer :</p>
+<ol>
+<li><strong>Validation de forme</strong> : JSON, champs requis, types primitifs, longueurs et formats.</li>
+<li><strong>Règle métier</strong> : transition d'état autorisée, montant positif, quantité disponible.</li>
+<li><strong>Contrainte de persistance</strong> : unicité, clé étrangère, <code>NOT NULL</code>, transaction.</li>
+<li><strong>Autorisation</strong> : l'acteur a-t-il le droit d'effectuer cette action sur cette ressource ?</li>
+</ol>
+<p>Ces contrôles sont complémentaires. La validation HTTP ne remplace pas une contrainte unique en base, et un type TypeScript ne remplace ni la validation ni l'autorisation.</p>
+<h2>5.2 Cas d'utilisation explicite</h2>
+<p>Un cas d'utilisation orchestre une action qui a un sens pour le métier : confirmer une commande, inscrire un utilisateur, rembourser un paiement. Il reçoit des données déjà décodées, appelle le domaine et les ports requis, puis renvoie un résultat applicatif. Il ne devrait pas construire une réponse <code>Response</code> HTTP.</p>
+<pre><code class="language-ts">type ConfirmOrderResult =
+  | { ok: true; order: Order }
+  | { ok: false; reason: &quot;NOT_FOUND&quot; | &quot;INVALID_STATE&quot; };
+
+export async function confirmOrderUseCase(
+  id: string,
+  repository: OrderRepository,
+): Promise&lt;ConfirmOrderResult&gt; {
+  const order = await repository.findById(id);
+  if (!order) return { ok: false, reason: &quot;NOT_FOUND&quot; };
+  if (order.status !== &quot;draft&quot;) return { ok: false, reason: &quot;INVALID_STATE&quot; };
+  const confirmed = { ...order, status: &quot;confirmed&quot; as const };
+  await repository.save(confirmed);
+  return { ok: true, order: confirmed };
+}
+</code></pre>
+<p>Cette version simplifiée illustre la séparation ; si plusieurs lectures/écritures doivent être atomiques, le cas d'utilisation doit utiliser un contrat transactionnel adapté et gérer la concurrence. Vérifier uniquement l'état lu en mémoire ne prévient pas deux confirmations simultanées.</p>
+<p><strong>Exercice 5.</strong> Une requête fournit <code>quantity: -2</code>. Où placer les contrôles ?</p>
+<p><strong>Corrigé.</strong> Le schéma d'entrée rejette une valeur de forme ou de plage invalide ; le domaine ou le cas d'utilisation protège également l'invariant métier pour les autres voies d'entrée ; la base conserve les contraintes persistantes adaptées, par exemple <code>CHECK (quantity &gt; 0)</code>. L'autorisation est vérifiée séparément.</p>
+<hr />
+<h1>Module 6 — Erreurs aux frontières et configuration typée</h1>
+<h2>6.1 Erreurs internes et erreurs publiques</h2>
+<p>Le domaine peut émettre des erreurs métier identifiables ou retourner une union de résultats. L'adaptateur HTTP traduit les résultats en statuts et formats de réponse. Une erreur de base de données ne doit pas être renvoyée telle quelle au client : elle peut révéler le schéma, les requêtes ou des données sensibles.</p>
+<p>Définir une correspondance cohérente, par exemple : entrée invalide → <code>400</code> ou <code>422</code> selon le contrat ; ressource absente → <code>404</code> ; absence d'autorisation → <code>403</code> ou <code>404</code> selon la politique de divulgation ; conflit métier → <code>409</code> ; erreur inattendue → <code>500</code> avec identifiant de corrélation. Le choix doit rester cohérent avec l'API documentée.</p>
+<pre><code class="language-ts">type PublicError = {
+  status: number;
+  code: string;
+  message: string;
+};
+
+function toPublicError(error: unknown): PublicError {
+  if (error instanceof Error &amp;&amp; error.message === &quot;ORDER_NOT_FOUND&quot;) {
+    return { status: 404, code: &quot;ORDER_NOT_FOUND&quot;, message: &quot;Commande introuvable.&quot; };
+  }
+  return { status: 500, code: &quot;INTERNAL_ERROR&quot;, message: &quot;Une erreur inattendue est survenue.&quot; };
+}
+</code></pre>
+<p>En production, préférer des classes d'erreurs ou codes discriminés plutôt que comparer des messages ; ne jamais exposer stack trace, secrets, SQL ou corps sensibles dans la réponse. Journaliser les détails utiles avec une politique de masquage et un identifiant de corrélation.</p>
+<h2>6.2 Configuration au démarrage</h2>
+<p>Lire les variables d'environnement une fois à la frontière, vérifier leur présence et leur format, puis transmettre un objet de configuration validé. Éviter de lire <code>process.env</code> partout dans le domaine et de convertir silencieusement une valeur absente en chaîne vide.</p>
+<pre><code class="language-ts">interface AppConfig {
+  port: number;
+  databaseUrl: string;
+  nodeEnv: &quot;development&quot; | &quot;test&quot; | &quot;production&quot;;
+}
+
+export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
+  const port = Number(env.PORT ?? &quot;3000&quot;);
+  const databaseUrl = env.DATABASE_URL;
+  const nodeEnv = env.NODE_ENV ?? &quot;development&quot;;
+
+  if (!Number.isInteger(port) || port &lt; 1 || port &gt; 65535) {
+    throw new Error(&quot;Invalid PORT configuration&quot;);
+  }
+  if (!databaseUrl) throw new Error(&quot;DATABASE_URL is required&quot;);
+  if (nodeEnv !== &quot;development&quot; &amp;&amp; nodeEnv !== &quot;test&quot; &amp;&amp; nodeEnv !== &quot;production&quot;) {
+    throw new Error(&quot;Invalid NODE_ENV configuration&quot;);
+  }
+  return { port, databaseUrl, nodeEnv };
+}
+</code></pre>
+<p>Ce type utilise <code>NodeJS.ProcessEnv</code>, qui suppose les types Node.js présents dans le projet d'exemple. Le dépôt pédagogique ne reçoit aucune dépendance supplémentaire pour ce cours. Ne pas journaliser la chaîne de connexion complète.</p>
+<p><strong>Exercice 6.</strong> L'application démarre même si <code>DATABASE_URL</code> manque et échoue au premier appel utilisateur. Quelle amélioration appliquer ?</p>
+<p><strong>Corrigé.</strong> Valider la configuration avant d'ouvrir le serveur et échouer avec un message d'exploitation explicite, sans secret. Le démarrage ne doit être déclaré prêt qu'après les contrôles requis, par exemple une connexion initiale si la stratégie opérationnelle l'impose.</p>
+<hr />
+<h1>Module 7 — Transactions et cohérence métier</h1>
+<h2>7.1 La transaction suit l'unité métier</h2>
+<p>Si confirmer une commande exige de réserver du stock et d'enregistrer un événement local, l'ensemble doit être cohérent. Une transaction courte peut encapsuler les écritures liées. Le cas d'utilisation exprime la frontière métier ; l'adaptateur de persistance garantit qu'elles partagent la même connexion et la même transaction.</p>
+<p>Ne pas ouvrir une transaction dans un middleware HTTP sans rapport avec le cas d'utilisation. Ne pas laisser une transaction ouverte pendant un appel réseau lent. Pour une opération distribuée entre PostgreSQL et un fournisseur de paiement, une transaction SQL ne rend pas les deux systèmes atomiques : utiliser un workflow explicite, idempotence, états intermédiaires, compensation ou outbox selon les besoins.</p>
+<h2>7.2 Concurrence</h2>
+<p>Deux requêtes peuvent lire simultanément un stock de 1 puis tenter de réserver chacune une unité. La logique « lire puis décrémenter » n'est pas suffisante si elle n'est pas protégée. Selon le modèle, utiliser une mise à jour conditionnelle atomique, des verrous, des contraintes ou un niveau d'isolation adapté, puis traiter les conflits et les tentatives répétées.</p>
+<pre><code class="language-sql">UPDATE inventory
+SET quantity = quantity - $1
+WHERE sku = $2 AND quantity &gt;= $1
+RETURNING quantity;
+</code></pre>
+<p>Le code applicatif doit vérifier si une ligne a été retournée et interpréter l'absence comme un échec de réservation selon le contrat métier. Le contrôle de <code>quantity &gt; 0</code> doit aussi être assuré par la validation et/ou une contrainte adaptée. Le SQL ne doit pas être assemblé par concaténation de données utilisateur.</p>
+<p><strong>Exercice 7.</strong> Une confirmation écrit la commande puis appelle un prestataire de paiement dans une transaction SQL maintenue ouverte pendant 20 secondes. Quel est le problème et quelle approche proposer ?</p>
+<p><strong>Corrigé.</strong> La transaction longue retient verrous et connexions et peut augmenter les conflits. Séparer l'orchestration de paiement de la transaction locale, utiliser une clé d'idempotence côté prestataire, des états métier explicites et un mécanisme de reprise/compensation. Ne pas prétendre qu'une transaction SQL couvre le service externe.</p>
+<hr />
+<h1>Module 8 — Tests, observabilité et fiabilité</h1>
+<h2>8.1 Tester chaque frontière au niveau utile</h2>
+<ul>
+<li><strong>Domaine :</strong> tests unitaires rapides sur les invariants et transitions.</li>
+<li><strong>Application :</strong> tests avec ports contrôlés pour vérifier l'orchestration, les refus et les scénarios d'erreur.</li>
+<li><strong>Adaptateur HTTP :</strong> tests de contrat sur statuts, schémas et traduction d'erreurs.</li>
+<li><strong>Persistance :</strong> tests d'intégration sur le moteur réel, notamment transactions, contraintes et concurrence.</li>
+<li><strong>Système :</strong> quelques tests bout en bout sur les parcours critiques.</li>
+</ul>
+<p>Les fakes doivent préserver les propriétés utiles du contrat ; ils ne simulent pas fidèlement toutes les contraintes de PostgreSQL. Les tests unitaires ne prouvent donc pas la correction des transactions ou des migrations.</p>
+<h2>8.2 Observabilité aux frontières</h2>
+<p>Utiliser des journaux structurés, des métriques et des traces adaptés au service. Propager un identifiant de corrélation sans le confondre avec une identité authentifiée. Ne pas journaliser mots de passe, jetons, cookies, données personnelles inutiles ou chaînes de connexion. Les erreurs doivent indiquer le contexte opérationnel utile sans exposer les détails internes au client.</p>
+<p><strong>Exercice 8.</strong> Un test unitaire avec un dépôt fake passe, mais une contrainte d'unicité échoue en production. Pourquoi ?</p>
+<p><strong>Corrigé.</strong> Le fake ne reproduisait pas la contrainte réelle, ni éventuellement la concurrence. Ajouter un test d'intégration sur PostgreSQL et traiter explicitement le conflit d'unicité ; ne pas faire du fake une preuve de comportement du moteur.</p>
+<hr />
+<h1>Module 9 — Découpage proportionné, anti-patterns et ADR</h1>
+<h2>9.1 Quand créer un module ou un service ?</h2>
+<p>Créer une frontière quand elle réduit un coût réel : règle métier cohérente, équipe responsable, dépendance variable, politique de sécurité distincte, besoin de test ou rythme d'évolution différent. Ne pas extraire un service distant seulement parce qu'un dossier devient volumineux. Les microservices introduisent réseau, pannes partielles, déploiements coordonnés, observabilité distribuée et cohérence éventuelle.</p>
+<p>Signaux d'architecture à revoir :</p>
+<ul>
+<li>contrôleurs contenant règles métier et SQL ;</li>
+<li>dépendances circulaires entre domaines ;</li>
+<li><code>shared</code> contenant des règles métier de tous les domaines ;</li>
+<li>interfaces créées sans besoin de substitution ni frontière claire ;</li>
+<li>services génériques avec de nombreux paramètres booléens ;</li>
+<li>exceptions techniques traduites en succès silencieux ;</li>
+<li>transactions et autorisations dispersées dans plusieurs couches.</li>
+</ul>
+<h2>9.2 ADR — Architecture Decision Record</h2>
+<p>Une ADR est une note courte qui conserve le contexte et la raison d'une décision. Modèle recommandé :</p>
+<pre><code class="language-md"># ADR-0001 — Organiser l'API en monolithe modulaire
+
+- Statut : accepté
+- Date : AAAA-MM-JJ
+
+## Contexte
+Quel problème et quelles contraintes motivent la décision ?
+
+## Décision
+Quelle option est retenue, avec quel périmètre ?
+
+## Alternatives considérées
+Quelles options réalistes ont été comparées et pourquoi écartées ?
+
+## Conséquences
+Quels bénéfices, coûts, risques et conditions de réévaluation ?
+</code></pre>
+<p>Une ADR n'est ni un document marketing ni une garantie que le choix sera éternel. Si le contexte change, une nouvelle ADR peut remplacer l'ancienne tout en gardant l'historique.</p>
+<p><strong>Exercice 9.</strong> Une équipe souhaite passer en microservices parce que son monolithe a 30 modules et que le déploiement est encore manuel. Que doit-elle analyser avant de décider ?</p>
+<p><strong>Corrigé.</strong> Identifier le problème réel : frontières mal définies, équipes en conflit, besoin de déploiements indépendants, charge différenciée, contraintes de sécurité ou limites techniques. Vérifier d'abord les modules, le pipeline et la propriété du code. Le nombre de modules seul ne justifie pas des services distribués ; documenter les options et coûts dans une ADR.</p>
+<hr />
+<h1>Module 10 — Projet intégrateur</h1>
+<h2>Sujet</h2>
+<p>Transformer une API de commandes simple en monolithe modulaire TypeScript. Le domaine comporte au minimum commandes et catalogue. L'application doit créer et confirmer une commande, vérifier la disponibilité, persister les données et exposer une API HTTP. Les règles métier ne doivent pas dépendre directement du framework HTTP ou du fournisseur de base de données.</p>
+<h2>Livrables attendus</h2>
+<ol>
+<li>Arborescence organisée par domaines et responsabilités, avec frontières documentées.</li>
+<li>Domaine avec types et invariants testés.</li>
+<li>Cas d'utilisation injectant des ports explicites.</li>
+<li>Adaptateurs HTTP et persistance distincts du domaine.</li>
+<li>Configuration validée au démarrage, sans secret dans les journaux.</li>
+<li>Stratégie transactionnelle et traitement explicite de la concurrence.</li>
+<li>Tests unitaires, tests d'adaptateur et tests d'intégration adaptés au risque.</li>
+<li>Au moins une ADR décrivant la structure retenue et une alternative écartée.</li>
+<li>README précisant les commandes réellement vérifiées et les limites de validation.</li>
+</ol>
+<h2>Critères d'acceptation</h2>
+<ul>
+<li>Les règles métier sont testables sans serveur HTTP ni base réelle.</li>
+<li>Le domaine n'importe pas le framework HTTP, le pilote SQL ou l'ORM.</li>
+<li>Les contrôleurs traduisent le protocole et délèguent les décisions métier.</li>
+<li>Les frontières de module sont compréhensibles et aucun cycle injustifié n'est introduit.</li>
+<li>Les entrées externes sont validées à l'exécution ; les invariants critiques sont aussi protégés au niveau métier et persistance.</li>
+<li>Les erreurs publiques ne divulguent ni stack trace ni détails internes sensibles.</li>
+<li>Les variables requises sont validées avant que le service soit déclaré prêt.</li>
+<li>Les opérations multi-écritures ont une stratégie transactionnelle explicite ; les effets externes ont une stratégie de reprise/idempotence.</li>
+<li>Les tests couvrent au minimum succès, refus métier, absence de ressource, erreur de dépendance et cas de concurrence pertinent.</li>
+<li>Les décisions structurantes et les compromis sont documentés.</li>
+</ul>
+<h2>Grille d'évaluation sur 20</h2>
+<table>
+<thead>
+<tr>
+  <th>Critère</th>
+  <th style="text-align:right">Points</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Frontières de domaine et cohésion</td>
+  <td style="text-align:right">4</td>
+</tr>
+<tr>
+  <td>Direction des dépendances et ports</td>
+  <td style="text-align:right">4</td>
+</tr>
+<tr>
+  <td>Invariants, validation et gestion d'erreurs</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Transactions et concurrence</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Tests adaptés aux frontières</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Configuration, observabilité et sécurité</td>
+  <td style="text-align:right">2</td>
+</tr>
+<tr>
+  <td>ADR et documentation des compromis</td>
+  <td style="text-align:right">1</td>
+</tr>
+<tr>
+  <td><strong>Total</strong></td>
+  <td style="text-align:right"><strong>20</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Un projet qui compile mais laisse les règles métier dépendre directement du transport HTTP ne satisfait pas le critère principal du cours.</p>
+<h2>Quiz de validation — 9 questions expliquées</h2>
+<ol>
+<li><strong>Quelle est la première raison de séparer le domaine du contrôleur HTTP ?</strong><br />
+<strong>Réponse :</strong> protéger les règles métier des détails du transport et permettre leur test sans serveur. <strong>Explication :</strong> la séparation améliore aussi la réutilisation, mais le bénéfice principal est une dépendance moins fragile.</li>
+<li><strong>Un monolithe modulaire doit-il être déployé en plusieurs unités ?</strong><br />
+<strong>Réponse :</strong> non. <strong>Explication :</strong> ses modules partagent un processus et un déploiement ; leur frontière est logique et technique, pas nécessairement réseau.</li>
+<li><strong>Dans quel sens orienter les dépendances en architecture hexagonale ?</strong><br />
+<strong>Réponse :</strong> les détails implémentent les ports dont le cœur a besoin. <strong>Explication :</strong> le cœur n'importe pas les SDK ou frameworks d'infrastructure.</li>
+<li><strong>Faut-il créer une interface pour chaque classe ?</strong><br />
+<strong>Réponse :</strong> non. <strong>Explication :</strong> un port se justifie par une frontière, un besoin de substitution ou un contrat utile, pas par une règle de comptage.</li>
+<li><strong>Une annotation TypeScript valide-t-elle un JSON reçu par HTTP ?</strong><br />
+<strong>Réponse :</strong> non. <strong>Explication :</strong> les types sont effacés à l'exécution ; une validation runtime reste nécessaire.</li>
+<li><strong>Où traduire une erreur interne en statut HTTP ?</strong><br />
+<strong>Réponse :</strong> à la frontière HTTP. <strong>Explication :</strong> le domaine conserve une signification métier et ne doit pas dépendre des statuts du protocole.</li>
+<li><strong>Une transaction SQL peut-elle rendre atomique un appel à un prestataire de paiement ?</strong><br />
+<strong>Réponse :</strong> non. <strong>Explication :</strong> le système externe n'appartient pas à la transaction locale ; il faut concevoir idempotence, reprise et compensation.</li>
+<li><strong>Un test avec un dépôt fake prouve-t-il le comportement des contraintes PostgreSQL ?</strong><br />
+<strong>Réponse :</strong> non. <strong>Explication :</strong> les contraintes, verrous et niveaux d'isolation nécessitent des tests d'intégration sur le moteur réel.</li>
+<li><strong>Le nombre de modules suffit-il à justifier des microservices ?</strong><br />
+<strong>Réponse :</strong> non. <strong>Explication :</strong> il faut un besoin démontré d'indépendance de déploiement, de propriété, de mise à l'échelle ou d'isolation qui compense le coût distribué.</li>
+</ol>
+<hr />
+<h2>Références officielles et techniques</h2>
+<ol>
+<li>TypeScript — Modules : https://www.typescriptlang.org/docs/handbook/2/modules.html</li>
+<li>TypeScript — Types et narrowing : https://www.typescriptlang.org/docs/handbook/2/narrowing.html</li>
+<li>Node.js — Documentation officielle : https://nodejs.org/docs/latest/api/</li>
+<li>Node.js — Variables d'environnement : https://nodejs.org/docs/latest/api/environment_variables.html</li>
+<li>Express — Gestion des erreurs : https://expressjs.com/en/guide/error-handling.html</li>
+<li>PostgreSQL — Transactions : https://www.postgresql.org/docs/current/tutorial-transactions.html</li>
+<li>PostgreSQL — Contrôle de concurrence : https://www.postgresql.org/docs/current/mvcc.html</li>
+<li>OWASP — Input Validation Cheat Sheet : https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html</li>
+<li>OWASP — Error Handling Cheat Sheet : https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html</li>
+<li>Martin Fowler — Inversion of Control : https://martinfowler.com/articles/injection.html</li>
+<li>Alistair Cockburn — Hexagonal Architecture : https://alistair.cockburn.us/hexagonal-architecture/</li>
+<li>ADR GitHub — Documenting architecture decisions : https://adr.github.io/</li>
+</ol>
+<p>Les liens sont des références de départ à consulter avant usage ; les extraits du cours ne remplacent pas la documentation des versions effectivement choisies dans un projet.</p>
+</body></html>

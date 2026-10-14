@@ -1,0 +1,461 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>C04 — Authentification, autorisation et sécurité web</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>C04 — Authentification, autorisation et sécurité web</h1>
+<ul>
+<li><strong>Date :</strong> 14 octobre 2026</li>
+<li><strong>Version pédagogique :</strong> 1.0</li>
+<li><strong>Niveau :</strong> intermédiaire à avancé</li>
+<li><strong>Durée indicative :</strong> 16–22 heures</li>
+<li><strong>Statut :</strong> rédigé ; exemples à adapter et tester avant production</li>
+<li><strong>Prérequis :</strong> C01 HTTP/réseaux, C02 API HTTP, C03 tests backend, SQL/PostgreSQL et TypeScript strict.</li>
+</ul>
+<h2>Objectifs</h2>
+<p>À l’issue du cours, l’apprenant doit pouvoir modéliser les menaces d’une API, choisir une stratégie d’authentification adaptée, stocker des mots de passe sans les conserver en clair, sécuriser les sessions navigateur, distinguer OAuth 2.0 d’OpenID Connect, appliquer des permissions au niveau de chaque ressource, protéger les secrets et limiter les abus. La sécurité est une propriété de l’architecture, des contrôles d’accès, des opérations de déploiement et des tests ; elle ne se résume pas à ajouter un JWT.</p>
+<h2>Plan</h2>
+<ol>
+<li>Modèle de menace et principes de sécurité.</li>
+<li>Mots de passe, inscription et réinitialisation.</li>
+<li>Sessions, cookies et CSRF.</li>
+<li>JWT : validation, expiration et rotation.</li>
+<li>OAuth 2.0 et OpenID Connect.</li>
+<li>Authentification, RBAC et autorisation par ressource.</li>
+<li>IDOR/BOLA et tests de contrôle d’accès.</li>
+<li>Secrets et configuration.</li>
+<li>Limitation d’abus et défense en profondeur.</li>
+<li>Dépendances, incidents et checklist de livraison.</li>
+</ol>
+<hr />
+<h1>Module 1 — Modèle de menace et principes de sécurité</h1>
+<h2>1.1 Partir des actifs et des frontières de confiance</h2>
+<p>Avant de choisir une bibliothèque, inventorier ce qu’il faut protéger : comptes, données personnelles, commandes, rôles, clés d’API, sessions, journaux et disponibilité du service. Identifier les acteurs et les frontières de confiance : navigateur, API publique, service interne, fournisseur d’identité, base de données, file de messages et opérateur.</p>
+<p>Pour chaque actif, répondre à quatre questions :</p>
+<ul>
+<li>Qui peut le lire, le modifier ou le supprimer ?</li>
+<li>Quel abus est réaliste ?</li>
+<li>Quel contrôle réduit le risque ?</li>
+<li>Quel test démontre que ce contrôle fonctionne ?</li>
+</ul>
+<p>Un modèle de menace est une hypothèse documentée et révisable, pas une certification. Utiliser des catégories comme usurpation d’identité, altération, répudiation, divulgation, déni de service et élévation de privilèges. Pour les API, examiner notamment les contrôles d’accès objet et fonctionnel, l’authentification, la consommation de ressources, la mauvaise configuration et les flux métier sensibles.</p>
+<h2>1.2 Défense en profondeur et moindre privilège</h2>
+<p>Ne pas faire dépendre la sécurité d’un seul contrôle. Une API peut valider un jeton correctement et rester vulnérable si elle ne vérifie pas que l’utilisateur peut lire la ressource demandée. Une base peut être correctement protégée par mot de passe tout en exposant des secrets dans les journaux.</p>
+<p>Appliquer :</p>
+<ul>
+<li><strong>moindre privilège</strong> : chaque identité n’obtient que les permissions nécessaires ;</li>
+<li><strong>refus par défaut</strong> : une permission non explicitement accordée est refusée ;</li>
+<li><strong>validation à la frontière</strong> : ne pas faire confiance aux types TypeScript pour valider les données réseau ;</li>
+<li><strong>séparation des responsabilités</strong> : authentification, autorisation et logique métier ont des rôles distincts ;</li>
+<li><strong>journalisation sans secrets</strong> : enregistrer les événements utiles sans stocker les jetons ni les mots de passe ;</li>
+<li><strong>tests négatifs</strong> : vérifier les refus, pas uniquement les succès.</li>
+</ul>
+<h3>Exercice 1</h3>
+<p>Pour une API de commandes, identifier quatre actifs, deux acteurs et trois menaces.</p>
+<p><strong>Correction expliquée :</strong> actifs possibles : données de commande, adresse de livraison, compte utilisateur et clé de paiement. Acteurs : propriétaire du compte et attaquant authentifié avec un compte ordinaire. Menaces : lecture de la commande d’autrui en modifiant son identifiant, élévation de privilèges via un champ <code>role</code> envoyé par le client, et brute force sur la connexion. Associer à chaque menace un contrôle vérifiable : autorisation objet, rôle défini côté serveur et limitation des tentatives.</p>
+<h3>Quiz 1</h3>
+<p><strong>Un JWT valide suffit-il à autoriser la lecture d’une commande ?</strong></p>
+<p><strong>Réponse : non.</strong> Il peut prouver une identité ou transporter des claims signés, mais le serveur doit aussi vérifier l’autorisation d’accès à cette commande et la validité du contexte.</p>
+<hr />
+<h1>Module 2 — Mots de passe, inscription et réinitialisation</h1>
+<h2>2.1 Ne jamais stocker un mot de passe en clair</h2>
+<p>Stocker un hash produit par un algorithme spécialisé pour les mots de passe, conçu pour être coûteux. Argon2id est un choix courant lorsque l’environnement le permet ; scrypt est une autre option reconnue. Utiliser une bibliothèque maintenue et ses paramètres recommandés à la date du déploiement. Ne pas employer SHA-256 seul, MD5, SHA-1 ou un chiffrement réversible pour stocker des mots de passe.</p>
+<p>Le hash doit inclure un sel unique, normalement géré par la bibliothèque. Le sel n’est pas un secret ; il empêche notamment que deux mots de passe identiques produisent le même hash. Un pepper partagé peut compléter le mécanisme dans certains modèles, mais il doit être stocké séparément du hash et sa rotation doit être conçue à l’avance.</p>
+<p>Exemple conceptuel avec une bibliothèque Argon2 maintenue :</p>
+<pre><code class="language-ts">import argon2 from &quot;argon2&quot;;
+
+export async function hashPassword(password: string): Promise&lt;string&gt; {
+  return argon2.hash(password, {
+    type: argon2.argon2id,
+  });
+}
+
+export async function verifyPassword(
+  storedHash: string,
+  candidate: string,
+): Promise&lt;boolean&gt; {
+  return argon2.verify(storedHash, candidate);
+}
+</code></pre>
+<p>Ce code suppose que la dépendance est correctement installée, configurée et maintenue. Les paramètres de coût doivent être évalués sur le matériel de production ; ne pas copier une configuration sans mesure. Limiter la taille d’entrée pour réduire les risques d’épuisement des ressources.</p>
+<h2>2.2 Inscription et connexion</h2>
+<p>Valider le format des entrées, mais éviter les réponses qui révèlent inutilement l’existence d’un compte. Les réponses « adresse inconnue » et « mot de passe incorrect » peuvent faciliter l’énumération des comptes ; adopter des messages publics cohérents et une politique de limitation des tentatives.</p>
+<p>Après comparaison du mot de passe :</p>
+<ul>
+<li>créer une session ou émettre un jeton selon l’architecture ;</li>
+<li>renouveler l’identifiant de session après authentification et changement de privilège ;</li>
+<li>ne jamais enregistrer le mot de passe ou son contenu dans les logs ;</li>
+<li>ne jamais accepter le rôle ou l’état de vérification fourni par le client comme source d’autorité.</li>
+</ul>
+<h2>2.3 Réinitialisation de mot de passe</h2>
+<p>Créer un jeton de réinitialisation cryptographiquement aléatoire, à durée courte, à usage unique, lié à un compte et stocké sous forme de hash lorsque cela est possible. Envoyer le lien sur un canal de confiance. Invalider le jeton après usage et empêcher sa réutilisation concurrente. Éviter de changer automatiquement l’adresse e-mail au cours du processus.</p>
+<p>La réponse initiale doit rester neutre (« si un compte correspond, des instructions seront envoyées »). Limiter le débit, éviter de placer des jetons dans les logs, et envisager la révocation des sessions existantes après réinitialisation. Le processus de vérification d’adresse e-mail suit des principes analogues : token aléatoire, expiration, usage unique et vérification côté serveur.</p>
+<h3>Exercice 2</h3>
+<p>Pourquoi une fonction de hash généraliste rapide est-elle inadaptée aux mots de passe ?</p>
+<p><strong>Correction expliquée :</strong> si la base fuit, un attaquant peut tester un grand nombre de candidats rapidement. Les fonctions spécialisées sont volontairement plus coûteuses et rendent les attaques hors ligne plus chères. Le sel empêche la réutilisation directe de tables précalculées, mais ne remplace pas le coût du hash.</p>
+<h3>Quiz 2</h3>
+<p><strong>Le sel d’un hash de mot de passe doit-il rester secret ?</strong></p>
+<p><strong>Réponse : non.</strong> Le sel est généralement enregistré avec le hash. C’est le mot de passe qui doit rester secret ; la résistance repose sur un algorithme spécialisé et des paramètres adaptés.</p>
+<hr />
+<h1>Module 3 — Sessions, cookies et CSRF</h1>
+<h2>3.1 Les cookies de session</h2>
+<p>Pour une application navigateur classique, une session serveur peut être plus simple à révoquer qu’un jeton autonome. Le cookie ne doit contenir qu’un identifiant opaque et aléatoire ; les données d’autorisation et l’état de session sont conservés côté serveur ou dans un stockage adapté.</p>
+<p>Exemple d’attributs à adapter au domaine et au déploiement :</p>
+<pre><code class="language-http">Set-Cookie: __Host-session=&lt;opaque-value&gt;; Path=/; Secure; HttpOnly; SameSite=Lax
+</code></pre>
+<ul>
+<li><code>Secure</code> : le navigateur n’envoie le cookie que sur HTTPS.</li>
+<li><code>HttpOnly</code> : le JavaScript côté page ne peut pas lire le cookie via <code>document.cookie</code>.</li>
+<li><code>SameSite</code> : contrôle certains envois intersites ; <code>Lax</code> est un compromis courant, pas une protection universelle.</li>
+<li><code>Path=/</code> et l’absence de <code>Domain</code> sont requis par le préfixe <code>__Host-</code>.</li>
+<li><code>Max-Age</code> ou <code>Expires</code> définit la durée de vie côté navigateur ; la session côté serveur doit aussi expirer.</li>
+</ul>
+<p>Le nom et les attributs doivent correspondre à l’environnement. En développement local, HTTPS et les règles de cookies peuvent différer ; ne pas affaiblir silencieusement la configuration de production pour résoudre un problème local.</p>
+<h2>3.2 Rotation et révocation</h2>
+<p>Renouveler l’identifiant de session après connexion, élévation de privilège ou événement sensible afin de prévenir la fixation de session. À la déconnexion, invalider la session côté serveur et expirer le cookie. Une suppression du cookie côté navigateur seule ne révoque pas nécessairement une session encore valide côté serveur.</p>
+<p>Prévoir :</p>
+<ul>
+<li>expiration après inactivité ;</li>
+<li>durée maximale absolue ;</li>
+<li>révocation après changement de mot de passe ou suspicion de compromission ;</li>
+<li>limitation du nombre de sessions si nécessaire ;</li>
+<li>stockage serveur adapté à plusieurs instances.</li>
+</ul>
+<h2>3.3 CSRF</h2>
+<p>Une attaque CSRF tente de faire exécuter au navigateur authentifié une action non désirée. Les cookies étant envoyés automatiquement, une application qui s’appuie sur des cookies doit analyser ce risque.</p>
+<p>Mesures possibles selon l’architecture :</p>
+<ul>
+<li>cookies <code>SameSite</code> adaptés ;</li>
+<li>jeton CSRF lié à la session et vérifié côté serveur ;</li>
+<li>validation de <code>Origin</code> ou <code>Referer</code> selon le contexte ;</li>
+<li>ne pas utiliser <code>GET</code> pour modifier un état ;</li>
+<li>éviter les points d’entrée qui acceptent des types de contenu inattendus.</li>
+</ul>
+<p><code>SameSite</code> réduit certaines attaques mais ne remplace pas une analyse complète, notamment avec des sous-domaines, des flux OAuth ou des intégrations particulières. CORS n’est pas un mécanisme de prévention CSRF général : il contrôle principalement l’accès des scripts à certaines réponses, pas l’ensemble des requêtes que le navigateur peut envoyer.</p>
+<h3>Exercice 3</h3>
+<p>Un utilisateur se déconnecte, mais son ancien cookie est rejoué. Quel contrôle doit rendre ce rejeu inefficace ?</p>
+<p><strong>Correction expliquée :</strong> la session doit être invalidée côté serveur, puis le cookie expiré côté client. Si le serveur accepte encore l’identifiant, effacer le cookie ne suffit pas.</p>
+<h3>Quiz 3</h3>
+<p><strong><code>HttpOnly</code> empêche-t-il toutes les conséquences d’une faille XSS ?</strong></p>
+<p><strong>Réponse : non.</strong> Il réduit la possibilité de lire le cookie via JavaScript, mais un script injecté peut encore effectuer des actions au nom de l’utilisateur ou lire les données accessibles dans la page.</p>
+<hr />
+<h1>Module 4 — JWT : validation, expiration et rotation</h1>
+<h2>4.1 Ce qu’un JWT apporte — et ce qu’il n’apporte pas</h2>
+<p>Un JWT signé permet au destinataire de vérifier l’intégrité et l’origine du contenu selon une clé et un algorithme attendus. Un JWT signé n’est généralement pas chiffré : son payload peut être lisible par quiconque possède le token. Ne jamais y placer un mot de passe, un secret ou des données personnelles non nécessaires.</p>
+<p>Les claims usuels incluent <code>iss</code> (émetteur), <code>aud</code> (destinataire), <code>sub</code> (sujet), <code>exp</code> (expiration), <code>nbf</code> (pas avant) et parfois <code>iat</code> ou <code>jti</code>. Leur sens doit être défini par le contrat. Le serveur doit vérifier les claims attendus, pas simplement décoder le payload.</p>
+<h2>4.2 Validation obligatoire</h2>
+<p>Lors de la vérification d’un JWT :</p>
+<ol>
+<li>choisir côté serveur une liste d’algorithmes acceptés ; ne pas laisser le token décider seul ;</li>
+<li>vérifier la signature avec la bonne clé ;</li>
+<li>vérifier <code>iss</code> et <code>aud</code> lorsque le protocole les exige ;</li>
+<li>vérifier <code>exp</code> et <code>nbf</code>, avec une tolérance d’horloge limitée et documentée ;</li>
+<li>valider le type de token et les claims nécessaires ;</li>
+<li>refuser les tokens mal formés ou inattendus ;</li>
+<li>appliquer l’autorisation à chaque ressource après authentification.</li>
+</ol>
+<p>Ne jamais considérer <code>jwt.decode()</code> ou une simple lecture du payload comme une vérification. Employer une bibliothèque maintenue, suivre sa documentation et limiter les algorithmes et clés autorisés.</p>
+<h2>4.3 Durée de vie et révocation</h2>
+<p>Les access tokens doivent avoir une durée de vie limitée selon le risque. Un refresh token est plus sensible : le stocker et le transmettre de manière appropriée, le faire tourner à chaque usage lorsque le protocole le prévoit, détecter la réutilisation d’un ancien refresh token et révoquer la famille ou la session en cas de compromission.</p>
+<p>Un JWT autonome n’est pas facilement révocable sans état côté serveur. Selon le besoin, employer des access tokens courts, un registre de révocation, une version de session ou un fournisseur d’identité. Éviter d’ajouter des rôles à longue durée de vie qui restent valides après la révocation d’un privilège.</p>
+<h2>4.4 Ne pas choisir JWT par réflexe</h2>
+<p>JWT n’est pas automatiquement plus sûr ou plus évolutif qu’une session. Pour une application web monolithique, une session opaque stockée côté serveur peut simplifier la révocation. Les tokens sont utiles dans certains échanges entre services et dans les architectures OAuth/OIDC, mais augmentent la complexité de gestion des clés, de l’expiration et de la révocation.</p>
+<h3>Exercice 4</h3>
+<p>Un backend décode un JWT et lit <code>role: &quot;admin&quot;</code> sans vérifier la signature. Identifier le défaut et la correction.</p>
+<p><strong>Correction expliquée :</strong> le client peut fabriquer un payload. Le serveur doit vérifier la signature avec les clés et algorithmes attendus, vérifier les claims requis, puis déterminer les permissions selon une source d’autorité fiable. Un rôle fourni par le client n’est jamais une preuve d’autorisation.</p>
+<h3>Quiz 4</h3>
+<p><strong>Un JWT signé cache-t-il son payload ?</strong></p>
+<p><strong>Réponse : non, pas dans le cas habituel d’un JWT signé (JWS).</strong> La signature protège l’intégrité, pas la confidentialité. Ne pas y placer de secrets.</p>
+<hr />
+<h1>Module 5 — OAuth 2.0 et OpenID Connect</h1>
+<h2>5.1 Deux protocoles aux objectifs distincts</h2>
+<p>OAuth 2.0 est un cadre d’autorisation déléguée : il permet à un client d’obtenir un accès limité à une ressource. OpenID Connect (OIDC) ajoute une couche d’authentification standardisée au-dessus d’OAuth 2.0 et fournit notamment un ID Token.</p>
+<p>Ne pas utiliser un access token comme preuve d’identité sans respecter le protocole prévu. Un access token est destiné à une API ; un ID Token est destiné au client OIDC et ses claims doivent être validés selon les règles OIDC.</p>
+<h2>5.2 Authorization Code et PKCE</h2>
+<p>Pour une application interactive moderne, le flux Authorization Code avec PKCE est généralement privilégié. Le client crée un <code>code_verifier</code> imprévisible, en dérive un <code>code_challenge</code>, puis le fournisseur d’identité vérifie le code au moment de l’échange. PKCE réduit le risque qu’un code d’autorisation intercepté soit échangé par un autre acteur.</p>
+<p>Mesures essentielles :</p>
+<ul>
+<li>valider exactement le paramètre <code>state</code> pour lier la réponse au démarrage de l’authentification ;</li>
+<li>utiliser <code>nonce</code> lorsque requis par le flux OIDC et vérifier sa valeur ;</li>
+<li>enregistrer des URI de redirection exactes, sans joker dangereux ;</li>
+<li>valider la signature et les claims de l’ID Token ;</li>
+<li>gérer expiration, erreurs, révocation et déconnexion ;</li>
+<li>ne pas intégrer un client secret dans une application publique distribuée au navigateur ou à un mobile.</li>
+</ul>
+<p>Le protocole et le choix du client doivent être alignés sur les recommandations actuelles du fournisseur et les spécifications en vigueur. Éviter les anciens flux qui transmettent directement des tokens dans l’URL de redirection.</p>
+<h2>5.3 Comptes liés et identité externe</h2>
+<p>Ne pas lier automatiquement un compte existant à un compte externe sur la seule base d’une adresse e-mail reçue. Vérifier les garanties du fournisseur et l’état de vérification de l’adresse, puis définir un processus explicite de liaison et de déliaison. Le couple émetteur/sujet (<code>iss</code>, <code>sub</code>) est généralement plus adapté comme identifiant stable OIDC qu’une adresse e-mail mutable.</p>
+<h3>Exercice 5</h3>
+<p>Une application confond access token et ID Token. Quel est le risque ?</p>
+<p><strong>Correction expliquée :</strong> les deux tokens ont des destinataires et des usages distincts. Le serveur doit valider un access token selon les règles de l’API ; le client doit valider l’ID Token selon OIDC. Intervertir leurs usages peut conduire à accepter un token destiné à un autre composant ou à mal interpréter les claims.</p>
+<h3>Quiz 5</h3>
+<p><strong>Que fait PKCE ?</strong></p>
+<p><strong>Réponse :</strong> il lie l’échange du code d’autorisation au client qui a initié le flux, en exigeant la preuve du <code>code_verifier</code>. Il ne remplace pas <code>state</code>, la validation des tokens ou les URI de redirection exactes.</p>
+<hr />
+<h1>Module 6 — Authentification, RBAC et autorisation par ressource</h1>
+<h2>6.1 Trois questions différentes</h2>
+<ul>
+<li><strong>Authentification :</strong> quelle identité est présentée et comment sa preuve est-elle vérifiée ?</li>
+<li><strong>Autorisation :</strong> cette identité peut-elle réaliser cette action sur cette ressource dans ce contexte ?</li>
+<li><strong>Logique métier :</strong> l’action est-elle valide selon l’état et les règles du domaine ?</li>
+</ul>
+<p>Une authentification réussie ne signifie pas que l’utilisateur peut accéder à toutes les données. Un rôle <code>admin</code> ne doit pas être attribué par le client, et un utilisateur ayant un rôle autorisé peut encore être soumis à des contraintes de propriété, d’organisation ou d’état.</p>
+<h2>6.2 RBAC et permissions</h2>
+<p>Le RBAC associe des permissions à des rôles, puis des rôles à des utilisateurs. Il est utile lorsque les responsabilités sont relativement stables. Pour des règles dépendant de l’objet, du propriétaire, de l’organisation ou du contexte, compléter le RBAC par une vérification par ressource ou par des politiques d’autorisation explicites.</p>
+<p>Exemple de politique lisible :</p>
+<pre><code class="language-ts">type Principal = {
+  userId: string;
+  roles: string[];
+  organizationId: string;
+};
+
+type DocumentRecord = {
+  id: string;
+  ownerId: string;
+  organizationId: string;
+  visibility: &quot;private&quot; | &quot;organization&quot;;
+};
+
+export function canReadDocument(
+  principal: Principal,
+  document: DocumentRecord,
+): boolean {
+  if (principal.roles.includes(&quot;platform-admin&quot;)) return true;
+  if (document.ownerId === principal.userId) return true;
+  return document.visibility === &quot;organization&quot; &amp;&amp;
+    document.organizationId === principal.organizationId;
+}
+</code></pre>
+<p>Cette fonction illustre une politique métier, pas une architecture complète. Les règles de rôle administrateur doivent être justifiées et auditées ; dans certains systèmes, même les administrateurs n’ont pas un accès implicite à tous les contenus. Tester chaque branche et les combinaisons limites.</p>
+<h2>6.3 Appliquer l’autorisation à chaque requête</h2>
+<p>Ne pas vérifier les permissions uniquement dans l’interface. Le serveur doit contrôler l’accès à chaque opération, y compris lecture, modification, suppression, export, téléchargement et actions en arrière-plan. Éviter les routes qui autorisent une action parce que l’utilisateur connaît un identifiant.</p>
+<p>Lorsque c’est possible, appliquer la portée d’accès dans la requête de données, par exemple en sélectionnant la ressource par identifiant et propriétaire. Cela réduit le risque qu’une vérification séparée soit oubliée, mais ne dispense pas de gérer correctement les rôles et les règles plus complexes.</p>
+<h3>Exercice 6</h3>
+<p>Un utilisateur peut modifier son profil mais envoie <code>{&quot;role&quot;:&quot;admin&quot;}</code> dans la requête. Comment prévenir l’escalade de privilèges ?</p>
+<p><strong>Correction expliquée :</strong> définir un schéma d’entrée qui n’accepte que les champs modifiables par l’utilisateur ; ne pas réutiliser directement l’objet de requête pour mettre à jour le modèle complet ; gérer les changements de rôle dans une opération distincte, autorisée et auditée côté serveur.</p>
+<h3>Quiz 6</h3>
+<p><strong>Une route protégée par authentification est-elle forcément protégée contre l’accès non autorisé aux objets ?</strong></p>
+<p><strong>Réponse : non.</strong> Elle doit aussi vérifier que le principal peut agir sur la ressource demandée. C’est une cause fréquente de vulnérabilités BOLA/IDOR.</p>
+<hr />
+<h1>Module 7 — IDOR/BOLA et tests de contrôle d’accès</h1>
+<h2>7.1 Le danger des identifiants manipulables</h2>
+<p>IDOR (Insecure Direct Object Reference) et BOLA (Broken Object Level Authorization) désignent des problèmes où une application n’applique pas correctement les permissions sur une ressource identifiée par l’utilisateur. L’identifiant peut être séquentiel, UUID ou autre : un identifiant difficile à deviner ne remplace pas l’autorisation.</p>
+<p>Une route comme <code>GET /api/invoices/:id</code> doit vérifier la permission sur la facture correspondante. Il faut faire de même pour les exports, fichiers, messages, rapports, jobs asynchrones et opérations administratives.</p>
+<h2>7.2 Tester deux propriétaires</h2>
+<p>Pour chaque type de ressource :</p>
+<ol>
+<li>créer l’utilisateur A et l’utilisateur B ;</li>
+<li>créer une ressource appartenant à A ;</li>
+<li>appeler la route avec l’identité de B et l’identifiant de la ressource de A ;</li>
+<li>vérifier le statut et l’absence de données sensibles ;</li>
+<li>vérifier qu’aucune mutation ou action externe n’a eu lieu ;</li>
+<li>répéter pour lecture, mise à jour, suppression et actions secondaires pertinentes.</li>
+</ol>
+<p>Selon la politique de confidentialité, l’API peut renvoyer <code>403 Forbidden</code> ou <code>404 Not Found</code>. Choisir un comportement cohérent et documenté ; le test ne doit pas imposer une réponse qui divulgue l’existence d’une ressource privée.</p>
+<h2>7.3 Exemple de test d’intégration</h2>
+<pre><code class="language-ts">it(&quot;n'expose pas la facture d'un autre utilisateur&quot;, async () =&gt; {
+  const owner = await fixtures.user();
+  const other = await fixtures.user();
+  const invoice = await fixtures.invoice({ ownerId: owner.id });
+
+  const response = await request(app)
+    .get(`/api/invoices/${invoice.id}`)
+    .set(&quot;Authorization&quot;, `Bearer ${other.accessToken}`);
+
+  expect([403, 404]).toContain(response.status);
+  expect(response.body).not.toHaveProperty(&quot;total&quot;);
+});
+</code></pre>
+<p>Le code est un patron illustratif : les fixtures, l’application de test et le mécanisme d’authentification doivent être ceux du projet. Le test doit exercer le véritable middleware et la véritable règle d’autorisation ; mocker le contrôle d’accès invaliderait la preuve recherchée.</p>
+<h3>Exercice 7</h3>
+<p>Créer trois tests négatifs pour une API de documents.</p>
+<p><strong>Correction expliquée :</strong> utilisateur B lit le document privé de A ; B modifie son contenu ; B télécharge une pièce jointe de A. Pour chaque cas, vérifier le refus, l’absence de fuite du contenu et l’absence de modification ou de téléchargement effectif.</p>
+<h3>Quiz 7</h3>
+<p><strong>Pourquoi un UUID ne corrige-t-il pas BOLA ?</strong></p>
+<p><strong>Réponse :</strong> un UUID peut réduire la facilité de découverte, mais un identifiant obtenu par fuite, partage ou autre route reste exploitable si le serveur n’applique pas les permissions.</p>
+<hr />
+<h1>Module 8 — Secrets et configuration</h1>
+<h2>8.1 Séparer code et secrets</h2>
+<p>Ne jamais committer les mots de passe de base, clés privées, tokens de fournisseur, secrets OAuth ou clés de chiffrement. Les variables d’environnement sont un moyen de configuration, pas automatiquement un coffre-fort : leur exposition dépend des processus, outils de déploiement, dumps et journaux.</p>
+<p>En production, préférer un gestionnaire de secrets ou un mécanisme de plateforme adapté, avec contrôle d’accès, audit et rotation. Injecter les secrets au démarrage ou à l’exécution selon la plateforme, limiter leur durée et leur portée, et éviter de les copier dans les fichiers de configuration du frontend.</p>
+<h2>8.2 Valider la configuration au démarrage</h2>
+<p>Traiter la configuration comme une entrée non fiable : valider présence, format et valeurs autorisées. Échouer tôt si une clé obligatoire manque, sans imprimer sa valeur.</p>
+<pre><code class="language-ts">type Config = {
+  port: number;
+  sessionSecret: string;
+};
+
+export function loadConfig(env: NodeJS.ProcessEnv): Config {
+  const rawPort = env.PORT ?? &quot;3000&quot;;
+  const port = Number(rawPort);
+
+  if (!Number.isInteger(port) || port &lt; 1 || port &gt; 65535) {
+    throw new Error(&quot;PORT must be an integer between 1 and 65535&quot;);
+  }
+
+  const sessionSecret = env.SESSION_SECRET;
+  if (!sessionSecret || sessionSecret.length &lt; 32) {
+    throw new Error(&quot;SESSION_SECRET is missing or too short&quot;);
+  }
+
+  return { port, sessionSecret };
+}
+</code></pre>
+<p>La longueur minimale est ici une règle illustrative, pas un standard universel de génération de secret. Un secret doit être produit par un générateur cryptographiquement sûr et respecter les recommandations du mécanisme utilisé. Ne pas utiliser une phrase prévisible ou un mot de passe humain comme clé de session.</p>
+<h2>8.3 Rotation et moindre privilège</h2>
+<p>Définir la rotation et le remplacement d’urgence des secrets. Vérifier les effets d’une rotation sur les sessions et les tokens actifs. Un compte de base de données applicatif ne devrait pas être superutilisateur ; accorder seulement les opérations nécessaires au runtime. Séparer les secrets de développement, test, préproduction et production.</p>
+<h3>Exercice 8</h3>
+<p>Un token d’API apparaît dans un commit Git public. Le supprimer dans le commit suivant suffit-il ?</p>
+<p><strong>Correction expliquée :</strong> non. Le secret doit être considéré compromis : le révoquer ou le faire tourner immédiatement, examiner les usages, supprimer les copies lorsque possible et rechercher d’autres expositions. Réécrire l’historique peut réduire la propagation mais ne remplace jamais la révocation.</p>
+<h3>Quiz 8</h3>
+<p><strong>Une variable d’environnement est-elle toujours un stockage sûr de secrets ?</strong></p>
+<p><strong>Réponse : non.</strong> Elle évite certains secrets codés en dur mais peut être exposée via les processus, diagnostics, outils de déploiement ou logs. Il faut considérer les propriétés de la plateforme et limiter l’accès.</p>
+<hr />
+<h1>Module 9 — Limitation d’abus et défense en profondeur</h1>
+<h2>9.1 Rate limiting adapté au risque</h2>
+<p>Limiter les tentatives sur les points sensibles : connexion, réinitialisation, vérification de code, envoi d’e-mail, recherche coûteuse, export et endpoints publics. Une limite uniquement par adresse IP peut pénaliser des utilisateurs derrière un NAT et être contournée par des réseaux distribués. Combiner plusieurs dimensions selon le risque : compte, IP, session, appareil, clé d’API et coût de l’opération.</p>
+<p>En production multi-instance, un compteur uniquement en mémoire ne donne pas une limite globale fiable. Utiliser un stockage partagé adapté, prévoir la panne du système de limitation et documenter le comportement de secours.</p>
+<h2>9.2 Éviter les protections qui deviennent des vulnérabilités</h2>
+<ul>
+<li>Appliquer des limites de taille de corps et de pagination.</li>
+<li>Fixer des timeouts aux appels réseau et opérations coûteuses.</li>
+<li>Contrôler la concurrence et les files de tâches.</li>
+<li>Utiliser des messages d’erreur qui n’exposent pas les détails internes.</li>
+<li>Vérifier les origines et les politiques CORS sans les confondre avec l’autorisation.</li>
+<li>Protéger contre les injections avec des requêtes paramétrées et des validations adaptées.</li>
+<li>Éviter les redirections ouvertes et les URI de redirection permissives.</li>
+<li>Ne pas faire confiance à <code>X-Forwarded-For</code> ou autres en-têtes de proxy sauf derrière des proxys explicitement approuvés.</li>
+</ul>
+<h2>9.3 Journalisation utile</h2>
+<p>Journaliser les événements de sécurité pertinents : échecs d’authentification, changement de rôle, rotation de secrets, révocation de session et refus anormaux. Ajouter un identifiant de corrélation et limiter les données personnelles. Ne jamais journaliser mot de passe, cookie de session, access token ou refresh token. Protéger également l’accès aux journaux et leur durée de conservation.</p>
+<h3>Exercice 9</h3>
+<p>Pourquoi un rate limiter en mémoire est-il insuffisant derrière quatre instances de l’API ?</p>
+<p><strong>Correction expliquée :</strong> chaque instance maintient un compteur distinct ; un attaquant peut répartir les requêtes entre instances et dépasser la limite totale. Un stockage partagé ou une stratégie distribuée est nécessaire pour appliquer une limite globale cohérente.</p>
+<h3>Quiz 9</h3>
+<p><strong>CORS est-il un mécanisme d’autorisation côté serveur ?</strong></p>
+<p><strong>Réponse : non.</strong> CORS est une politique appliquée par les navigateurs sur certaines interactions cross-origin. L’API doit toujours authentifier et autoriser chaque requête selon ses propres règles.</p>
+<hr />
+<h1>Module 10 — Dépendances, incidents et procédure de réponse</h1>
+<h2>10.1 Sécurité de la chaîne logicielle</h2>
+<p>Utiliser des dépendances maintenues, des versions maîtrisées et un lockfile. Examiner les alertes de vulnérabilité, l’origine des paquets et les scripts d’installation. Un audit automatique peut produire des faux positifs ou ne pas détecter une vulnérabilité exploitable dans le contexte : évaluer la gravité, l’exposition et les mitigations, puis documenter les décisions.</p>
+<p>Limiter les permissions des pipelines CI et des tokens de publication. Ne pas exposer les secrets de production aux jobs exécutant du code non fiable. Séparer les tâches de vérification des tâches de déploiement.</p>
+<h2>10.2 Réponse à incident</h2>
+<p>Préparer un processus avant l’incident :</p>
+<ol>
+<li>détecter et confirmer le signal ;</li>
+<li>contenir l’exposition (révoquer une clé, désactiver une route ou isoler un composant) ;</li>
+<li>préserver les preuves utiles sans copier de secrets ;</li>
+<li>mesurer le périmètre et l’impact ;</li>
+<li>corriger la cause et vérifier les contrôles ;</li>
+<li>restaurer le service de façon contrôlée ;</li>
+<li>documenter les actions et prévenir la récurrence.</li>
+</ol>
+<p>Ne pas supprimer les journaux pertinents au moment où un incident est détecté. Prévoir qui peut révoquer un secret et comment redéployer en urgence. Les obligations de notification dépendent du contexte juridique et des données concernées ; consulter les responsables compétents.</p>
+<h2>10.3 Checklist avant livraison</h2>
+<ul>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Aucun secret ni jeton dans le code, l’historique récent ou les logs.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Hachage de mot de passe spécialisé, paramètres évalués.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Sessions renouvelées après authentification et invalidées à la déconnexion.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Cookies et CSRF adaptés au modèle d’authentification.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>JWT vérifiés avec algorithmes, émetteur, audience et dates attendus.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Flux OAuth/OIDC aligné sur les spécifications et le fournisseur.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Permissions vérifiées côté serveur et au niveau de chaque ressource.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Tests négatifs avec plusieurs identités.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Limites de débit, de taille et de temps configurées.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Journaux sans secrets, avec accès contrôlé.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Dépendances et pipeline CI examinés.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Procédure de rotation et de réponse à incident documentée.</li>
+</ul>
+<hr />
+<h1>Projet intégrateur — Sécuriser une API multi-utilisateur</h1>
+<h2>Contexte</h2>
+<p>Une API TypeScript gère des documents privés, leurs propriétaires, des équipes et des sessions. Elle expose les opérations de connexion, de déconnexion, de réinitialisation de mot de passe, de lecture et de modification de documents.</p>
+<h2>Travaux demandés</h2>
+<ol>
+<li>Écrire un modèle de menace avec actifs, acteurs, scénarios d’abus et contrôles.</li>
+<li>Mettre en place le stockage de mots de passe par une bibliothèque maintenue et documenter les paramètres.</li>
+<li>Concevoir une session ou une architecture de tokens, justifier le choix et décrire révocation et expiration.</li>
+<li>Protéger les routes et vérifier les permissions sur chaque document.</li>
+<li>Valider toutes les entrées et interdire l’assignation de rôle par un utilisateur ordinaire.</li>
+<li>Ajouter une limitation des tentatives de connexion et de réinitialisation.</li>
+<li>Écrire des tests d’intégration avec deux propriétaires distincts, incluant lecture, modification et téléchargement.</li>
+<li>Vérifier qu’aucun secret n’apparaît dans les logs ou réponses publiques.</li>
+<li>Documenter la configuration, la rotation des secrets et les procédures de révocation.</li>
+<li>Produire une checklist de livraison et les limites connues.</li>
+</ol>
+<h2>Critères d’acceptation</h2>
+<ul>
+<li>Les mots de passe ne sont jamais stockés en clair ni journalisés.</li>
+<li>Les jetons et cookies sont vérifiés et expirent selon un contrat explicite.</li>
+<li>La déconnexion ou la révocation rend la session inutilisable selon le modèle choisi.</li>
+<li>Un utilisateur ne peut accéder aux ressources privées d’un autre en modifiant un identifiant.</li>
+<li>Les rôles et permissions sont déterminés côté serveur.</li>
+<li>Les tests vérifient les refus et l’absence de fuite ou de mutation.</li>
+<li>Les limites d’abus fonctionnent de manière cohérente dans l’architecture déployée.</li>
+<li>Les secrets sont séparés du code et une procédure de rotation est documentée.</li>
+<li>Les tests, validations et limites sont décrits honnêtement ; aucun contrôle non exécuté n’est déclaré réussi.</li>
+</ul>
+<h2>Grille d’évaluation sur 20</h2>
+<table>
+<thead>
+<tr>
+  <th>Critère</th>
+  <th style="text-align:right">Points</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Modèle de menace et choix d’architecture</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Mots de passe, sessions et cycle de vie</td>
+  <td style="text-align:right">4</td>
+</tr>
+<tr>
+  <td>Validation des tokens et flux OAuth/OIDC</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Autorisation objet par objet et tests négatifs</td>
+  <td style="text-align:right">4</td>
+</tr>
+<tr>
+  <td>Secrets, configuration et rotation</td>
+  <td style="text-align:right">2</td>
+</tr>
+<tr>
+  <td>Limitation d’abus et journalisation</td>
+  <td style="text-align:right">2</td>
+</tr>
+<tr>
+  <td>Documentation et procédure d’incident</td>
+  <td style="text-align:right">2</td>
+</tr>
+<tr>
+  <td><strong>Total</strong></td>
+  <td style="text-align:right"><strong>20</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Seuil de réussite :</strong> 14/20, sans faille critique d’accès inter-utilisateurs, de stockage des mots de passe ou de gestion des secrets.</p>
+<hr />
+<h1>Références officielles et techniques</h1>
+<ol>
+<li>OWASP Top 10 : https://owasp.org/www-project-top-ten/</li>
+<li>OWASP API Security Top 10 : https://owasp.org/www-project-api-security/</li>
+<li>OWASP Password Storage Cheat Sheet : https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html</li>
+<li>OWASP Session Management Cheat Sheet : https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html</li>
+<li>OWASP Cross-Site Request Forgery Prevention Cheat Sheet : https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html</li>
+<li>OWASP JSON Web Token Cheat Sheet : https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html</li>
+<li>RFC 7519 — JSON Web Token : https://www.rfc-editor.org/rfc/rfc7519</li>
+<li>RFC 9700 — Best Current Practice for OAuth 2.0 Security : https://www.rfc-editor.org/rfc/rfc9700</li>
+<li>OpenID Connect Core 1.0 : https://openid.net/specs/openid-connect-core-1_0.html</li>
+<li>RFC 7636 — Proof Key for Code Exchange (PKCE) : https://www.rfc-editor.org/rfc/rfc7636</li>
+<li>OWASP Secrets Management Cheat Sheet : https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html</li>
+<li>OWASP Authentication Cheat Sheet : https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html</li>
+<li>Node.js — Environment variables : https://nodejs.org/api/environment_variables.html</li>
+<li>NIST SP 800-63B — Digital Identity Guidelines : https://pages.nist.gov/800-63-4/sp800-63b.html</li>
+</ol>
+<p>Consulter les versions courantes au moment de l’implémentation. Les références orientent les décisions ; elles ne remplacent pas l’analyse du contexte, les tests ou la revue de sécurité.</p>
+<hr />
+<h1>Synthèse opérationnelle</h1>
+<p>Authentifier une identité ne suffit pas : chaque opération doit être autorisée sur la ressource concernée. Stocker les mots de passe avec un algorithme spécialisé, choisir entre session et token selon les besoins réels, vérifier strictement les JWT et les flux OIDC, contrôler les secrets et limiter les abus. La preuve la plus importante pour une API multi-utilisateur est un ensemble de tests négatifs qui démontrent qu’une identité ne peut ni lire ni modifier les données d’une autre.</p>
+</body></html>

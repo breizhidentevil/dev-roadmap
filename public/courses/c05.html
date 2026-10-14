@@ -1,0 +1,359 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>C05 — Accès aux données et ORM en TypeScript</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>C05 — Accès aux données et ORM en TypeScript</h1>
+<p><strong>Parcours :</strong> spécialisation TypeScript / Node.js · <strong>Niveau :</strong> intermédiaire à avancé · <strong>Durée indicative :</strong> 12 à 18 heures<br />
+<strong>Prérequis :</strong> TypeScript, API HTTP, SQL relationnel, bases de PostgreSQL et notions de tests backend.</p>
+<h2>Objectifs pédagogiques</h2>
+<p>À la fin du cours, l'apprenant doit pouvoir :</p>
+<ul>
+<li>distinguer SQL direct, query builder et ORM, et justifier un choix technique selon le contexte ;</li>
+<li>relier types TypeScript, schéma applicatif et contraintes réellement garanties par PostgreSQL ;</li>
+<li>écrire des requêtes paramétrées et repérer les limites des paramètres SQL ;</li>
+<li>gérer transactions, erreurs, concurrence et pools de connexions ;</li>
+<li>organiser les migrations en production sans supposer qu'un retour arrière est toujours automatique ;</li>
+<li>diagnostiquer les requêtes N+1, choisir une stratégie de chargement et paginer de manière stable ;</li>
+<li>tester l'intégration avec une vraie base isolée et expliquer le SQL effectivement envoyé.</li>
+</ul>
+<h2>1. Trois niveaux d'abstraction : SQL direct, query builder et ORM</h2>
+<h3>SQL direct</h3>
+<p>Le développeur écrit le SQL et contrôle explicitement les jointures, les projections, les clauses de verrouillage et les opérations. C'est adapté aux requêtes complexes, aux besoins de performance mesurés et aux équipes qui maîtrisent le modèle relationnel. Le coût est la gestion des conversions de types, de la composition des requêtes et de la correspondance entre résultats et types TypeScript.</p>
+<pre><code class="language-ts">import { Pool } from &quot;pg&quot;;
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+interface UserRow {
+  id: string;
+  email: string;
+  created_at: Date;
+}
+
+export async function findUserByEmail(email: string): Promise&lt;UserRow | undefined&gt; {
+  const result = await pool.query&lt;UserRow&gt;(
+    `SELECT id, email, created_at FROM users WHERE email = $1`,
+    [email],
+  );
+  return result.rows[0];
+}
+</code></pre>
+<p>Le paramètre <code>$1</code> protège la valeur contre l'interprétation comme fragment SQL. Le type générique <code>UserRow</code> est une déclaration de l'application : il ne valide pas à lui seul les données renvoyées par le serveur et ne remplace pas les contraintes de la base.</p>
+<h3>Query builder</h3>
+<p>Un query builder compose une requête par API TypeScript, tout en exposant généralement les concepts SQL. Il peut améliorer la réutilisation et le typage, mais la requête finale doit toujours être inspectée. Un builder ne rend pas automatiquement sûre une interpolation de SQL brut.</p>
+<h3>ORM</h3>
+<p>Un ORM représente tables et relations par des modèles ou schémas de code et automatise une partie des opérations de lecture/écriture. Il peut réduire le code répétitif et offrir des types dérivés du schéma. Il peut aussi masquer le coût des requêtes, produire des chargements inattendus et rendre les opérations SQL spécifiques moins évidentes.</p>
+<p><strong>Règle de décision :</strong> choisir l'abstraction la plus simple qui couvre les besoins démontrés. Une application peut combiner ORM pour les opérations courantes et SQL explicite pour quelques requêtes spécialisées, à condition d'encadrer cette frontière.</p>
+<h2>2. Outil de référence du cours : Drizzle ORM</h2>
+<p>Pour les exemples ORM de ce cours, Drizzle est retenu comme outil de référence pédagogique : sa démarche « SQL-first » conserve une proximité visible avec les tables et les requêtes. Ce choix ne signifie pas qu'il est déjà installé dans le dépôt ou qu'il convient à tous les projets. Prisma reste une option pertinente lorsque l'équipe préfère un modèle de données et un workflow centrés sur son schéma et ses outils générés.</p>
+<p>Avant adoption réelle, vérifier les versions compatibles, les pilotes, la stratégie de migrations, les capacités de transaction, le support de PostgreSQL, les exigences d'exploitation et les pratiques de l'équipe. Ne pas installer de dépendance ni migrer un projet existant sans décision explicite.</p>
+<p>Exemple schématique Drizzle pour PostgreSQL :</p>
+<pre><code class="language-ts">import { pgTable, uuid, varchar, timestamp } from &quot;drizzle-orm/pg-core&quot;;
+
+export const users = pgTable(&quot;users&quot;, {
+  id: uuid(&quot;id&quot;).defaultRandom().primaryKey(),
+  email: varchar(&quot;email&quot;, { length: 320 }).notNull().unique(),
+  createdAt: timestamp(&quot;created_at&quot;, { withTimezone: true }).defaultNow().notNull(),
+});
+</code></pre>
+<p>Le schéma décrit les colonnes et contraintes gérées par l'outil. Il faut encore vérifier la migration produite et l'état réel de la base. Une colonne TypeScript <code>string</code> ne garantit pas que la valeur reçue d'une requête HTTP soit un e-mail valide.</p>
+<h2>3. Modèle, types et contraintes : qui garantit quoi ?</h2>
+<p>Distinguer trois niveaux :</p>
+<ol>
+<li><strong>Validation d'entrée</strong> : contrôle les données non fiables à la frontière HTTP (présence, format, longueur, règles métier).</li>
+<li><strong>Types TypeScript</strong> : détectent certaines incohérences au développement ; ils disparaissent à l'exécution.</li>
+<li><strong>Contraintes SQL</strong> : garantissent l'intégrité au niveau de la base, y compris lorsque plusieurs processus ou outils écrivent simultanément.</li>
+</ol>
+<p>Exemple PostgreSQL :</p>
+<pre><code class="language-sql">CREATE TABLE accounts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  balance_cents bigint NOT NULL CHECK (balance_cents &gt;= 0),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+</code></pre>
+<p>Utiliser <code>NOT NULL</code>, <code>UNIQUE</code>, <code>CHECK</code>, clés étrangères et contraintes adaptées. Les validations applicatives améliorent les messages d'erreur ; elles ne remplacent pas les contraintes. Attention aux types SQL dont la représentation JavaScript n'est pas exacte pour toutes les valeurs : les entiers 64 bits et les décimaux doivent être traités explicitement.</p>
+<h2>4. Requêtes paramétrées et SQL dynamique</h2>
+<p>Ne jamais concaténer une valeur utilisateur dans une requête SQL :</p>
+<pre><code class="language-ts">// À proscrire : injection SQL possible.
+const sql = `SELECT * FROM users WHERE email = '${email}'`;
+</code></pre>
+<p>Préférer les paramètres du pilote :</p>
+<pre><code class="language-ts">const result = await pool.query(
+  &quot;SELECT id, email FROM users WHERE email = $1&quot;,
+  [email],
+);
+</code></pre>
+<p>Les paramètres représentent des <strong>valeurs</strong>, pas des noms de table, colonnes, mots-clés ou directions de tri. Pour une colonne de tri dynamique, sélectionner dans une liste fermée :</p>
+<pre><code class="language-ts">const sortColumns = {
+  newest: &quot;created_at&quot;,
+  email: &quot;email&quot;,
+} as const;
+
+type SortKey = keyof typeof sortColumns;
+
+function getSortColumn(input: string): string {
+  if (Object.hasOwn(sortColumns, input)) {
+    return sortColumns[input as SortKey];
+  }
+  return sortColumns.newest;
+}
+</code></pre>
+<p>Insérer ensuite uniquement la valeur issue de cette liste contrôlée dans la partie structurelle de la requête ; toutes les données restent paramétrées. Pour SQL brut fourni à un ORM, utiliser son API de requête préparée ou de fragments sûrs et lire sa documentation précise. « Utiliser un ORM » n'est pas une preuve suffisante d'absence d'injection.</p>
+<h2>5. Transactions, isolation et verrouillage</h2>
+<p>Une transaction regroupe des opérations qui doivent réussir ou échouer ensemble. Avec <code>node-postgres</code>, toutes les instructions d'une transaction doivent utiliser <strong>le même client</strong>, pas des appels indépendants au pool.</p>
+<pre><code class="language-ts">import type { Pool, PoolClient } from &quot;pg&quot;;
+
+export async function transfer(
+  pool: Pool,
+  fromId: string,
+  toId: string,
+  amount: number,
+): Promise&lt;void&gt; {
+  if (!Number.isSafeInteger(amount) || amount &lt;= 0) {
+    throw new Error(&quot;amount must be a positive safe integer&quot;);
+  }
+
+  const client: PoolClient = await pool.connect();
+  try {
+    await client.query(&quot;BEGIN&quot;);
+    const debit = await client.query(
+      `UPDATE accounts
+       SET balance_cents = balance_cents - $1
+       WHERE id = $2 AND balance_cents &gt;= $1
+       RETURNING id`,
+      [amount, fromId],
+    );
+    if (debit.rowCount !== 1) throw new Error(&quot;Insufficient funds or account missing&quot;);
+
+    const credit = await client.query(
+      &quot;UPDATE accounts SET balance_cents = balance_cents + $1 WHERE id = $2 RETURNING id&quot;,
+      [amount, toId],
+    );
+    if (credit.rowCount !== 1) throw new Error(&quot;Destination account missing&quot;);
+    await client.query(&quot;COMMIT&quot;);
+  } catch (error) {
+    try { await client.query(&quot;ROLLBACK&quot;); } catch { /* préserver l'erreur initiale */ }
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+</code></pre>
+<p>Cet extrait illustre la structure, mais ne suffit pas à rendre un transfert complet en production : il faut notamment valider l'existence et la différence des comptes, définir les règles de devise, gérer les deadlocks et les erreurs de sérialisation, prévoir l'idempotence au niveau métier et tester les écritures concurrentes. En production, ne pas relancer aveuglément une opération dont l'issue est incertaine après une coupure réseau.</p>
+<ul>
+<li><strong>READ COMMITTED</strong> : chaque instruction voit un nouvel instantané ; deux lectures dans une transaction peuvent donc différer.</li>
+<li><strong>REPEATABLE READ</strong> : cohérence de l'instantané transactionnel, avec des conflits possibles.</li>
+<li><strong>SERIALIZABLE</strong> : vise l'équivalence à une exécution séquentielle, mais peut annuler une transaction ; l'application doit prévoir une reprise bornée et sûre.</li>
+<li><strong>Verrouillage</strong> (<code>SELECT ... FOR UPDATE</code>) : utile pour certaines règles concurrentes, mais peut créer attente et deadlock. Toujours définir un ordre de prise de verrous et des délais adaptés.</li>
+</ul>
+<p>Ne pas augmenter l'isolation par réflexe : identifier d'abord l'invariant métier et le mécanisme nécessaire.</p>
+<h2>6. Migrations versionnées et déploiements</h2>
+<p>Une migration est un changement explicite, versionné et relu du schéma de données. Elle doit être reproductible, ordonnée et testée sur une base représentative.</p>
+<h3>Séquence recommandée</h3>
+<ol>
+<li>Créer une migration dans le dépôt et relire le SQL généré.</li>
+<li>L'appliquer à une base temporaire vide, puis à une copie représentative des données si possible.</li>
+<li>Vérifier contraintes, index, durée, verrouillage et compatibilité avec l'application en production.</li>
+<li>Déployer selon une stratégie compatible avec les versions applicatives en circulation.</li>
+<li>Vérifier les métriques et conserver une procédure de récupération testée.</li>
+</ol>
+<p>Pour les changements risqués, utiliser <strong>expand/contract</strong> : ajouter d'abord la nouvelle structure compatible, déployer le code qui peut utiliser les deux formes, migrer les données, puis retirer l'ancienne structure dans un déploiement ultérieur. Ajouter une colonne <code>NOT NULL</code> ou construire un index sur une grande table peut nécessiter une stratégie spécifique.</p>
+<p>Un « down migration » ne rend pas toujours une opération réversible : une suppression ou une transformation avec perte peut détruire l'information. Préférer souvent une migration corrective en avant, avec sauvegarde et restauration éprouvées. Une sauvegarde non testée n'est pas une stratégie de reprise validée.</p>
+<h2>7. Relations, N+1, chargement et pagination</h2>
+<p>Le problème N+1 apparaît lorsqu'une requête charge une collection puis exécute une requête supplémentaire pour chaque élément. Le code peut sembler simple tout en multipliant le nombre d'allers-retours.</p>
+<p>Approches possibles :</p>
+<ul>
+<li>jointure SQL lorsque les relations et la cardinalité sont maîtrisées ;</li>
+<li>chargement groupé (batch) des entités associées ;</li>
+<li>chargement explicite par besoin fonctionnel ;</li>
+<li>eager loading d'un ORM, à surveiller car plusieurs collections jointes peuvent multiplier les lignes retournées.</li>
+</ul>
+<p>Pour toute requête importante, examiner le SQL généré, le nombre de requêtes, les lignes transférées et le plan d'exécution. Utiliser <code>EXPLAIN</code> et, dans un environnement contrôlé, <code>EXPLAIN (ANALYZE, BUFFERS)</code> ; <code>ANALYZE</code> exécute effectivement la requête.</p>
+<p>Pagination par offset : simple pour les petites listes, mais le coût augmente parfois avec les offsets élevés et les insertions concurrentes peuvent déplacer les pages. Pour de grandes listes, préférer souvent une pagination par curseur fondée sur un ordre stable et unique :</p>
+<pre><code class="language-sql">SELECT id, created_at, title
+FROM posts
+WHERE (created_at, id) &lt; ($1, $2)
+ORDER BY created_at DESC, id DESC
+LIMIT $3;
+</code></pre>
+<p>L'index doit correspondre au filtre et à l'ordre de la requête. Le curseur doit être validé, borné et lié au bon filtre/ordre ; ne pas exposer des données sensibles dans un curseur non protégé.</p>
+<h2>8. Pool de connexions et erreurs</h2>
+<p>Un pool réutilise des connexions coûteuses à établir. Il faut définir et mesurer : taille maximale, temps d'attente, délais de requête, durée de vie des connexions et comportement en arrêt du processus. Une taille excessive par instance peut dépasser la capacité du serveur lorsque plusieurs réplicas démarrent.</p>
+<ul>
+<li>Toujours libérer un client acquis avec <code>pool.connect()</code> dans <code>finally</code>.</li>
+<li>Fermer le pool proprement lors de l'arrêt contrôlé du processus.</li>
+<li>Fixer des délais adaptés et surveiller le nombre de connexions actives, l'attente, les timeouts et les erreurs.</li>
+<li>Ne pas exposer les chaînes de connexion, paramètres sensibles ou requêtes contenant des secrets dans les journaux.</li>
+<li>Classer les erreurs : validation métier, contrainte d'intégrité, timeout, connexion perdue, deadlock ou échec de sérialisation. Ne pas renvoyer les messages SQL bruts aux clients HTTP.</li>
+<li>Ne relancer que les erreurs transitoires identifiées, avec un nombre de tentatives limité, temporisation et garantie d'idempotence.</li>
+</ul>
+<p>Un pool applicatif et un pooler externe comme PgBouncer répondent à des besoins distincts ; les modes de pooling peuvent imposer des contraintes sur les sessions et les instructions préparées. Vérifier la configuration utilisée plutôt que supposer qu'elle est transparente.</p>
+<h2>9. Dépôts typés et frontières d'architecture</h2>
+<p>Le dépôt encapsule l'accès aux données, sans devenir une couche de magie. Il doit exprimer des opérations utiles au domaine, pas nécessairement reproduire chaque méthode CRUD générique.</p>
+<pre><code class="language-ts">export interface UserSummary {
+  id: string;
+  email: string;
+}
+
+export interface UserRepository {
+  findByEmail(email: string): Promise&lt;UserSummary | null&gt;;
+}
+
+export class PgUserRepository implements UserRepository {
+  constructor(private readonly pool: Pool) {}
+
+  async findByEmail(email: string): Promise&lt;UserSummary | null&gt; {
+    const result = await this.pool.query&lt;UserSummary&gt;(
+      &quot;SELECT id, email FROM users WHERE email = $1&quot;,
+      [email],
+    );
+    return result.rows[0] ?? null;
+  }
+}
+</code></pre>
+<p>Le service métier dépend de l'interface lorsque cette séparation facilite réellement les tests, le domaine ou le remplacement d'adaptateur. Éviter une interface par classe sans bénéfice concret. Les erreurs doivent être converties à une frontière connue ; une couche ne doit pas masquer les causes utiles au diagnostic.</p>
+<p>Attention : les interfaces TypeScript sont effacées à l'exécution. Un type de retour ne valide ni une réponse externe, ni une ligne issue d'une base compromise ou d'une migration inattendue.</p>
+<h2>10. Tests d'intégration et cohérence schéma/code</h2>
+<p>Les tests unitaires peuvent tester les règles métier avec un dépôt simulé, mais ils ne prouvent pas que SQL, contraintes, migrations, transactions ou types du pilote fonctionnent ensemble.</p>
+<p>Une suite d'intégration utile :</p>
+<ul>
+<li>démarre une base isolée de la même famille/version que la cible ;</li>
+<li>applique toutes les migrations depuis un état vide ;</li>
+<li>insère des données représentatives et vérifie les contraintes ;</li>
+<li>teste les chemins de succès et d'échec d'une transaction ;</li>
+<li>provoque des accès concurrents sur les invariants critiques ;</li>
+<li>vérifie la pagination, les filtres et les limites de taille ;</li>
+<li>détruit ou réinitialise l'environnement de test sans toucher aux données réelles.</li>
+</ul>
+<p>Ne pas utiliser une base de production pour les tests. Ne pas affirmer qu'une suite a réussi si elle n'a pas été exécutée. Les tests peuvent nécessiter Docker ou un service PostgreSQL disponible ; ces prérequis doivent être explicites.</p>
+<h2>11. Atelier comparatif : même opération, deux implémentations</h2>
+<p>Implémenter une opération de lecture paginée des publications d'un auteur :</p>
+<ol>
+<li>une version avec SQL paramétré via <code>node-postgres</code> ;</li>
+<li>une version avec Drizzle ORM ;</li>
+<li>des tests d'intégration couvrant pagination, auteur inconnu, paramètres invalides et ordre stable.</li>
+</ol>
+<p>Pour chaque version, fournir : SQL final ou généré, nombre de requêtes, plan d'exécution, contraintes attendues, cas d'erreur et compromis de maintenance. Les deux versions doivent partager les mêmes critères de correction.</p>
+<h2>Exercices corrigés</h2>
+<h3>Exercice 1 — Identifier la garantie</h3>
+<p><strong>Question :</strong> une interface déclare <code>age: number</code>. Est-ce suffisant pour garantir que la base ne contiendra jamais un âge négatif ?</p>
+<p><strong>Correction :</strong> non. TypeScript ne s'exécute pas comme validation des données entrantes. Valider à la frontière applicative et ajouter une contrainte SQL <code>CHECK (age &gt;= 0)</code> si l'invariant s'applique aux données stockées.</p>
+<h3>Exercice 2 — Corriger une injection</h3>
+<p><strong>Question :</strong> corriger <code>SELECT * FROM users WHERE email = '${email}'</code>.</p>
+<p><strong>Correction :</strong> utiliser <code>pool.query(&quot;SELECT id, email FROM users WHERE email = $1&quot;, [email])</code>. Pour un nom de colonne dynamique, utiliser une liste blanche ; un paramètre ne peut pas remplacer un identifiant SQL.</p>
+<h3>Exercice 3 — Transaction</h3>
+<p><strong>Question :</strong> pourquoi ne faut-il pas appeler <code>pool.query(&quot;BEGIN&quot;)</code>, puis deux fois <code>pool.query(...)</code>, puis <code>pool.query(&quot;COMMIT&quot;)</code> en supposant que toutes les requêtes utilisent la même connexion ?</p>
+<p><strong>Correction :</strong> chaque appel au pool peut emprunter une connexion différente. Acquérir un client, effectuer toutes les instructions transactionnelles sur ce client, puis le libérer dans <code>finally</code>.</p>
+<h3>Exercice 4 — N+1</h3>
+<p><strong>Question :</strong> une page affiche 40 auteurs et le code lance une requête de livres par auteur. Quel est le problème et une solution ?</p>
+<p><strong>Correction :</strong> le nombre de requêtes croît avec le nombre d'auteurs (1 + 40 dans cet exemple). Charger les livres par lots avec une requête filtrée sur les identifiants, ou faire une jointure et regrouper les résultats, après mesure et vérification de la cardinalité.</p>
+<h3>Exercice 5 — Retour arrière</h3>
+<p><strong>Question :</strong> une migration supprime une colonne contenant des données. Un script <code>down</code> qui recrée une colonne vide restaure-t-il l'état précédent ?</p>
+<p><strong>Correction :</strong> non. La structure revient, mais pas les données perdues. Une restauration nécessite une sauvegarde valide ou une migration corrective alimentée par une source conservée.</p>
+<h3>Exercice 6 — Pagination</h3>
+<p><strong>Question :</strong> pourquoi <code>ORDER BY created_at DESC LIMIT 20</code> n'est-il pas un ordre totalement stable si plusieurs lignes partagent le même timestamp ?</p>
+<p><strong>Correction :</strong> les lignes à timestamp égal peuvent apparaître dans un ordre différent. Ajouter un critère unique, par exemple <code>ORDER BY created_at DESC, id DESC</code>, et inclure ces deux valeurs dans le curseur.</p>
+<h3>Exercice 7 — Pool</h3>
+<p><strong>Question :</strong> que doit-on garantir après <code>const client = await pool.connect()</code> ?</p>
+<p><strong>Correction :</strong> libérer le client dans un bloc <code>finally</code>, même en cas d'exception. Pour une transaction, exécuter <code>ROLLBACK</code> lorsque nécessaire, sans perdre l'erreur initiale.</p>
+<h3>Exercice 8 — ORM</h3>
+<p><strong>Question :</strong> un ORM est-il une garantie que chaque page ne déclenche qu'une requête SQL ?</p>
+<p><strong>Correction :</strong> non. Les stratégies de chargement peuvent générer plusieurs requêtes, des N+1 ou des jointures volumineuses. Inspecter le SQL, compter les requêtes et tester les cas représentatifs.</p>
+<h3>Exercice 9 — Test de cohérence</h3>
+<p><strong>Question :</strong> les tests unitaires passent mais la migration a oublié une contrainte <code>UNIQUE</code>. Quelle catégorie de test aurait dû détecter le problème ?</p>
+<p><strong>Correction :</strong> un test d'intégration appliquant les migrations sur une base isolée puis tentant deux insertions conflictuelles. Un mock du dépôt ne vérifie pas le schéma réel.</p>
+<h2>Quiz avec explications</h2>
+<ol>
+<li><strong>Les types TypeScript valident-ils les données à l'exécution ?</strong> Non : ils guident la compilation ; il faut valider les entrées non fiables.</li>
+<li><strong>Un paramètre SQL peut-il remplacer <code>ORDER BY ${column}</code> ?</strong> Non : les paramètres portent sur les valeurs. Les identifiants dynamiques doivent provenir d'une liste contrôlée ou d'une API sûre.</li>
+<li><strong>Toutes les requêtes transactionnelles doivent-elles partager un client ?</strong> Oui, avec <code>node-postgres</code> ; sinon elles peuvent être exécutées sur des connexions différentes.</li>
+<li><strong>Une transaction sérialisable ne peut-elle jamais échouer ?</strong> Faux : PostgreSQL peut annuler une transaction pour préserver la sérialisabilité ; la reprise doit être bornée et sûre.</li>
+<li><strong>Une migration inverse restaure-t-elle toujours les données ?</strong> Non : les changements destructifs peuvent être irréversibles sans sauvegarde ou copie des données.</li>
+<li><strong>Un ORM élimine-t-il N+1 ?</strong> Non : il peut aider, mais la stratégie de chargement doit être contrôlée.</li>
+<li><strong>Pourquoi ajouter une clé secondaire unique à l'ordre paginé ?</strong> Pour stabiliser l'ordre lorsque la colonne principale comporte des égalités.</li>
+<li><strong>Pourquoi libérer le client dans <code>finally</code> ?</strong> Pour éviter de perdre des connexions du pool en cas de succès comme d'échec.</li>
+<li><strong>Les tests unitaires prouvent-ils que les migrations s'appliquent ?</strong> Non : il faut une validation sur une vraie base de test.</li>
+</ol>
+<h2>Projet intégrateur</h2>
+<p>Construire la couche de données d'une API de publications et de comptes avec TypeScript et PostgreSQL. Comparer SQL direct et Drizzle sur une opération représentative.</p>
+<h3>Fonctionnalités minimales</h3>
+<ul>
+<li>schéma versionné avec clés primaires, clés étrangères, contraintes <code>NOT NULL</code>, <code>UNIQUE</code> et <code>CHECK</code> pertinentes ;</li>
+<li>dépôt typé et service métier séparés sans abstraction superflue ;</li>
+<li>paramètres SQL sûrs pour toutes les valeurs ;</li>
+<li>transaction pour une opération multi-écriture avec gestion des échecs ;</li>
+<li>pagination stable et bornée ;</li>
+<li>migrations testées depuis une base vide ;</li>
+<li>tests d'intégration pour contraintes, erreurs, pagination et concurrence pertinente ;</li>
+<li>note d'analyse du SQL produit et de ses plans d'exécution.</li>
+</ul>
+<h3>Critères d'acceptation</h3>
+<ul>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Aucune valeur utilisateur n'est concaténée dans le SQL.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Les invariants essentiels sont protégés par la base, pas uniquement par TypeScript.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Les clients acquis au pool sont toujours libérés.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Les écritures qui doivent être atomiques sont transactionnelles.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Les erreurs de contrainte et de concurrence sont gérées sans divulguer de détails internes au client HTTP.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>La pagination a un ordre stable, une limite maximale et des paramètres validés.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Le nombre de requêtes et le SQL généré sont documentés pour le cas étudié.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Les migrations et tests d'intégration sont reproductibles sur une base isolée.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Les limites de reprise et de retour arrière sont explicitées.</li>
+</ul>
+<h2>Grille d'évaluation sur 20</h2>
+<table>
+<thead>
+<tr>
+  <th>Domaine</th>
+  <th style="text-align:right">Points</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Modèle relationnel, types et contraintes</td>
+  <td style="text-align:right">4</td>
+</tr>
+<tr>
+  <td>Sécurité des requêtes et validation</td>
+  <td style="text-align:right">4</td>
+</tr>
+<tr>
+  <td>Transactions, concurrence et erreurs</td>
+  <td style="text-align:right">4</td>
+</tr>
+<tr>
+  <td>Migrations, pool et exploitation</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Pagination, N+1 et analyse SQL</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Tests d'intégration et justification des choix</td>
+  <td style="text-align:right">2</td>
+</tr>
+<tr>
+  <td><strong>Total</strong></td>
+  <td style="text-align:right"><strong>20</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Seuil conseillé :</strong> 14/20, sans échec sur la sécurité des requêtes ou l'atomicité des écritures critiques.</p>
+<h2>Références officielles et techniques</h2>
+<ul>
+<li>PostgreSQL — Transactions : https://www.postgresql.org/docs/current/tutorial-transactions.html</li>
+<li>PostgreSQL — Niveaux d'isolation : https://www.postgresql.org/docs/current/transaction-iso.html</li>
+<li>PostgreSQL — Verrous explicites : https://www.postgresql.org/docs/current/explicit-locking.html</li>
+<li>PostgreSQL — Contraintes : https://www.postgresql.org/docs/current/ddl-constraints.html</li>
+<li>PostgreSQL — <code>EXPLAIN</code> : https://www.postgresql.org/docs/current/using-explain.html</li>
+<li>PostgreSQL — <code>CREATE INDEX</code> : https://www.postgresql.org/docs/current/sql-createindex.html</li>
+<li>node-postgres — Pool : https://node-postgres.com/features/pooling</li>
+<li>node-postgres — Requêtes : https://node-postgres.com/features/queries</li>
+<li>node-postgres — Transactions : https://node-postgres.com/features/transactions</li>
+<li>Drizzle ORM — Documentation : https://orm.drizzle.team/docs/overview</li>
+<li>Drizzle ORM — Migrations : https://orm.drizzle.team/docs/migrations</li>
+<li>Prisma — Documentation : https://www.prisma.io/docs</li>
+<li>TypeScript — Types effacés à l'exécution : https://www.typescriptlang.org/docs/handbook/2/basic-types.html</li>
+<li>OWASP — SQL Injection Prevention Cheat Sheet : https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html</li>
+</ul>
+<h2>Limites de ce support</h2>
+<p>Les exemples sont pédagogiques et ne constituent pas une implémentation complète prête pour la production. Les extraits Drizzle ne sont pas compilés ici et le projet source ne déclare pas Drizzle ni <code>pg</code> comme dépendances applicatives. Avant usage réel, fixer les versions, vérifier les types du pilote, exécuter les migrations et tests sur PostgreSQL et mesurer les requêtes sur des données représentatives.</p>
+</body></html>

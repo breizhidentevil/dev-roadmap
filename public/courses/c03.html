@@ -1,0 +1,728 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>C03 — Tests backend et qualité logicielle</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>C03 — Tests backend et qualité logicielle</h1>
+<ul>
+<li><strong>Version pédagogique :</strong> 1.0</li>
+<li><strong>Date :</strong> 14 octobre 2026</li>
+<li><strong>Statut :</strong> rédigé ; exemples à exécuter dans l’environnement du projet avant adoption</li>
+<li><strong>Niveau :</strong> intermédiaire</li>
+<li><strong>Durée indicative :</strong> 14 à 18 heures, projet compris</li>
+<li><strong>Environnement de référence :</strong> TypeScript strict, modules ES, Vitest pour les exemples unitaires et <code>@testcontainers/postgresql</code> pour les tests nécessitant PostgreSQL. Le test runner natif <code>node:test</code> est également présenté comme alternative intégrée à Node.js.</li>
+</ul>
+<h2>Objectifs et prérequis</h2>
+<p>À l’issue du cours, l’apprenant sait concevoir une stratégie de test proportionnée au risque, isoler la logique métier, choisir entre test unitaire et test d’intégration, employer les doubles de test sans masquer les défauts, valider les contrats HTTP, vérifier les refus d’accès et les erreurs, tester les transactions et la concurrence, rendre les tests reproductibles et interpréter une couverture sans la confondre avec la qualité.</p>
+<p>Prérequis : C01 et C02, TypeScript, fonctions asynchrones, API HTTP, SQL et transactions. Le cours n’impose pas de framework applicatif précis. Les exemples Vitest sont des exemples pédagogiques ; ils ne sont pas déclarés exécutés dans ce dépôt.</p>
+<h2>Plan</h2>
+<ol>
+<li>Stratégie de test et pyramide adaptée au risque.</li>
+<li>Tests unitaires et conception testable.</li>
+<li>Choisir un runner et écrire des assertions utiles.</li>
+<li>Doubles de test : mock, stub, fake et spy.</li>
+<li>Tests d’intégration avec PostgreSQL réel.</li>
+<li>Tests de contrat HTTP et OpenAPI.</li>
+<li>Erreurs, autorisations et limites.</li>
+<li>Transactions, concurrence et idempotence.</li>
+<li>Fixtures, déterminisme et couverture.</li>
+</ol>
+<hr />
+<h1>Module 1 — Stratégie de test et pyramide adaptée au risque</h1>
+<h2>1.1 Tester un comportement, pas une ligne</h2>
+<p>Un test utile décrit une propriété observable du système : « une réservation ne peut pas être confirmée si le créneau est déjà pris ». Un test fragile décrit plutôt une organisation interne : « la méthode privée <code>checkSlot</code> est appelée avant <code>save</code> ». Si l’implémentation change sans changer le comportement attendu, le second test devient un coût de maintenance.</p>
+<p>La question centrale est : <strong>quelle régression ce test empêcherait-il de réintroduire ?</strong> Si la réponse est vague, le test peut être redondant ou trop lié à l’implémentation.</p>
+<p>Un test comporte trois étapes lisibles :</p>
+<ul>
+<li><strong>Arrange</strong> : préparer les données et les dépendances.</li>
+<li><strong>Act</strong> : exécuter l’action.</li>
+<li><strong>Assert</strong> : vérifier le résultat observable et, si nécessaire, les effets secondaires.</li>
+</ul>
+<p>Un test ne doit pas seulement passer dans le cas nominal. Il doit aussi couvrir les décisions métier importantes : limites, refus, absence de données, conflits, échecs de dépendances et reprises.</p>
+<h2>1.2 Les niveaux de test</h2>
+<table>
+<thead>
+<tr>
+  <th>Niveau</th>
+  <th>Ce qu’il vérifie</th>
+  <th>Dépendances</th>
+  <th>Coût typique</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Unitaire</td>
+  <td>Une règle ou une fonction isolée</td>
+  <td>Aucune infrastructure réelle</td>
+  <td>Faible</td>
+</tr>
+<tr>
+  <td>Intégration</td>
+  <td>Plusieurs composants qui collaborent</td>
+  <td>Base, filesystem ou service réel isolé</td>
+  <td>Moyen</td>
+</tr>
+<tr>
+  <td>Contrat</td>
+  <td>La conformité entre producteurs et consommateurs</td>
+  <td>Schéma ou contrat partagé</td>
+  <td>Faible à moyen</td>
+</tr>
+<tr>
+  <td>End-to-end</td>
+  <td>Le parcours complet vu par un client</td>
+  <td>Application et infrastructure assemblées</td>
+  <td>Élevé</td>
+</tr>
+</tbody>
+</table>
+<p>La pyramide est un repère, pas une loi mathématique. Un backend avec une logique transactionnelle importante doit investir dans des tests d’intégration ; un service à forte surface HTTP doit vérifier ses contrats. Le nombre de tests par niveau dépend du risque et du coût de diagnostic.</p>
+<h2>1.3 Construire une matrice de risque</h2>
+<p>Pour chaque exigence, noter :</p>
+<ul>
+<li>la gravité si elle échoue ;</li>
+<li>la probabilité d’une régression ;</li>
+<li>la difficulté à la détecter en production ;</li>
+<li>le niveau de test qui prouve réellement la propriété.</li>
+</ul>
+<p>Exemple :</p>
+<table>
+<thead>
+<tr>
+  <th>Exigence</th>
+  <th>Risque</th>
+  <th>Test prioritaire</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Une entrée vide est refusée</td>
+  <td>Moyen</td>
+  <td>Unitaire + contrat HTTP</td>
+</tr>
+<tr>
+  <td>Un utilisateur ne lit pas la réservation d’un autre</td>
+  <td>Élevé</td>
+  <td>Intégration HTTP avec deux identités</td>
+</tr>
+<tr>
+  <td>Un transfert ne crée pas d’argent</td>
+  <td>Critique</td>
+  <td>Intégration transactionnelle + concurrence</td>
+</tr>
+<tr>
+  <td>Un message d’erreur contient le bon texte exact</td>
+  <td>Faible</td>
+  <td>Tester plutôt le code et la structure stable</td>
+</tr>
+</tbody>
+</table>
+<h2>1.4 Quand arrêter d’ajouter des tests ?</h2>
+<p>Ajouter un test lorsque sa valeur de détection dépasse son coût d’écriture et de maintenance. Éviter les tests qui répètent la même assertion sur des implémentations différentes sans couvrir de risque distinct. En revanche, un cas de sécurité ou de concurrence ne doit pas être écarté uniquement parce qu’il est plus difficile à tester.</p>
+<p><strong>À retenir :</strong> une suite utile couvre les comportements critiques, se lance de façon reproductible et fournit un diagnostic exploitable lorsqu’elle échoue.</p>
+<h3>Exercice 1</h3>
+<p>Pour une API de réservation, classer ces exigences par niveau de test : format d’un identifiant, refus d’une date passée, conflit entre deux réservations simultanées, absence de fuite d’une réservation privée, forme du document OpenAPI.</p>
+<p><strong>Correction expliquée :</strong></p>
+<ul>
+<li>Format d’identifiant : test unitaire du validateur et test de contrat HTTP.</li>
+<li>Date passée : test unitaire de la règle métier, avec horloge maîtrisée.</li>
+<li>Deux réservations simultanées : intégration sur la vraie base et contrainte transactionnelle.</li>
+<li>Réservation privée : test d’intégration HTTP avec deux utilisateurs distincts.</li>
+<li>OpenAPI : test de contrat ou validation automatisée du document généré.
+Un seul niveau ne suffit pas nécessairement : le test unitaire explique la règle, tandis que l’intégration prouve que les composants l’appliquent ensemble.</li>
+</ul>
+<h3>Quiz 1</h3>
+<p><strong>Pourquoi une couverture de 100 % ne prouve-t-elle pas l’absence de bugs ?</strong></p>
+<p>A. Parce que les tests ne peuvent pas exécuter du TypeScript.<br />
+B. Parce que les lignes exécutées peuvent être vérifiées avec des assertions faibles ou incorrectes.<br />
+C. Parce que les tests unitaires sont toujours inutiles.</p>
+<p><strong>Réponse : B.</strong> La couverture indique quelles parties du code ont été exécutées selon une métrique donnée. Elle ne prouve ni que les entrées sont pertinentes, ni que les assertions détectent les erreurs, ni que la concurrence et l’infrastructure sont correctement testées.</p>
+<hr />
+<h1>Module 2 — Tests unitaires et conception testable</h1>
+<h2>2.1 Extraire la logique métier des effets de bord</h2>
+<p>Une fonction pure renvoie le même résultat pour les mêmes entrées et n’altère pas d’état externe. Elle est généralement facile à tester. Les appels réseau, l’horloge, les identifiants aléatoires, les fichiers et la base de données sont des effets de bord ; les placer derrière des dépendances explicites facilite leur contrôle.</p>
+<p>Exemple de règle métier :</p>
+<pre><code class="language-ts">export type ReservationInput = {
+  startsAt: Date;
+  now: Date;
+  durationMinutes: number;
+};
+
+export function validateReservation(input: ReservationInput): string[] {
+  const errors: string[] = [];
+
+  if (!Number.isFinite(input.startsAt.getTime())) {
+    errors.push(&quot;startsAt must be a valid date&quot;);
+  } else if (input.startsAt.getTime() &lt;= input.now.getTime()) {
+    errors.push(&quot;startsAt must be in the future&quot;);
+  }
+
+  if (!Number.isInteger(input.durationMinutes) ||
+      input.durationMinutes &lt; 15 ||
+      input.durationMinutes &gt; 240) {
+    errors.push(&quot;durationMinutes must be between 15 and 240&quot;);
+  }
+
+  return errors;
+}
+</code></pre>
+<p>Le code reçoit <code>now</code> au lieu d’appeler <code>new Date()</code> à l’intérieur. Le test peut ainsi vérifier une limite exacte sans dépendre de l’heure réelle.</p>
+<pre><code class="language-ts">import { describe, expect, it } from &quot;vitest&quot;;
+import { validateReservation } from &quot;./reservation-validation.js&quot;;
+
+describe(&quot;validateReservation&quot;, () =&gt; {
+  const now = new Date(&quot;2030-04-01T10:00:00.000Z&quot;);
+
+  it(&quot;accepte une réservation future de durée autorisée&quot;, () =&gt; {
+    expect(validateReservation({
+      startsAt: new Date(&quot;2030-04-01T11:00:00.000Z&quot;),
+      now,
+      durationMinutes: 60,
+    })).toEqual([]);
+  });
+
+  it(&quot;refuse une date égale à maintenant&quot;, () =&gt; {
+    expect(validateReservation({
+      startsAt: now,
+      now,
+      durationMinutes: 60,
+    })).toContain(&quot;startsAt must be in the future&quot;);
+  });
+
+  it(&quot;refuse une durée hors limites&quot;, () =&gt; {
+    expect(validateReservation({
+      startsAt: new Date(&quot;2030-04-01T11:00:00.000Z&quot;),
+      now,
+      durationMinutes: 10,
+    })).toContain(&quot;durationMinutes must be between 15 and 240&quot;);
+  });
+});
+</code></pre>
+<p>Les extensions <code>.js</code> dans les imports sont courantes dans des projets TypeScript compilés en modules ES, mais la configuration exacte dépend du <code>tsconfig</code> et du runner. Adapter l’import au projet réel plutôt que de copier mécaniquement l’exemple.</p>
+<h2>2.2 Tester les frontières et les invariants</h2>
+<p>Pour une règle qui accepte les valeurs entre <code>min</code> et <code>max</code>, tester au minimum :</p>
+<ul>
+<li><code>min - 1</code> ;</li>
+<li><code>min</code> ;</li>
+<li>une valeur représentative au milieu ;</li>
+<li><code>max</code> ;</li>
+<li><code>max + 1</code> ;</li>
+<li>les types incorrects, les valeurs manquantes et les valeurs non finies si elles sont possibles à l’entrée.</li>
+</ul>
+<p>Un invariant est une propriété qui doit rester vraie quel que soit le chemin d’exécution : un montant ne devient pas négatif, une réservation confirmée possède un créneau, une réponse publique ne contient jamais un hash de mot de passe.</p>
+<p>Ne pas multiplier artificiellement les cas si une table de cas apporte une meilleure lisibilité :</p>
+<pre><code class="language-ts">it.each([
+  { duration: 14, valid: false },
+  { duration: 15, valid: true },
+  { duration: 60, valid: true },
+  { duration: 240, valid: true },
+  { duration: 241, valid: false },
+])(&quot;duration=$duration valid=$valid&quot;, ({ duration, valid }) =&gt; {
+  const errors = validateReservation({
+    startsAt: new Date(&quot;2030-04-01T11:00:00.000Z&quot;),
+    now: new Date(&quot;2030-04-01T10:00:00.000Z&quot;),
+    durationMinutes: duration,
+  });
+  expect(errors.length === 0).toBe(valid);
+});
+</code></pre>
+<h2>2.3 Ne pas tester uniquement les détails</h2>
+<p>Éviter d’asserter qu’une fonction privée est appelée trois fois ou que l’implémentation emploie une boucle spécifique. Vérifier le résultat métier et les interactions qui font partie du contrat : par exemple, qu’un e-mail n’est pas envoyé si l’écriture en base échoue.</p>
+<h3>Exercice 2</h3>
+<p>Écrire des tests pour une fonction qui accepte une quantité entière entre 1 et 20. Couvrir les limites, les valeurs hors plage et les valeurs non entières.</p>
+<p><strong>Correction expliquée :</strong> tester 0, 1, 20, 21, 1.5, <code>NaN</code> et une valeur absente si le type d’entrée externe permet cette absence. Les cas 1 et 20 prouvent que les bornes sont inclusives ; 0 et 21 prouvent le rejet au-delà des bornes ; 1.5 vérifie l’intégralité ; <code>NaN</code> empêche une comparaison numérique naïve de passer involontairement.</p>
+<h3>Quiz 2</h3>
+<p><strong>Pourquoi injecter une horloge ou un générateur d’identifiants ?</strong></p>
+<p>A. Pour rendre toutes les dépendances fictives en production.<br />
+B. Pour rendre le résultat contrôlable et les tests déterministes.<br />
+C. Pour supprimer le besoin de tests d’intégration.</p>
+<p><strong>Réponse : B.</strong> Les dépendances variables doivent être contrôlées en test. Les tests d’intégration restent nécessaires pour vérifier que les composants fonctionnent avec les vraies dépendances.</p>
+<hr />
+<h1>Module 3 — Choisir un runner et écrire des assertions utiles</h1>
+<h2>3.1 Runner natif ou bibliothèque spécialisée</h2>
+<p>Node.js fournit <code>node:test</code> et <code>node:assert/strict</code>, sans dépendance de test tierce. Vitest offre une expérience familière aux projets TypeScript modernes, des mocks, des snapshots et des rapports de couverture. Le choix dépend des conventions du dépôt, du système de modules, de la configuration TypeScript et des besoins de l’équipe.</p>
+<p>Ne pas introduire un deuxième runner uniquement pour suivre une préférence personnelle. Une équipe qui possède déjà Vitest devrait d’abord utiliser son infrastructure existante ; un petit package Node.js peut préférer le runner natif.</p>
+<p>Exemple avec le runner natif, en JavaScript ESM :</p>
+<pre><code class="language-js">import test from &quot;node:test&quot;;
+import assert from &quot;node:assert/strict&quot;;
+
+test(&quot;une fonction additionne deux valeurs&quot;, () =&gt; {
+  assert.equal(2 + 3, 5);
+});
+</code></pre>
+<p>Exemple Vitest :</p>
+<pre><code class="language-ts">import { expect, it } from &quot;vitest&quot;;
+
+it(&quot;additionne deux valeurs&quot;, () =&gt; {
+  expect(2 + 3).toBe(5);
+});
+</code></pre>
+<p>Ces extraits illustrent les API ; leur exécution dépend de la configuration et des scripts du projet.</p>
+<h2>3.2 Une assertion doit pouvoir échouer</h2>
+<p>Cette assertion ne prouve presque rien :</p>
+<pre><code class="language-ts">expect(result).toBeDefined();
+</code></pre>
+<p>Si le contrat exige un identifiant, une date ISO et un statut, tester ces propriétés :</p>
+<pre><code class="language-ts">expect(result).toMatchObject({
+  status: &quot;confirmed&quot;,
+  id: expect.any(String),
+  startsAt: expect.any(String),
+});
+expect(Number.isNaN(Date.parse(result.startsAt))).toBe(false);
+</code></pre>
+<p>Éviter les snapshots géants et opaques. Un snapshot peut être utile pour un format stable et lisible, mais une modification massive du snapshot ne doit pas être acceptée sans comprendre ce qui a changé.</p>
+<h2>3.3 Tester les erreurs avec précision</h2>
+<p>Un test d’erreur doit vérifier :</p>
+<ul>
+<li>que l’opération échoue ;</li>
+<li>que l’erreur correspond au contrat attendu ;</li>
+<li>qu’aucun effet secondaire interdit n’a eu lieu.</li>
+</ul>
+<pre><code class="language-ts">await expect(service.confirm(&quot;missing-id&quot;))
+  .rejects.toMatchObject({ code: &quot;RESERVATION_NOT_FOUND&quot; });
+expect(repository.save).not.toHaveBeenCalled();
+</code></pre>
+<p>Ne pas comparer le texte complet d’une erreur technique si ce texte n’est pas un contrat public. Préférer un code métier stable, un statut HTTP ou une structure documentée.</p>
+<h2>3.4 Asynchronisme et nettoyage</h2>
+<p>Toujours <code>await</code> les promesses dont le résultat est testé. Une promesse oubliée peut laisser un test passer avant le rejet, ou créer une erreur non attribuée au bon cas. Fermer les serveurs, connexions, streams et conteneurs même si une assertion échoue.</p>
+<p>Utiliser les hooks du runner (<code>afterEach</code>, <code>afterAll</code>, ou leurs équivalents) et les blocs <code>try/finally</code> lorsqu’une ressource doit impérativement être libérée.</p>
+<h3>Exercice 3</h3>
+<p>Un test appelle une fonction asynchrone sans <code>await</code>, puis vérifie un compteur avant que l’opération ne soit terminée. Expliquer le risque et corriger le test.</p>
+<p><strong>Correction expliquée :</strong> le test peut terminer avant la résolution ou le rejet de la promesse. Attendre l’opération (<code>await action()</code>) puis vérifier l’état final ; si le contrat est le rejet, employer l’assertion asynchrone appropriée du runner.</p>
+<h3>Quiz 3</h3>
+<p><strong>Quelle assertion est la plus utile pour un contrat métier ?</strong></p>
+<p>A. Vérifier seulement que le résultat n’est pas <code>undefined</code>.<br />
+B. Vérifier le code d’erreur stable et l’absence d’effet secondaire interdit.<br />
+C. Vérifier le nom d’une variable locale.</p>
+<p><strong>Réponse : B.</strong> Elle décrit un comportement visible et protège contre une régression significative.</p>
+<hr />
+<h1>Module 4 — Doubles de test : mock, stub, fake et spy</h1>
+<h2>4.1 Quatre notions distinctes</h2>
+<ul>
+<li><strong>Stub</strong> : renvoie une valeur contrôlée ou simule une réponse pour un scénario.</li>
+<li><strong>Mock</strong> : permet aussi d’attendre des interactions précises, par exemple l’envoi d’un message.</li>
+<li><strong>Fake</strong> : implémentation simplifiée mais fonctionnelle, par exemple un dépôt en mémoire.</li>
+<li><strong>Spy</strong> : observe les appels d’une vraie fonction ou d’un objet sans nécessairement remplacer son comportement.</li>
+</ul>
+<p>Les termes varient parfois selon les équipes ; l’important est de préciser le rôle du double.</p>
+<h2>4.2 Exemple : isoler un service</h2>
+<pre><code class="language-ts">type Reservation = { id: string; status: &quot;pending&quot; | &quot;confirmed&quot; };
+
+interface ReservationRepository {
+  findById(id: string): Promise&lt;Reservation | null&gt;;
+  save(reservation: Reservation): Promise&lt;void&gt;;
+}
+
+interface NotificationGateway {
+  sendConfirmation(reservationId: string): Promise&lt;void&gt;;
+}
+
+export class ReservationService {
+  constructor(
+    private readonly repository: ReservationRepository,
+    private readonly notifications: NotificationGateway,
+  ) {}
+
+  async confirm(id: string): Promise&lt;void&gt; {
+    const reservation = await this.repository.findById(id);
+    if (!reservation) throw new Error(&quot;RESERVATION_NOT_FOUND&quot;);
+    if (reservation.status !== &quot;pending&quot;) throw new Error(&quot;INVALID_STATE&quot;);
+
+    const confirmed = { ...reservation, status: &quot;confirmed&quot; as const };
+    await this.repository.save(confirmed);
+    await this.notifications.sendConfirmation(id);
+  }
+}
+</code></pre>
+<p>Le service dépend d’interfaces explicites. Le test peut injecter un fake de dépôt et un mock de notification. Le design rend les effets de bord visibles, sans imposer une bibliothèque de mocks.</p>
+<p><strong>Attention :</strong> ce service illustre une séquence métier simple, pas une garantie transactionnelle. Si l’envoi de notification échoue après l’écriture, la réservation est déjà confirmée. En production, envisager une outbox transactionnelle ou un processus de reprise plutôt que d’imaginer qu’un mock prouve la fiabilité distribuée.</p>
+<h2>4.3 Exemple de test isolé</h2>
+<pre><code class="language-ts">import { beforeEach, expect, it, vi } from &quot;vitest&quot;;
+
+const repository = {
+  findById: vi.fn(),
+  save: vi.fn(),
+};
+const notifications = {
+  sendConfirmation: vi.fn(),
+};
+
+beforeEach(() =&gt; {
+  vi.resetAllMocks();
+});
+
+it(&quot;enregistre la confirmation puis notifie&quot;, async () =&gt; {
+  repository.findById.mockResolvedValue({ id: &quot;r-17&quot;, status: &quot;pending&quot; });
+  repository.save.mockResolvedValue(undefined);
+  notifications.sendConfirmation.mockResolvedValue(undefined);
+
+  const service = new ReservationService(repository, notifications);
+  await service.confirm(&quot;r-17&quot;);
+
+  expect(repository.save).toHaveBeenCalledWith({
+    id: &quot;r-17&quot;,
+    status: &quot;confirmed&quot;,
+  });
+  expect(notifications.sendConfirmation).toHaveBeenCalledWith(&quot;r-17&quot;);
+});
+
+it(&quot;ne notifie pas si la réservation est absente&quot;, async () =&gt; {
+  repository.findById.mockResolvedValue(null);
+
+  const service = new ReservationService(repository, notifications);
+  await expect(service.confirm(&quot;missing&quot;)).rejects.toThrow(&quot;RESERVATION_NOT_FOUND&quot;);
+  expect(repository.save).not.toHaveBeenCalled();
+  expect(notifications.sendConfirmation).not.toHaveBeenCalled();
+});
+</code></pre>
+<p>Dans un vrai projet TypeScript strict, déclarer les types des mocks ou employer <code>vi.mocked</code> selon la structure des modules afin d’éviter des types trop permissifs. L’extrait privilégie la lisibilité conceptuelle.</p>
+<h2>4.4 Quand ne pas mocker ?</h2>
+<p>Ne pas mocker la base pour prouver une contrainte SQL, une transaction ou une isolation concurrente. Ne pas mocker le routeur pour prétendre tester le contrat HTTP. Un double ne peut prouver que son propre comportement et le code qui l’appelle, pas la compatibilité réelle avec l’infrastructure.</p>
+<p>Un mock trop détaillé peut transformer le test en miroir de l’implémentation. Une modification interne fait alors échouer la suite sans changement métier. Mockez les frontières instables ou coûteuses, mais gardez des tests d’intégration ciblés.</p>
+<h3>Exercice 4</h3>
+<p>Choisir le double adapté :</p>
+<ol>
+<li>Forcer une passerelle de paiement à répondre « refusée ».</li>
+<li>Vérifier qu’un événement est publié une seule fois.</li>
+<li>Tester un algorithme de recherche sans serveur de base.</li>
+<li>Vérifier une contrainte <code>UNIQUE</code> PostgreSQL.</li>
+</ol>
+<p><strong>Correction expliquée :</strong> 1) stub ; 2) mock/spy sur le port de publication ; 3) fake de dépôt si le but est le service, mais tester l’algorithme directement si possible ; 4) vraie base PostgreSQL, pas un mock.</p>
+<h3>Quiz 4</h3>
+<p><strong>Pourquoi un fake en mémoire ne suffit-il pas pour tester une contrainte SQL ?</strong></p>
+<p><strong>Réponse :</strong> il ne reproduit pas nécessairement le moteur SQL, les transactions, les verrous, les contraintes ou l’isolation. Il peut être utile pour tester une logique applicative, mais pas pour prouver le comportement du SGBD.</p>
+<hr />
+<h1>Module 5 — Tests d’intégration avec PostgreSQL réel</h1>
+<h2>5.1 Ce que l’intégration doit prouver</h2>
+<p>Un test d’intégration vérifie que plusieurs composants fonctionnent ensemble : service, dépôt, pilote SQL, migrations, contraintes et transactions. Pour une fonctionnalité critique, utiliser un PostgreSQL réel isolé plutôt qu’une simulation qui ne partage pas les mêmes règles.</p>
+<p>Testcontainers permet de démarrer un conteneur PostgreSQL pour les tests, à condition que l’environnement dispose d’un moteur de conteneurs et des images nécessaires. Cette option n’est pas adaptée à tous les environnements CI ; une base de test dédiée peut être utilisée si son isolation et son nettoyage sont garantis.</p>
+<h2>5.2 Exemple de principe avec Testcontainers</h2>
+<p>L’exemple suivant est un squelette à adapter aux versions des bibliothèques et aux conventions du projet :</p>
+<pre><code class="language-ts">import { afterAll, beforeAll, describe, expect, it } from &quot;vitest&quot;;
+import { PostgreSqlContainer, type StartedPostgreSqlContainer } from &quot;@testcontainers/postgresql&quot;;
+import { Pool } from &quot;pg&quot;;
+
+describe(&quot;repository PostgreSQL&quot;, () =&gt; {
+  let container: StartedPostgreSqlContainer;
+  let pool: Pool;
+
+  beforeAll(async () =&gt; {
+    container = await new PostgreSqlContainer(&quot;postgres:16-alpine&quot;).start();
+    pool = new Pool({ connectionString: container.getConnectionUri() });
+
+    await pool.query(`
+      CREATE TABLE reservations (
+        id text PRIMARY KEY,
+        status text NOT NULL CHECK (status IN ('pending', 'confirmed'))
+      )
+    `);
+  }, 60_000);
+
+  afterAll(async () =&gt; {
+    await pool?.end();
+    await container?.stop();
+  });
+
+  it(&quot;refuse un statut invalide au niveau de la base&quot;, async () =&gt; {
+    await expect(
+      pool.query(&quot;INSERT INTO reservations (id, status) VALUES ($1, $2)&quot;, [&quot;r-1&quot;, &quot;unknown&quot;]),
+    ).rejects.toMatchObject({ code: &quot;23514&quot; });
+  });
+});
+</code></pre>
+<p>Le code illustre le principe, mais doit être validé avec la version exacte de Testcontainers, du pilote <code>pg</code>, du runner et de TypeScript. Pour un dépôt réel, exécuter les migrations applicatives plutôt que de recréer une structure divergente dans le test. Ajouter une stratégie d’isolation par test : transaction dédiée lorsque cela convient, schéma temporaire ou base fraîche.</p>
+<h2>5.3 Transactions et rollback</h2>
+<p>Le test doit vérifier l’état final de la base, pas seulement que <code>ROLLBACK</code> a été appelé sur un mock. Pour un transfert de fonds, par exemple :</p>
+<ul>
+<li>initialiser deux comptes ;</li>
+<li>démarrer le transfert ;</li>
+<li>provoquer une erreur après le débit mais avant le crédit ;</li>
+<li>vérifier que le débit n’est pas durable ;</li>
+<li>confirmer qu’aucun compte n’a un solde incohérent.</li>
+</ul>
+<p>Il faut provoquer un échec réaliste au bon point du processus. Un test où le service échoue avant toute écriture ne prouve pas le rollback d’une transaction ayant déjà modifié des lignes.</p>
+<h2>5.4 Nettoyage et isolation</h2>
+<p>Les tests ne doivent pas dépendre de l’ordre d’exécution. Un test ne doit pas réutiliser implicitement des lignes créées par un autre. Les options usuelles sont :</p>
+<ul>
+<li>base éphémère par suite ;</li>
+<li>schéma dédié et nettoyage explicite ;</li>
+<li>transaction par test si le code testé partage bien la même connexion/transaction ;</li>
+<li>jeux de données identifiés par un préfixe unique.</li>
+</ul>
+<p>Attention : ouvrir une transaction dans le test ne garantit pas que le code testé participe à cette transaction. Si le dépôt ouvre sa propre connexion, le rollback du test ne nettoiera pas ses écritures.</p>
+<h3>Exercice 5</h3>
+<p>Concevoir un test qui prouve qu’un transfert échoue sans perdre d’argent lorsqu’une écriture de crédit échoue.</p>
+<p><strong>Correction expliquée :</strong> créer les comptes en base réelle, capturer les soldes initiaux, injecter une panne contrôlée après le débit et avant le commit, puis relire les deux soldes via une nouvelle transaction/connexion après l’échec. L’égalité des soldes finaux aux soldes initiaux est l’assertion clé. Le test doit vérifier le chemin de transaction réellement utilisé par l’application.</p>
+<h3>Quiz 5</h3>
+<p><strong>Quelle preuve est la plus forte pour un rollback SQL ?</strong></p>
+<p>A. Vérifier que le mock <code>client.query</code> a reçu le texte <code>ROLLBACK</code>.<br />
+B. Relire les données dans la base après l’échec et vérifier qu’aucune écriture partielle n’est durable.<br />
+C. Vérifier que la fonction retourne <code>false</code>.</p>
+<p><strong>Réponse : B.</strong> Le comportement durable observé dans la base est la propriété à protéger. Les assertions d’interaction peuvent compléter le test mais ne le remplacent pas.</p>
+<hr />
+<h1>Module 6 — Tests de contrat HTTP et OpenAPI</h1>
+<h2>6.1 Tester les frontières publiques</h2>
+<p>Un test de contrat vérifie qu’un producteur respecte la forme et les règles promises à ses consommateurs. Pour une API, les contrats incluent notamment :</p>
+<ul>
+<li>méthodes et chemins ;</li>
+<li>paramètres et corps acceptés ;</li>
+<li>schémas de réponses ;</li>
+<li>statuts HTTP ;</li>
+<li>structure des erreurs ;</li>
+<li>règles de pagination ;</li>
+<li>authentification et en-têtes pertinents.</li>
+</ul>
+<p>Une interface TypeScript ne valide pas automatiquement un JSON reçu sur le réseau. Les données HTTP doivent être validées à l’exécution et la réponse doit respecter le schéma publié.</p>
+<h2>6.2 Test HTTP sans dépendre du texte de l’interface</h2>
+<p>Exemple conceptuel avec une fonction <code>createTestApp()</code> fournie par le projet :</p>
+<pre><code class="language-ts">it(&quot;retourne 400 si la durée est invalide&quot;, async () =&gt; {
+  const response = await request(createTestApp())
+    .post(&quot;/reservations&quot;)
+    .send({ startsAt: &quot;2030-04-01T11:00:00.000Z&quot;, durationMinutes: 10 });
+
+  expect(response.status).toBe(400);
+  expect(response.body).toMatchObject({
+    error: { code: &quot;VALIDATION_ERROR&quot; },
+  });
+});
+</code></pre>
+<p><code>request</code> représente ici une bibliothèque de test HTTP telle que Supertest. L’extrait ne fixe pas le choix de bibliothèque ; le projet doit adopter celle qui correspond à son serveur et à ses conventions.</p>
+<p>Ne pas seulement tester la fonction de validation : vérifier aussi que la route appelle bien cette validation et transforme le rejet en réponse HTTP correcte.</p>
+<h2>6.3 OpenAPI : cohérence, pas décoration</h2>
+<p>OpenAPI décrit les opérations, les paramètres, les corps, les réponses et les mécanismes de sécurité. Il peut être utilisé pour générer des clients ou vérifier des requêtes/réponses. Un document présent dans le dépôt n’est pas une garantie de conformité si personne ne vérifie sa cohérence avec l’application.</p>
+<p>Pratiques utiles :</p>
+<ol>
+<li>conserver le document OpenAPI dans le dépôt ou le générer de manière reproductible ;</li>
+<li>valider la syntaxe et la structure dans la CI ;</li>
+<li>tester les réponses réelles contre les schémas documentés ;</li>
+<li>traiter les changements incompatibles comme des modifications de contrat ;</li>
+<li>inclure les erreurs et les réponses d’authentification dans le contrat.</li>
+</ol>
+<h3>Exercice 6</h3>
+<p>L’API documente <code>201</code> lors de la création, mais renvoie <code>200</code> et un corps différent. Proposer une stratégie de correction.</p>
+<p><strong>Correction expliquée :</strong> déterminer le contrat intentionnel, puis aligner le code et la spécification. Si des clients utilisent déjà le comportement réel, mesurer le risque de rupture avant de modifier la réponse. Ajouter un test de contrat empêchant la divergence future, et documenter la décision de compatibilité.</p>
+<h3>Quiz 6</h3>
+<p><strong>Que prouve la validation du fichier OpenAPI seule ?</strong></p>
+<p><strong>Réponse :</strong> elle peut prouver que le document est structurellement valide selon le validateur utilisé, mais pas que l’application réelle renvoie les réponses décrites. Des tests contre l’application restent nécessaires.</p>
+<hr />
+<h1>Module 7 — Erreurs, autorisations et limites</h1>
+<h2>7.1 Les cas négatifs sont des comportements de première classe</h2>
+<p>Une suite robuste vérifie les refus aussi explicitement que les réussites :</p>
+<ul>
+<li>JSON mal formé ;</li>
+<li>champs manquants ou types incorrects ;</li>
+<li>identifiant inexistant ;</li>
+<li>ressource existante mais appartenant à un autre utilisateur ;</li>
+<li>absence d’authentification ;</li>
+<li>authentification valide mais rôle insuffisant ;</li>
+<li>pagination excessive ;</li>
+<li>dépendance en panne ou délai dépassé ;</li>
+<li>conflit de version ou état métier incompatible.</li>
+</ul>
+<p>Le cas « utilisateur A tente de lire la ressource de B » est différent du cas « ressource inexistante ». Selon la politique de sécurité, l’API peut renvoyer <code>404</code> dans les deux cas pour éviter de révéler l’existence de ressources privées. Le test doit refléter la politique décidée et documentée.</p>
+<h2>7.2 Tester les permissions avec plusieurs identités</h2>
+<p>Un test d’autorisation doit créer au moins deux identités distinctes et une ressource possédée par l’une d’elles. Vérifier que l’autre ne peut ni lire, ni modifier, ni supprimer la ressource en changeant simplement son identifiant.</p>
+<p>Ne pas mocker la fonction d’autorisation dans le test censé prouver qu’une route applique cette autorisation. Le test d’intégration doit traverser la route, le middleware et le service concernés.</p>
+<h2>7.3 Erreurs publiques et erreurs internes</h2>
+<p>Une réponse publique peut exposer un code stable et un message compréhensible. Elle ne doit pas révéler les secrets, les chaînes de connexion, les traces de pile, les requêtes SQL ou des détails personnels non nécessaires. Les journaux internes doivent être structurés et contenir un identifiant de corrélation, sans enregistrer de mots de passe, jetons ou données sensibles.</p>
+<p>Tester à la fois :</p>
+<ul>
+<li>le statut et la structure de l’erreur ;</li>
+<li>l’absence de champs internes interdits ;</li>
+<li>l’absence d’effet secondaire ;</li>
+<li>la journalisation attendue, si elle est un contrat opérationnel important.</li>
+</ul>
+<h2>7.4 Limites et bornes</h2>
+<p>Pour une pagination limitée à 100 éléments, tester les valeurs 0, 1, 100, 101, un entier négatif, une chaîne et une valeur gigantesque. Pour les tailles de corps, délais et tentatives, choisir des tests ciblés qui vérifient les limites de sécurité et la réponse observable.</p>
+<h3>Exercice 7</h3>
+<p>Un utilisateur authentifié modifie <code>/api/orders/123</code> en <code>/api/orders/124</code>. La seconde commande appartient à un autre utilisateur. Écrire les assertions essentielles.</p>
+<p><strong>Correction expliquée :</strong> la réponse doit respecter la politique de confidentialité choisie (souvent <code>404</code> ou <code>403</code>), ne contenir aucune donnée de la commande 124, ne modifier aucun état et ne déclencher aucune action externe. Créer explicitement les deux utilisateurs et leurs commandes dans l’environnement de test.</p>
+<h3>Quiz 7</h3>
+<p><strong>Pourquoi un test de permission doit-il utiliser deux identités réelles dans le scénario ?</strong></p>
+<p><strong>Réponse :</strong> sans deux propriétaires distincts, le test ne prouve pas que le contrôle d’accès à la ressource est appliqué. Une simple vérification qu’un utilisateur authentifié peut accéder à sa propre ressource ne détecte pas une faille IDOR/BOLA.</p>
+<hr />
+<h1>Module 8 — Transactions, concurrence et idempotence</h1>
+<h2>8.1 Les tests séquentiels ne prouvent pas la sûreté concurrente</h2>
+<p>Deux requêtes peuvent lire le même état puis tenter de le modifier. Un test séquentiel peut passer alors que deux requêtes concurrentes créent un doublon ou perdent une mise à jour. Les garanties doivent être portées par la base (contraintes, verrous, isolation) et par le protocole applicatif, puis testées sous concurrence.</p>
+<p>Exemples de propriétés à protéger :</p>
+<ul>
+<li>un créneau n’est réservé qu’une fois ;</li>
+<li>un solde ne devient jamais négatif ;</li>
+<li>une clé d’idempotence ne produit pas deux opérations durables ;</li>
+<li>deux mises à jour de la même version ne s’écrasent pas silencieusement.</li>
+</ul>
+<h2>8.2 Tester une contrainte d’unicité concurrente</h2>
+<p>Pour une réservation unique par créneau, une contrainte SQL est plus fiable qu’un simple « vérifier puis insérer » côté application. Le test lance deux opérations indépendantes vers la base et vérifie qu’une seule réservation gagne.</p>
+<pre><code class="language-ts">const results = await Promise.allSettled([
+  reserveSlot({ slotId: &quot;slot-42&quot;, userId: &quot;user-a&quot; }),
+  reserveSlot({ slotId: &quot;slot-42&quot;, userId: &quot;user-b&quot; }),
+]);
+
+expect(results.filter((r) =&gt; r.status === &quot;fulfilled&quot;)).toHaveLength(1);
+expect(results.filter((r) =&gt; r.status === &quot;rejected&quot;)).toHaveLength(1);
+
+const rows = await pool.query(
+  &quot;SELECT slot_id FROM reservations WHERE slot_id = $1&quot;,
+  [&quot;slot-42&quot;],
+);
+expect(rows.rowCount).toBe(1);
+</code></pre>
+<p>Le code est un squelette : le schéma, les erreurs attendues et les fonctions doivent être adaptés au dépôt. Les deux opérations doivent utiliser des connexions indépendantes pour créer une véritable concurrence.</p>
+<h2>8.3 Vérifier le rollback et les erreurs de transaction</h2>
+<p>Tester le scénario d’échec après une première écriture et avant le commit. Après le rejet, vérifier l’état durable avec une lecture indépendante. Vérifier également que la connexion est remise dans un état réutilisable et que les erreurs secondaires pendant le rollback ne masquent pas l’erreur initiale sans être journalisées.</p>
+<p>Les tests de concurrence peuvent être sensibles au timing. Éviter de compter sur un <code>setTimeout</code> arbitraire pour provoquer une course ; utiliser des barrières explicites dans les doubles lorsque l’on teste l’orchestration, et la base réelle pour tester les contraintes et l’isolation.</p>
+<h2>8.4 Idempotence et répétition</h2>
+<p>Une requête répétée peut survenir après un timeout : le client ne sait pas si la première opération a été appliquée. Pour une opération non naturellement idempotente, le serveur doit définir comment la clé d’idempotence est enregistrée, comment les requêtes concurrentes avec la même clé sont arbitrées et quelle réponse est rejouée.</p>
+<p>Tests minimaux :</p>
+<ol>
+<li>même clé et même payload répétés : une seule opération durable ;</li>
+<li>même clé avec payload différent : conflit explicite ;</li>
+<li>deux requêtes simultanées avec la même clé : pas de double effet ;</li>
+<li>échec avant commit : possibilité de reprise conforme au contrat ;</li>
+<li>effet externe : outbox ou mécanisme de déduplication vérifié séparément.</li>
+</ol>
+<h3>Exercice 8</h3>
+<p>Deux requêtes utilisent la même clé d’idempotence au même moment. Quelles propriétés tester ?</p>
+<p><strong>Correction expliquée :</strong> une seule opération métier durable, une réponse cohérente pour les deux clients, aucun double effet externe et un résultat déterministe en cas de payload différent. Un test unitaire avec mock ne prouve pas l’arbitrage concurrent dans PostgreSQL ; il faut une intégration avec des connexions indépendantes.</p>
+<h3>Quiz 8</h3>
+<p><strong>Pourquoi un <code>Promise.all()</code> de deux appels ne suffit-il pas toujours à prouver une course réelle ?</strong></p>
+<p><strong>Réponse :</strong> les opérations peuvent être sérialisées par le code ou le pool, ou ne pas se chevaucher au point critique. Le test doit vérifier l’architecture de connexion et l’état final, et provoquer la concurrence de façon contrôlée lorsque c’est nécessaire.</p>
+<hr />
+<h1>Module 9 — Fixtures, déterminisme et couverture</h1>
+<h2>9.1 Fixtures et données de test</h2>
+<p>Une fixture est un état de départ contrôlé. Elle doit être petite, explicite et adaptée au scénario. Éviter les usines de données si complexes qu’elles masquent les propriétés importantes. Les données peuvent être générées, mais la graine et les contraintes doivent être maîtrisées pour permettre de reproduire un échec.</p>
+<p>Chaque test doit pouvoir être exécuté seul et dans un ordre différent. Un test qui passe seulement après un autre dépend d’un état caché.</p>
+<h2>9.2 Maîtriser l’horloge, l’aléatoire et l’environnement</h2>
+<ul>
+<li>Injecter une horloge ou utiliser les faux timers du runner pour les règles dépendantes du temps.</li>
+<li>Contrôler la génération d’identifiants lorsque leur valeur influe sur l’assertion.</li>
+<li>Ne pas dépendre d’un fuseau horaire implicite : utiliser des dates ISO et UTC lorsque cela correspond au contrat.</li>
+<li>Fixer la locale, les variables d’environnement et la configuration pertinentes.</li>
+<li>Ne pas appeler de services externes réels dans les tests unitaires.</li>
+<li>Toujours restaurer les mocks, timers et variables modifiées.</li>
+</ul>
+<p>Un test déterministe n’est pas un test qui ignore les pannes : les erreurs doivent être simulées intentionnellement, et les tests d’intégration doivent échouer clairement si leur infrastructure requise n’est pas disponible.</p>
+<h2>9.3 Couverture de code</h2>
+<p>Les métriques habituelles incluent :</p>
+<ul>
+<li><strong>lignes</strong> : lignes exécutées ;</li>
+<li><strong>instructions</strong> : instructions exécutées ;</li>
+<li><strong>branches</strong> : chemins conditionnels observés ;</li>
+<li><strong>fonctions</strong> : fonctions appelées.</li>
+</ul>
+<p>La couverture aide à identifier des zones non exercées. Elle ne mesure pas directement la pertinence des assertions, la qualité des scénarios, la conformité aux besoins ou la robustesse concurrente.</p>
+<p>Un objectif global de 80 % peut être un repère d’équipe, pas une preuve de qualité. Un module de calcul critique peut nécessiter une couverture de branches plus élevée ; une configuration générée ou un adaptateur trivial peut avoir un autre objectif. Éviter de modifier les seuils seulement pour faire passer la CI.</p>
+<h2>9.4 Mutation testing et qualité des assertions</h2>
+<p>Le mutation testing introduit volontairement de petites erreurs (par exemple inverser <code>&gt;</code> en <code>&gt;=</code>) et observe si les tests les détectent. Si une mutation plausible survit, les assertions ou les scénarios sont peut-être trop faibles. Cette technique complète la couverture, sans remplacer la revue du modèle métier.</p>
+<h2>9.5 Définir une porte de qualité reproductible</h2>
+<p>Un pipeline raisonnable peut exécuter, dans cet ordre :</p>
+<ol>
+<li>formatage et lint ;</li>
+<li>vérification TypeScript ;</li>
+<li>tests unitaires rapides ;</li>
+<li>tests d’intégration avec dépendances isolées ;</li>
+<li>tests de contrat ;</li>
+<li>couverture et contrôle de seuil ;</li>
+<li>tests end-to-end ciblés.</li>
+</ol>
+<p>Les étapes exactes dépendent des scripts du dépôt. Un résultat local n’est pas reproductible si les versions, les variables d’environnement, les migrations ou les services requis ne sont pas documentés.</p>
+<h3>Exercice 9</h3>
+<p>Une suite affiche 98 % de couverture, mais ne teste pas les erreurs SQL, l’accès interdit ni la concurrence. Peut-on conclure que le backend est fiable ?</p>
+<p><strong>Correction expliquée :</strong> non. La couverture élevée décrit l’exécution des lignes/branches mesurées, pas les propriétés non testées. Ajouter des scénarios correspondant aux risques : panne de dépendance, accès croisé, rollback et opérations concurrentes.</p>
+<h3>Quiz 9</h3>
+<p><strong>Quel est le meilleur usage d’un rapport de couverture ?</strong></p>
+<p>A. Remplacer la revue de code.<br />
+B. Identifier les zones non exécutées et guider l’ajout de tests pertinents.<br />
+C. Déclarer l’absence de bugs dès qu’un seuil est atteint.</p>
+<p><strong>Réponse : B.</strong> La couverture est un outil de diagnostic et de priorisation, pas une garantie de correction.</p>
+<hr />
+<h1>Projet intégrateur — Suite de tests pour une API de réservation</h1>
+<h2>Contexte</h2>
+<p>L’API expose la création et la confirmation de réservations. Une réservation possède un propriétaire, un créneau, un statut et une durée. PostgreSQL est le stockage de référence.</p>
+<h2>Travaux demandés</h2>
+<ol>
+<li>Définir une matrice de risques et associer chaque exigence à un test.</li>
+<li>Écrire des tests unitaires des validations, limites et transitions d’état.</li>
+<li>Tester les routes HTTP : succès, validation invalide, ressource absente et erreur de dépendance.</li>
+<li>Vérifier qu’un utilisateur ne peut pas lire ou modifier la réservation d’un autre.</li>
+<li>Exécuter des tests d’intégration contre PostgreSQL et appliquer les migrations.</li>
+<li>Simuler une erreur au milieu d’une transaction et vérifier l’absence d’écriture partielle.</li>
+<li>Lancer deux réservations concurrentes pour un même créneau et prouver qu’une seule réussit.</li>
+<li>Tester l’idempotence d’une requête répétée.</li>
+<li>Mesurer la couverture, examiner les zones non testées et justifier les exceptions.</li>
+<li>Documenter les commandes, variables d’environnement, dépendances et procédure de nettoyage.</li>
+</ol>
+<h2>Critères d’acceptation</h2>
+<ul>
+<li>Chaque test décrit un comportement et contient des assertions qui échoueraient si ce comportement régressait.</li>
+<li>Les tests unitaires ne nécessitent pas d’infrastructure externe.</li>
+<li>Les tests d’intégration utilisent une base PostgreSQL isolée et les migrations réelles du projet.</li>
+<li>L’échec d’une opération transactionnelle ne laisse pas d’écriture partielle durable.</li>
+<li>Deux demandes concurrentes ne peuvent pas réserver le même créneau.</li>
+<li>Les tests d’autorisation utilisent deux propriétaires distincts et n’exposent pas les données privées.</li>
+<li>La suite peut être lancée à partir d’instructions documentées et ne dépend pas de l’ordre d’exécution.</li>
+<li>Les limites connues sont documentées ; aucun test non exécuté n’est présenté comme réussi.</li>
+</ul>
+<h2>Grille d’évaluation sur 20</h2>
+<table>
+<thead>
+<tr>
+  <th>Critère</th>
+  <th style="text-align:right">Points</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Stratégie et matrice de risques</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Tests unitaires utiles et lisibles</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Tests HTTP et contrats</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Autorisations et scénarios négatifs</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Intégration PostgreSQL et rollback</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Concurrence et idempotence</td>
+  <td style="text-align:right">3</td>
+</tr>
+<tr>
+  <td>Reproductibilité, couverture et documentation</td>
+  <td style="text-align:right">2</td>
+</tr>
+<tr>
+  <td><strong>Total</strong></td>
+  <td style="text-align:right"><strong>20</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>Seuil de réussite</h3>
+<p>14/20, sans défaut critique sur le contrôle d’accès, le rollback ou la concurrence. Un résultat élevé en couverture ne compense pas l’absence de tests sur ces propriétés.</p>
+<hr />
+<h1>Références officielles et techniques</h1>
+<ol>
+<li>Node.js — Test runner : https://nodejs.org/api/test.html</li>
+<li>Node.js — Assertions strictes : https://nodejs.org/api/assert.html</li>
+<li>Vitest — Guide de démarrage : https://vitest.dev/guide/</li>
+<li>Vitest — Mocking : https://vitest.dev/guide/mocking.html</li>
+<li>Vitest — Couverture : https://vitest.dev/guide/coverage.html</li>
+<li>Testcontainers for Node.js — Module PostgreSQL : https://node.testcontainers.org/modules/postgresql/</li>
+<li>PostgreSQL — Isolation des transactions : https://www.postgresql.org/docs/current/transaction-iso.html</li>
+<li>PostgreSQL — Contraintes : https://www.postgresql.org/docs/current/ddl-constraints.html</li>
+<li>OpenAPI Specification : https://spec.openapis.org/oas/latest.html</li>
+<li>OWASP API Security Project : https://owasp.org/www-project-api-security/</li>
+<li>Martin Fowler — Test Double : https://martinfowler.com/bliki/TestDouble.html</li>
+<li>Google Testing Blog — Test Sizes : https://testing.googleblog.com/2010/12/test-sizes.html</li>
+</ol>
+<p>Vérifier les versions et la disponibilité de chaque référence au moment de la mise en place du cours. La présence d’une référence ne signifie pas que les exemples ont été exécutés contre la dernière version de la bibliothèque.</p>
+<hr />
+<h1>Synthèse opérationnelle</h1>
+<p>Avant d’ajouter un test, formuler la régression qu’il doit détecter. Utiliser les tests unitaires pour la logique isolée, l’intégration pour les interactions réelles, les tests de contrat pour les frontières publiques et les tests end-to-end pour quelques parcours essentiels. Les mocks accélèrent les tests mais ne remplacent pas une vraie base lorsqu’il s’agit de transactions ou de concurrence. Une suite de qualité est déterministe, isolée, reproductible et transparente sur ses limites.</p>
+</body></html>

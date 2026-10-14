@@ -625,7 +625,7 @@ export const reactAdvancedModules: CourseModule[] = [
             {
               "title": "Effet avec AbortController",
               "language": "tsx",
-              "code": "useEffect(() => {\n  const controller = new AbortController();\n  void fetch(\"/api/profile\", { signal: controller.signal }).then(response => {\n    if (!response.ok) throw new Error(`HTTP ${response.status}`);\n    return response.json();\n  }).then(setProfile).catch(error => {\n    if (!(error instanceof DOMException && error.name === \"AbortError\")) setError(\"Échec du chargement\");\n  });\n  return () => controller.abort();\n}, []);"
+              "code": "type Profile = { name: string; city: string };\nfunction isProfile(value: unknown): value is Profile {\n  return typeof value === \"object\" && value !== null && \"name\" in value && typeof value.name === \"string\" && \"city\" in value && typeof value.city === \"string\";\n}\n\nuseEffect(() => {\n  const controller = new AbortController();\n  async function loadProfile() {\n    try {\n      const response = await fetch(\"/api/profile\", { signal: controller.signal });\n      if (!response.ok) throw new Error(`HTTP ${response.status}`);\n      const payload: unknown = await response.json();\n      if (!isProfile(payload)) throw new Error(\"Format de profil invalide\");\n      setProfile(payload);\n    } catch (error) {\n      if (!(error instanceof DOMException && error.name === \"AbortError\")) setError(\"Échec du chargement\");\n    }\n  }\n  void loadProfile();\n  return () => controller.abort();\n}, []);"
             }
           ]
         }

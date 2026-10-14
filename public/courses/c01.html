@@ -1,0 +1,331 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>C01 — HTTP, réseaux et Web appliqués à Node.js</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>C01 — HTTP, réseaux et Web appliqués à Node.js</h1>
+<ul>
+<li><strong>Version pédagogique :</strong> 1.0</li>
+<li><strong>Date :</strong> 14 octobre 2026</li>
+<li><strong>Statut :</strong> rédigé ; exemples non validés par exécution intégrale</li>
+<li><strong>Niveau :</strong> intermédiaire, après JavaScript moderne, TypeScript et bases Node.js</li>
+<li><strong>Durée indicative :</strong> 8 à 12 heures, projet compris</li>
+<li><strong>Environnement de référence :</strong> Node.js 22 LTS ou version LTS ultérieure compatible ; TypeScript 5.9 ; terminal avec <code>curl</code> ; navigateur avec DevTools</li>
+</ul>
+<h2>Objectifs et prérequis</h2>
+<p>À l’issue du cours, l’apprenant sait reconstituer le trajet d’une requête depuis le client jusqu’au processus Node.js, lire une requête et une réponse HTTP, distinguer panne DNS, refus TCP, erreur TLS, réponse HTTP en erreur et timeout, expliquer le rôle des cookies, du cache et de CORS, puis collecter des éléments de diagnostic reproductibles.</p>
+<p>Prérequis : fonctions, promesses et <code>async</code>/<code>await</code> en JavaScript, types TypeScript, modules Node.js, ligne de commande et notions de base sur les processus. Les cours HTML, JavaScript et Node.js existants restent les références pour leurs concepts respectifs ; ce document les applique aux échanges réseau plutôt que de les recopier.</p>
+<h2>Plan</h2>
+<ol>
+<li>Modèle client-serveur, DNS, ports et cycle d’une requête.</li>
+<li>HTTP : méthodes, statuts, en-têtes, corps et négociation de contenu.</li>
+<li>Cookies, cache HTTP, CORS et requêtes préflight.</li>
+<li>TLS, certificats, reverse proxy et terminaison HTTPS.</li>
+<li>Timeouts, erreurs réseau, connexions persistantes et limites.</li>
+<li>Diagnostic avec <code>curl</code>, DevTools et journaux Node.js.</li>
+</ol>
+<hr />
+<h1>Module 1 — Du nom de domaine au processus Node.js</h1>
+<h2>1.1 Les couches et le trajet d’une requête</h2>
+<p>Un échange Web traverse plusieurs responsabilités distinctes :</p>
+<ol>
+<li><strong>Application</strong> : le navigateur ou le client construit une requête HTTP.</li>
+<li><strong>DNS</strong> : le nom est résolu en une ou plusieurs adresses IP, en tenant compte des caches et des règles DNS applicables.</li>
+<li><strong>Routage IP</strong> : les paquets sont acheminés vers la machine cible.</li>
+<li><strong>Transport</strong> : TCP établit un flux fiable et ordonné ; HTTP/3 utilise QUIC au-dessus d’UDP.</li>
+<li><strong>Sécurité de transport</strong> : pour HTTPS, TLS négocie des paramètres cryptographiques et permet de vérifier l’identité présentée par le serveur.</li>
+<li><strong>HTTP</strong> : le serveur interprète méthode, cible, en-têtes et corps, puis renvoie statut, en-têtes et éventuellement corps.</li>
+<li><strong>Application métier</strong> : Node.js applique la logique, appelle éventuellement une base ou un service distant et construit la réponse.</li>
+</ol>
+<p>Le chemin réel peut inclure un proxy d’entreprise, un CDN, un répartiteur de charge, un pare-feu ou un reverse proxy. Le serveur HTTP Node.js n’est donc pas nécessairement le premier composant rencontré sur la machine d’hébergement.</p>
+<p>Une erreur <code>404</code> est une réponse HTTP reçue ; <code>ECONNREFUSED</code> signale généralement que la connexion a été refusée ; <code>ENOTFOUND</code> ou <code>EAI_AGAIN</code> concerne la résolution de nom ; une erreur de certificat concerne TLS. Ces erreurs ne se corrigent pas au même endroit.</p>
+<h2>1.2 IP, ports, sockets et écoute Node.js</h2>
+<p>Une adresse IP permet l’acheminement. Un port identifie un point d’extrémité de transport. Le couple adresse/port local d’un serveur doit être compatible avec le client et la configuration réseau. Le port <code>443</code> est conventionnel pour HTTPS, mais un numéro de port ne garantit pas le protocole réellement servi.</p>
+<p><code>127.0.0.1</code> et <code>::1</code> désignent la boucle locale IPv4 et IPv6. Un service lié à <code>127.0.0.1</code> n’est normalement accessible que depuis la machine elle-même. Un service lié à <code>0.0.0.0</code> écoute sur toutes les interfaces IPv4 disponibles : cette configuration ne doit pas être choisie sans comprendre l’exposition réseau et les règles de pare-feu.</p>
+<p>Exemple minimal en TypeScript, à compiler avant exécution selon la configuration du projet :</p>
+<pre><code class="language-ts">import { createServer } from &quot;node:http&quot;;
+
+const server = createServer((_request, response) =&gt; {
+  response.writeHead(200, { &quot;content-type&quot;: &quot;text/plain; charset=utf-8&quot; });
+  response.end(&quot;Serveur Node.js disponible\n&quot;);
+});
+
+server.listen(3000, &quot;127.0.0.1&quot;, () =&gt; {
+  console.log(&quot;Écoute sur http://127.0.0.1:3000&quot;);
+});
+</code></pre>
+<p>Cet exemple n’implémente ni routage, ni validation d’entrée, ni arrêt gracieux : il sert uniquement à illustrer l’écoute HTTP. Il ne constitue pas une base de production.</p>
+<h2>1.3 DNS : résolution, TTL et diagnostic</h2>
+<p>DNS associe un nom à des enregistrements : <code>A</code> (IPv4), <code>AAAA</code> (IPv6), <code>CNAME</code> (alias), <code>MX</code> (messagerie), <code>TXT</code> (texte et vérifications diverses). Un résolveur peut répondre depuis son cache jusqu’à l’expiration du TTL. Après une modification DNS, la propagation apparente dépend des caches, des TTL et de la configuration des résolveurs ; ce n’est pas nécessairement une réplication instantanée mondiale.</p>
+<p>Commandes de diagnostic (selon le système, <code>dig</code> peut nécessiter l’installation d’un paquet système) :</p>
+<pre><code class="language-bash">dig example.com A
+dig example.com AAAA
+nslookup example.com
+</code></pre>
+<p>Ne concluez pas à une panne HTTP lorsque la résolution du nom échoue. Testez d’abord la résolution, puis la connexion, puis TLS et enfin la réponse applicative.</p>
+<h3>Exercice 1 — Localiser la panne</h3>
+<p>Un navigateur affiche « site inaccessible ». <code>dig api.example.test A</code> renvoie une erreur de résolution ; aucune connexion TCP n’est tentée vers l’adresse attendue.</p>
+<p><strong>Question :</strong> quelle couche vérifier en premier et pourquoi ?</p>
+<p><strong>Corrigé :</strong> vérifier la résolution DNS (nom, zone, résolveur, configuration locale et cache). Sans adresse cible résolue, le diagnostic d’une réponse HTTP n’est pas pertinent. Si le DNS est ensuite correct, poursuivre vers la connexion TCP, TLS puis HTTP.</p>
+<h3>Quiz du module 1</h3>
+<p><strong>Un port 443 garantit-il que le serveur parle HTTPS ?</strong> Non. Le port est une convention ; c’est la négociation TLS et le protocole réellement servi qui déterminent l’échange.</p>
+<hr />
+<h1>Module 2 — Lire et concevoir un échange HTTP</h1>
+<h2>2.1 Anatomie des messages</h2>
+<p>Une requête HTTP/1.1 typique comprend une ligne de requête, des en-têtes, une ligne vide et, si nécessaire, un corps :</p>
+<pre><code class="language-http">GET /api/products/42 HTTP/1.1
+Host: localhost:3000
+Accept: application/json
+</code></pre>
+<p>La réponse correspondante pourrait être :</p>
+<pre><code class="language-http">HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-store
+
+{&quot;id&quot;:42,&quot;name&quot;:&quot;Clavier&quot;}
+</code></pre>
+<p>HTTP/2 et HTTP/3 n’utilisent pas cette représentation textuelle sur le réseau, mais conservent la sémantique des méthodes, champs d’en-tête et statuts. Les outils d’inspection peuvent afficher une représentation adaptée au protocole.</p>
+<p>Le corps n’est pas toujours présent. <code>Content-Type</code> décrit le format du corps envoyé ; <code>Accept</code> exprime les types de réponse que le client sait traiter. La négociation peut aussi utiliser <code>Accept-Language</code> ou <code>Accept-Encoding</code>. Le serveur doit éviter d’annoncer un type de contenu qui ne correspond pas au corps réel.</p>
+<h2>2.2 Méthodes, sûreté et idempotence</h2>
+<ul>
+<li><code>GET</code> récupère une représentation ; il est conçu comme une méthode sûre et idempotente.</li>
+<li><code>HEAD</code> correspond à <code>GET</code> sans corps de réponse.</li>
+<li><code>POST</code> soumet une représentation ou déclenche un traitement ; il n’est pas idempotent par définition.</li>
+<li><code>PUT</code> remplace généralement la représentation ciblée et est idempotent du point de vue sémantique.</li>
+<li><code>PATCH</code> applique une modification partielle ; son idempotence dépend de l’opération définie.</li>
+<li><code>DELETE</code> demande la suppression de la ressource ciblée ; la méthode est idempotente sémantiquement, même si les réponses successives peuvent différer.</li>
+</ul>
+<p><strong>Idempotent</strong> ne signifie pas « la réponse est toujours identique » et ne garantit pas qu’un client peut répéter aveuglément n’importe quelle opération. Si le client perd la connexion après l’envoi, il peut ignorer si le serveur a effectué l’action. Les opérations de paiement, réservation ou création nécessitent un contrat applicatif clair, parfois une clé d’idempotence persistée côté serveur.</p>
+<h2>2.3 Statuts et contrat de réponse</h2>
+<ul>
+<li><code>2xx</code> : traitement réussi (<code>200</code>, <code>201</code>, <code>204</code>).</li>
+<li><code>3xx</code> : redirection ou autre mécanisme de redirection (<code>301</code>, <code>302</code>, <code>304</code>).</li>
+<li><code>4xx</code> : problème associé à la requête ou au contexte client (<code>400</code>, <code>401</code>, <code>403</code>, <code>404</code>, <code>409</code>, <code>415</code>, <code>422</code>, <code>429</code>).</li>
+<li><code>5xx</code> : échec de traitement côté serveur ou intermédiaire (<code>500</code>, <code>502</code>, <code>503</code>, <code>504</code>).</li>
+</ul>
+<p><code>401</code> signifie que l’authentification est absente ou invalide ; <code>403</code> signifie que l’accès est refusé. <code>502</code> indique qu’une passerelle a reçu une réponse invalide d’un serveur amont ; <code>504</code> qu’elle n’a pas reçu à temps la réponse attendue. Le choix précis dépend du contrat API : ne réutilisez pas les statuts comme des codes métier arbitraires.</p>
+<h3>Exercice 2 — Choisir une réponse</h3>
+<p>Pour chaque cas, proposez un statut et justifiez-le : (a) un produit a été créé ; (b) le client a envoyé du JSON mal formé ; (c) une réservation entre en conflit avec un créneau déjà pris ; (d) un service amont n’a pas répondu dans le délai du proxy.</p>
+<p><strong>Corrigé indicatif :</strong> (a) <code>201 Created</code>, éventuellement avec <code>Location</code> ; (b) <code>400 Bad Request</code> ; (c) <code>409 Conflict</code> ; (d) <code>504 Gateway Timeout</code>. Le contrat précis peut ajouter un corps d’erreur stable et un identifiant de corrélation.</p>
+<h3>Quiz du module 2</h3>
+<p><strong>Pourquoi <code>Content-Type</code> n’est-il pas interchangeable avec <code>Accept</code> ?</strong> <code>Content-Type</code> décrit le contenu envoyé ; <code>Accept</code> exprime les formats que le client souhaite recevoir.</p>
+<hr />
+<h1>Module 3 — Cookies, cache HTTP et CORS</h1>
+<h2>3.1 Cookies et sécurité navigateur</h2>
+<p>Un serveur peut envoyer un cookie avec <code>Set-Cookie</code>. Le navigateur le renvoie ensuite selon son domaine, son chemin, son expiration et ses règles de contexte. Les attributs importants comprennent :</p>
+<ul>
+<li><code>HttpOnly</code> : empêche l’accès au cookie depuis les API JavaScript du navigateur ; il ne bloque pas l’envoi automatique du cookie.</li>
+<li><code>Secure</code> : limite son envoi aux connexions sécurisées, sous réserve des règles particulières des environnements locaux.</li>
+<li><code>SameSite=Lax|Strict|None</code> : contrôle certains envois intersites. <code>SameSite=None</code> exige <code>Secure</code> dans les navigateurs modernes.</li>
+<li><code>Path</code>, <code>Domain</code>, <code>Max-Age</code> et <code>Expires</code> : contrôlent portée et durée de vie.</li>
+</ul>
+<p><code>HttpOnly</code> réduit certains risques de vol via JavaScript, mais ne supprime pas le risque CSRF lorsqu’un navigateur joint automatiquement une session à une requête. La stratégie de session doit aussi prendre en compte CSRF, l’autorisation et la rotation/invalidation de session.</p>
+<h2>3.2 Cache HTTP</h2>
+<p>Le cache peut se trouver dans le navigateur, un proxy, un CDN ou un autre intermédiaire. La politique doit tenir compte de la fraîcheur, de la sensibilité des données et de la possibilité de revalidation.</p>
+<ul>
+<li><code>Cache-Control: no-store</code> demande de ne pas stocker la réponse.</li>
+<li><code>Cache-Control: no-cache</code> permet le stockage, mais exige une revalidation avant réutilisation.</li>
+<li><code>max-age=60</code> autorise une fraîcheur de 60 secondes dans les conditions prévues par la directive.</li>
+<li><code>ETag</code> permet de comparer une représentation ; <code>If-None-Match</code> permet une revalidation. Une réponse <code>304 Not Modified</code> ne transporte pas une nouvelle représentation complète.</li>
+<li><code>Vary: Accept-Encoding</code> indique que la représentation varie selon cet en-tête de requête.</li>
+</ul>
+<p>Ne mettez pas en cache publiquement des réponses personnalisées ou confidentielles sans analyse stricte des clés de cache et des directives. Une mauvaise configuration peut exposer les données d’un utilisateur à un autre.</p>
+<h2>3.3 CORS et préflight</h2>
+<p>CORS est une politique appliquée par les navigateurs pour contrôler si un script d’une origine peut lire une réponse provenant d’une autre origine. Une origine est le triplet <strong>schéma + hôte + port</strong>. CORS n’est ni une authentification ni un pare-feu serveur : un client non navigateur peut appeler directement l’API, et l’API doit toujours appliquer ses contrôles d’accès.</p>
+<p>Une requête interorigine peut déclencher une préflight <code>OPTIONS</code>, notamment selon la méthode et les en-têtes utilisés. Le serveur répond alors avec des champs comme <code>Access-Control-Allow-Origin</code>, <code>Access-Control-Allow-Methods</code> et <code>Access-Control-Allow-Headers</code>. Si des cookies ou d’autres identifiants sont utilisés avec <code>credentials: &quot;include&quot;</code>, le serveur doit autoriser explicitement l’origine ; <code>Access-Control-Allow-Origin: *</code> n’est pas valide avec les credentials. Il faut également traiter <code>Vary: Origin</code> lorsque la valeur autorisée est sélectionnée dynamiquement.</p>
+<p>Exemple de client :</p>
+<pre><code class="language-ts">const response = await fetch(&quot;https://api.example.test/profile&quot;, {
+  credentials: &quot;include&quot;,
+  headers: { Accept: &quot;application/json&quot; },
+});
+
+if (!response.ok) {
+  throw new Error(`HTTP ${response.status}`);
+}
+</code></pre>
+<p>Ce code suppose que le serveur a correctement configuré CORS et que la politique de session est adaptée. <code>fetch</code> rejette la promesse pour certaines erreurs réseau ou de politique navigateur, mais une réponse HTTP <code>404</code> ou <code>500</code> ne fait pas automatiquement rejeter la promesse : il faut examiner <code>response.ok</code> ou <code>response.status</code>.</p>
+<h3>Exercice 3 — Diagnostiquer CORS</h3>
+<p>Une requête depuis <code>https://front.example.test</code> échoue dans le navigateur. La console signale que l’en-tête <code>Access-Control-Allow-Origin</code> manque. L’API renvoie <code>200</code> quand elle est appelée directement avec <code>curl</code>.</p>
+<p><strong>Corrigé :</strong> <code>curl</code> confirme que l’API répond, mais n’applique pas la politique de lecture CORS du navigateur. Vérifier la réponse de la préflight <code>OPTIONS</code> si elle existe, l’origine exacte (schéma, hôte, port), les méthodes/en-têtes autorisés et la configuration des credentials. Ne pas « corriger » en ouvrant toutes les origines sans nécessité et ne pas traiter CORS comme un contrôle d’accès.</p>
+<h3>Quiz du module 3</h3>
+<p><strong>CORS protège-t-il l’API contre un client malveillant hors navigateur ?</strong> Non. CORS encadre principalement la lecture de réponses par des scripts de navigateur ; l’API doit authentifier et autoriser chaque opération elle-même.</p>
+<hr />
+<h1>Module 4 — TLS, certificats et reverse proxy</h1>
+<h2>4.1 Ce que HTTPS garantit</h2>
+<p>HTTPS encapsule HTTP dans TLS. TLS vise notamment la confidentialité et l’intégrité des échanges, ainsi que l’authentification du serveur au moyen de la validation de son certificat. Le client vérifie la chaîne de confiance, la validité temporelle et la correspondance du nom d’hôte avec les identités du certificat. Un certificat valide ne prouve pas que l’application est sûre, que l’utilisateur est autorisé ou que le serveur ne contient pas de vulnérabilité.</p>
+<p>Le navigateur résout le nom, établit le transport, négocie TLS puis échange HTTP de façon protégée. Les détails varient selon HTTP/1.1, HTTP/2 ou HTTP/3 et les capacités négociées. Une erreur de certificat doit être traitée comme un problème de confiance ou de configuration, pas contournée pour « faire fonctionner » une application de production.</p>
+<h2>4.2 Reverse proxy et terminaison TLS</h2>
+<p>En production, TLS peut se terminer sur un reverse proxy ou un load balancer. Celui-ci transmet ensuite la requête à Node.js, parfois sur un réseau interne. Le proxy peut ajouter <code>Forwarded</code> ou des en-têtes <code>X-Forwarded-*</code> décrivant le protocole, l’hôte ou l’adresse du client d’origine.</p>
+<p>Ces champs ne sont fiables que si la requête provient d’un proxy de confiance et que la topologie est correctement configurée. Si l’application accepte ces en-têtes d’un client quelconque, elle peut construire des URL, journaux ou décisions de sécurité à partir de valeurs falsifiées. Configurez explicitement les proxys de confiance dans le framework choisi et n’inférez pas la sécurité d’une requête uniquement depuis un en-tête contrôlé par le client.</p>
+<h2>4.3 Vérifications pratiques</h2>
+<pre><code class="language-bash">curl -v https://example.com/
+curl -I https://example.com/
+</code></pre>
+<p><code>-v</code> affiche des détails de connexion utiles au diagnostic ; <code>-I</code> demande les en-têtes via une requête <code>HEAD</code> si le serveur la prend en charge. N’ajoutez pas <code>-k</code> / <code>--insecure</code> comme correction : cette option désactive la vérification du certificat et peut masquer le défaut réel.</p>
+<h3>Exercice 4 — Certificat invalide</h3>
+<p>Un client reçoit une erreur indiquant que le certificat ne correspond pas au nom demandé. La chaîne semble par ailleurs émise par une autorité de confiance.</p>
+<p><strong>Corrigé :</strong> vérifier le nom d’hôte demandé, les SAN du certificat présenté, le certificat réellement servi par le proxy/load balancer, le SNI et le routage vers le bon virtual host. Une chaîne de confiance valide ne compense pas une identité de serveur incorrecte.</p>
+<h3>Quiz du module 4</h3>
+<p><strong>Le TLS qui se termine au reverse proxy rend-il automatiquement le lien proxy → Node.js sûr ?</strong> Non. Ce tronçon doit être protégé et contrôlé selon le modèle de menace, et l’application doit faire confiance uniquement aux proxys prévus.</p>
+<hr />
+<h1>Module 5 — Timeouts, erreurs réseau et connexions persistantes</h1>
+<h2>5.1 Pourquoi un délai maximal est nécessaire</h2>
+<p>Une opération réseau peut rester en attente : résolution DNS, établissement de connexion, négociation TLS, attente des en-têtes ou lecture du corps. Les timeouts doivent être cohérents avec le budget de latence de l’application. Un timeout côté client n’annule pas nécessairement le traitement déjà commencé côté serveur ; le serveur peut avoir réalisé l’action métier alors que le client a abandonné l’attente.</p>
+<p>Avec Node.js 22+, <code>AbortSignal.timeout()</code> peut borner une opération <code>fetch</code>. Le code suivant vérifie le statut, la durée et les erreurs, mais le délai couvre l’opération Fetch selon les règles de l’API et ne remplace pas les timeouts des autres couches :</p>
+<pre><code class="language-ts">const startedAt = performance.now();
+
+try {
+  const response = await fetch(&quot;https://example.com/api/status&quot;, {
+    signal: AbortSignal.timeout(3_000),
+    headers: { Accept: &quot;application/json&quot; },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Réponse HTTP ${response.status}`);
+  }
+
+  const body: unknown = await response.json();
+  console.log({ status: response.status, elapsedMs: performance.now() - startedAt, body });
+} catch (error: unknown) {
+  if (error instanceof Error) {
+    console.error({ message: error.message, elapsedMs: performance.now() - startedAt });
+  } else {
+    console.error(&quot;Échec réseau inconnu&quot;);
+  }
+}
+</code></pre>
+<p>Dans une vraie application, ne journalisez pas aveuglément le corps : il peut contenir des données personnelles, des secrets ou un volume excessif. Les erreurs doivent être classées avec prudence : <code>fetch</code> et les systèmes d’exploitation ne donnent pas toujours une distinction portable entre DNS, connexion, TLS et timeout.</p>
+<h2>5.2 Keep-alive, pooling et limites</h2>
+<p>Les connexions persistantes évitent de recréer une connexion pour chaque échange, ce qui peut réduire la latence et la charge. La réutilisation est gérée par le protocole et le client HTTP. Il faut cependant définir des limites adaptées : nombre de sockets, durée d’inactivité, concurrence, taille des réponses et temps maximal de traitement.</p>
+<p>Une saturation peut provenir d’un trop grand nombre de requêtes simultanées, d’un pool trop petit, d’un service amont lent ou d’un travail synchrone qui bloque la boucle d’événements. Augmenter les timeouts sans diagnostiquer la cause peut augmenter le nombre de requêtes en attente et aggraver la saturation.</p>
+<h2>5.3 Reprises et incertitude après coupure</h2>
+<p>Ne répétez pas automatiquement une opération non idempotente parce qu’un timeout a eu lieu. La requête a pu être traitée avant la coupure de connexion. Pour les écritures métier, concevez une stratégie de reprise explicite : clé d’idempotence, identifiant d’opération, vérification de l’état côté serveur, délais avec backoff et limite de tentatives. Les retries ne doivent pas multiplier une panne ni ignorer les statuts qui ne sont pas transitoires.</p>
+<h3>Exercice 5 — Un timeout après POST</h3>
+<p>Un client envoie <code>POST /reservations</code>, attend 3 secondes puis abandonne. Il n’a reçu aucune réponse. Peut-il réenvoyer immédiatement la même requête ?</p>
+<p><strong>Corrigé :</strong> pas sans connaître le contrat de l’API. Le serveur a peut-être créé la réservation avant la coupure. Il faut une clé d’idempotence ou un mécanisme de consultation de l’état, puis une stratégie de reprise bornée. Le timeout du client n’est pas une preuve d’échec métier.</p>
+<h3>Quiz du module 5</h3>
+<p><strong>Un timeout prouve-t-il que le serveur n’a pas exécuté l’opération ?</strong> Non. Il prouve que le client n’a pas obtenu le résultat attendu dans le délai fixé.</p>
+<hr />
+<h1>Module 6 — Diagnostic reproductible</h1>
+<h2>6.1 Une séquence de diagnostic</h2>
+<p>Procédez par couches et conservez les observations :</p>
+<ol>
+<li><strong>Nom</strong> : le nom est-il résolu ? Comparer <code>dig</code>/<code>nslookup</code> et la configuration DNS.</li>
+<li><strong>Transport</strong> : la cible et le port sont-ils joignables ? Distinguer refus, absence de route et filtrage.</li>
+<li><strong>TLS</strong> : certificat, nom, chaîne et négociation sont-ils valides ?</li>
+<li><strong>HTTP</strong> : quel statut, quels en-têtes et quelle durée ? Une réponse <code>4xx</code> ou <code>5xx</code> confirme que la couche HTTP a répondu.</li>
+<li><strong>Application</strong> : identifier la route, l’exception, le service amont et l’identifiant de corrélation sans exposer les secrets.</li>
+<li><strong>Navigateur</strong> : examiner Network, Console, la requête <code>OPTIONS</code>, les cookies, le cache et les en-têtes.</li>
+</ol>
+<h2>6.2 <code>curl</code> et DevTools</h2>
+<p>Commandes utiles :</p>
+<pre><code class="language-bash"># Afficher les détails de connexion et les en-têtes
+curl -v https://example.com/api/status
+
+# N'afficher que les en-têtes de réponse
+curl -I https://example.com/
+
+# Mesurer quelques phases de la requête
+curl -sS -o /dev/null \
+  -w 'dns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s first_byte=%{time_starttransfer}s total=%{time_total}s status=%{http_code}\n' \
+  https://example.com/
+</code></pre>
+<p>Les métriques affichées dépendent du build de <code>curl</code> et du protocole utilisé ; elles constituent des indices, pas une preuve isolée de la cause. Dans DevTools → Network, examinez URL, méthode, statut, timing, request/response headers, cookies, initiateur et éventuelle préflight. Masquez les jetons et cookies avant de partager une capture.</p>
+<h2>6.3 Journalisation côté Node.js</h2>
+<p>Les logs doivent permettre de corréler les étapes sans enregistrer des secrets. Préférez des champs structurés tels que méthode, chemin normalisé, statut, durée, identifiant de requête et résultat technique. Évitez le corps complet, les cookies, les en-têtes d’authentification et les paramètres d’URL sensibles.</p>
+<p>Exemple illustratif d’un journal structuré, à adapter au serveur réellement utilisé :</p>
+<pre><code class="language-ts">type RequestSummary = {
+  method: string;
+  route: string; // modèle de route, pas URL brute avec données sensibles
+  statusCode: number;
+  durationMs: number;
+  requestId: string;
+};
+
+function logRequest(summary: RequestSummary): void {
+  console.log(JSON.stringify({ event: &quot;http.request.completed&quot;, ...summary }));
+}
+</code></pre>
+<p>Ce helper ne collecte pas lui-même les données et ne génère pas d’identifiant ; il montre seulement la forme des événements à émettre. L’intégration dépend du serveur HTTP et du middleware de corrélation retenus.</p>
+<h3>Exercice 6 — Établir une hypothèse testable</h3>
+<p><code>curl -v https://api.example.test/health</code> montre une connexion TLS établie puis <code>HTTP/1.1 503 Service Unavailable</code>. Quelle conclusion est justifiée, et quelles vérifications suivent ?</p>
+<p><strong>Corrigé :</strong> DNS, transport, TLS et HTTP ont suffisamment fonctionné pour recevoir une réponse HTTP. <code>503</code> indique que le serveur ou l’intermédiaire déclare le service temporairement indisponible ; cela ne permet pas d’identifier seul la cause. Vérifier les en-têtes de réponse, les logs avec l’identifiant de requête, l’état du service amont, les limites de capacité et les éventuels déploiements en cours.</p>
+<h3>Quiz du module 6</h3>
+<p><strong>Quel est l’avantage d’un diagnostic par couches ?</strong> Il transforme « le site ne marche pas » en hypothèses localisées, testables et reproductibles, au lieu de modifier plusieurs composants au hasard.</p>
+<hr />
+<h1>Projet intégrateur — Laboratoire de diagnostic HTTP</h1>
+<h2>Mission</h2>
+<p>Créer un petit service HTTP local et un client TypeScript qui collecte des informations de diagnostic. Le projet sert à démontrer la compréhension du cycle requête-réponse ; il ne doit pas être exposé publiquement ni présenté comme un serveur de production.</p>
+<h2>Périmètre fonctionnel</h2>
+<ol>
+<li>Démarrer un serveur Node.js sur <code>127.0.0.1:3000</code>.</li>
+<li>Implémenter <code>GET /health</code> avec <code>200</code> et une réponse JSON stable.</li>
+<li>Implémenter <code>GET /status/503</code> pour simuler une indisponibilité et <code>GET /status/404</code> pour simuler une route absente.</li>
+<li>Ajouter <code>Content-Type</code>, une politique de cache explicite et un identifiant de requête non sensible.</li>
+<li>Créer un client <code>fetch</code> avec timeout, mesure de durée et traitement explicite des statuts non <code>2xx</code>.</li>
+<li>Documenter les commandes <code>curl</code> pour distinguer succès, erreur HTTP et erreur de connexion.</li>
+<li>Ajouter une note de diagnostic CORS expliquant la différence entre <code>curl</code> et un navigateur, sans exposer le service sur le réseau.</li>
+<li>Écrire un tableau d’incidents simulés : symptôme, couche probable, commande de vérification, résultat attendu, conclusion.</li>
+</ol>
+<h2>Critères d’acceptation</h2>
+<ul>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Les routes et statuts correspondent exactement à la spécification.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Le client distingue une réponse HTTP en erreur d’un échec de transport.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Le timeout est borné et son résultat est documenté.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Les logs incluent statut et durée sans cookies, secrets ni corps arbitraire.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Les tests ou commandes manuelles couvrent au moins 200, 404, 503 et un port sans serveur.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Le diagnostic explique pourquoi un timeout n’implique pas nécessairement l’échec de l’opération.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Les résultats exécutés sont consignés séparément des contrôles statiques.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Le service reste lié à la boucle locale et n’est pas présenté comme prêt pour la production.</li>
+</ul>
+<h2>Grille d’évaluation sur 20</h2>
+<table>
+<thead>
+<tr>
+  <th>Critère</th>
+  <th style="text-align:right">Points</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Explication exacte du trajet DNS → transport → TLS → HTTP</td>
+  <td style="text-align:right">4</td>
+</tr>
+<tr>
+  <td>Sémantique HTTP, statuts et en-têtes</td>
+  <td style="text-align:right">4</td>
+</tr>
+<tr>
+  <td>Gestion du timeout et distinction HTTP/réseau</td>
+  <td style="text-align:right">4</td>
+</tr>
+<tr>
+  <td>Diagnostic reproductible avec <code>curl</code> et DevTools</td>
+  <td style="text-align:right">4</td>
+</tr>
+<tr>
+  <td>Logs minimaux, sécurité et qualité de la documentation</td>
+  <td style="text-align:right">4</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Seuil recommandé :</strong> 15/20, sans erreur critique sur CORS, TLS ou les retries d’opérations non idempotentes.</p>
+<hr />
+<h1>Références officielles</h1>
+<p>Toutes les références ci-dessous sont des sources normatives ou de documentation éditeur. Les pages sont à consulter pour vérifier les détails de version et les évolutions éventuelles.</p>
+<ol>
+<li>RFC 9110 — HTTP Semantics : <a href="https://www.rfc-editor.org/rfc/rfc9110">https://www.rfc-editor.org/rfc/rfc9110</a></li>
+<li>RFC 9111 — HTTP Caching : <a href="https://www.rfc-editor.org/rfc/rfc9111">https://www.rfc-editor.org/rfc/rfc9111</a></li>
+<li>RFC 9112 — HTTP/1.1 : <a href="https://www.rfc-editor.org/rfc/rfc9112">https://www.rfc-editor.org/rfc/rfc9112</a></li>
+<li>RFC 8446 — The Transport Layer Security (TLS) Protocol Version 1.3 : <a href="https://www.rfc-editor.org/rfc/rfc8446">https://www.rfc-editor.org/rfc/rfc8446</a></li>
+<li>MDN — HTTP overview : <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview">https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview</a></li>
+<li>MDN — CORS : <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS">https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS</a></li>
+<li>MDN — HTTP caching : <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching">https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching</a></li>
+<li>MDN — Set-Cookie : <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie">https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie</a></li>
+<li>Node.js — HTTP API : <a href="https://nodejs.org/docs/latest-v22.x/api/http.html">https://nodejs.org/docs/latest-v22.x/api/http.html</a></li>
+<li>Node.js — Global objects (<code>fetch</code>, <code>AbortSignal</code>) : <a href="https://nodejs.org/docs/latest-v22.x/api/globals.html">https://nodejs.org/docs/latest-v22.x/api/globals.html</a></li>
+<li>Node.js — Errors : <a href="https://nodejs.org/docs/latest-v22.x/api/errors.html">https://nodejs.org/docs/latest-v22.x/api/errors.html</a></li>
+<li>curl — man page : <a href="https://curl.se/docs/manpage.html">https://curl.se/docs/manpage.html</a></li>
+<li>Chrome DevTools — Network reference : <a href="https://developer.chrome.com/docs/devtools/network/reference/">https://developer.chrome.com/docs/devtools/network/reference/</a></li>
+<li>ICANN — DNS basics : <a href="https://www.icann.org/resources/pages/dns-2012-02-25-en">https://www.icann.org/resources/pages/dns-2012-02-25-en</a></li>
+</ol>
+<h2>Limites et statut de validation</h2>
+<p>Le cours est rédigé et relu statiquement. Les exemples sont des supports pédagogiques, pas des garanties de fonctionnement dans tous les environnements. Ils n’ont pas été exécutés intégralement pendant cette passe ; aucune validation TLS réelle, capture DevTools, test réseau, test de charge, test applicatif, typecheck ni build n’est déclaré réussi. Les exercices disposent de corrigés indicatifs et le projet final possède des critères d’acceptation vérifiables.</p>
+</body></html>

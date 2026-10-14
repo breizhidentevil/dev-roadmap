@@ -262,3 +262,13 @@ footer { padding: 22px 0 36px; color: var(--muted); font-size: .85rem; }
   .skills-entry-index { width: 32px; height: 32px; }
   .skills-entry-copy > span { font-size: .82rem; }
 }
+
+.course-solution { margin: 12px 0 20px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); line-height: 1.65; }
+.course-solution summary { cursor: pointer; font-weight: 650; }
+.course-solution p { margin-bottom: 0; color: var(--muted-strong); white-space: pre-wrap; }
+
+
+/* Full-length migration courses are rendered as first-class course pages. */
+.course-full-content { margin: 1.5rem 0 2rem; }
+.full-course-frame { display: block; width: 100%; min-height: 1100px; height: 78vh; border: 1px solid var(--border, #d5d9d7); border-radius: 12px; background: var(--surface, #fff); }
+@media (max-width: 720px) { .full-course-frame { min-height: 1000px; height: 82vh; border-radius: 8px; } }

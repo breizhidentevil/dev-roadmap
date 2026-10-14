@@ -12,9 +12,9 @@ export const typescriptCourse: Course = {
     "tsconfig",
     "api-typées"
   ],
-  "description": "Formation approfondie au système de types TypeScript, conçue comme un complément au cours JavaScript moderne. Elle privilégie la compréhension des garanties et limites, les exemples comparatifs, les ateliers spécifiques à chaque module, des solutions commentées séparées, les tests de types et un projet métier final. Les exercices distinguent compilation statique et validation à l’exécution.",
+  "description": "Formation approfondie au système de types TypeScript, conçue comme un complément au cours JavaScript moderne. Elle privilégie la compréhension des garanties et limites, les exemples comparatifs, les ateliers spécifiques à chaque module, les tests de types et un projet métier final. Les exercices proposent un livrable et des critères d’acceptation, et distinguent compilation statique et validation à l’exécution. Les corrigés complets et les quiz expliqués restent à produire.",
   "level": "Intermédiaire à avancé",
-  "duration": "50 à 65 heures avec ateliers, étude des corrigés, révisions et projet final",
+  "duration": "50 à 65 heures avec ateliers, révisions et projet final",
   "prerequisites": [
     "Avoir suivi le cours JavaScript moderne ou maîtriser déjà les fondamentaux du langage : valeurs, fonctions, objets, tableaux, modules et asynchronisme.",
     "Savoir utiliser un terminal, npm et un éditeur avec prise en charge de TypeScript."

@@ -504,7 +504,7 @@ button, .button { min-height: 2.75rem; padding: 0.65em 1em; }
 
 @media (forced-colors: active) {
   .button { border: 1px solid ButtonText; }
-  :focus-visible { outline-color: Highlight; }
+  :focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }
 }` }] },
       { title: 'Ne pas neutraliser les préférences par une règle globale aveugle', body: 'La réduction du mouvement doit retirer ou atténuer les animations non essentielles, tout en préservant les transitions nécessaires à la compréhension de l’état. Une règle globale avec !important peut supprimer des animations indispensables ou imposer un comportement inattendu à des composants tiers. Commence par cibler les animations décoratives connues. Dans forced-colors, évite de coder en dur des couleurs arbitraires ; utilise les couleurs système et conserve les bordures et contours utiles. Teste au clavier et avec le mode de contraste forcé si disponible.', examples: [{ title: 'Méthode et exemple', language: 'css', code: `@media (prefers-reduced-motion: reduce) {
   .decorative-motion, .carousel__ambient { animation: none; transition: none; }

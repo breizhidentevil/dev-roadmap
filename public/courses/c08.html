@@ -1,0 +1,120 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>C08 — Traitements asynchrones et messagerie</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}
+</style></head><body>
+<h1>C08 — Traitements asynchrones et messagerie</h1>
+<p><strong>Niveau :</strong> intermédiaire à avancé · <strong>Durée indicative :</strong> 10 à 14 heures<br><strong>Prérequis :</strong> TypeScript, promesses et <code>async/await</code>, API HTTP, transactions SQL et architecture backend.</p>
+<h2>Objectifs pédagogiques</h2>
+<ul><li>Choisir les traitements à exécuter en dehors d’une requête HTTP.</li><li>Décrire le rôle du producteur, de la file, du broker et du worker.</li><li>Gérer la livraison répétée, les retries, la mise en quarantaine et l’idempotence.</li><li>Fiabiliser la publication d’événements avec une outbox transactionnelle.</li><li>Superviser la charge, le retard, les erreurs et l’arrêt des workers.</li></ul>
+<h2>Plan du cours</h2><ol><li>Modèle de traitement asynchrone</li><li>Files, messages et workers</li><li>Garanties de livraison</li><li>Retries et traitement des erreurs</li><li>Idempotence et effets métier</li><li>Transactions et pattern outbox</li><li>Planification, sécurité et arrêt propre</li><li>Observabilité, exercices et projet intégrateur</li></ol>
+<hr><h1>Module 1 — Modèle de traitement asynchrone</h1>
+<h2>1.1 Sortir du cycle HTTP</h2>
+<p>Une requête HTTP doit généralement terminer rapidement et renvoyer un résultat explicite. Les tâches longues — génération de rapports, envoi de courriels, traitement d’images, synchronisation avec un fournisseur — peuvent être confiées à un worker. L’API valide la demande, enregistre l’intention de traitement et retourne un identifiant de suivi ou un statut adapté, par exemple <code>202 Accepted</code>.</p>
+<p>Une promesse JavaScript n’est pas, à elle seule, une file durable. Si le processus s’arrête, une opération lancée avec <code>void sendEmail()</code> peut disparaître. Un travail qui doit survivre au redémarrage nécessite une persistance ou un système de messagerie adapté.</p>
+<h2>1.2 Commande, événement et tâche</h2>
+<ul><li><strong>Commande :</strong> demande explicite d’effectuer une action, par exemple <code>GenerateInvoice</code>.</li><li><strong>Événement :</strong> fait métier déjà survenu, par exemple <code>InvoiceIssued</code>.</li><li><strong>Tâche :</strong> unité de travail exécutable par un worker, souvent accompagnée d’un identifiant, d’une date et d’un nombre de tentatives.</li></ul>
+<p>Éviter de publier des objets internes entiers ou des données personnelles inutiles. Un message devrait être petit, versionné et contenir des identifiants stables permettant de retrouver les données faisant autorité.</p>
+<h2>1.3 Quand garder le traitement synchrone ?</h2>
+<p>Gardez dans la requête ce qui est nécessaire pour décider si la demande est valide et acceptable : authentification, autorisation, validation des champs et écriture transactionnelle initiale. Déplacez le travail différable lorsque l’utilisateur peut recevoir un accusé de réception sans attendre son résultat. Ne rendez pas asynchrone un contrôle de sécurité ou une vérification nécessaire à la cohérence immédiate.</p>
+<hr><h1>Module 2 — Files et workers</h1>
+<h2>2.1 Cycle de vie d’un message</h2>
+<p>Le producteur publie une tâche ; le système la conserve selon ses garanties ; un worker la réserve ; il valide le message et exécute le traitement ; enfin il acquitte le message ou le laisse être retenté. L’acquittement doit intervenir après la réussite des effets requis. Acquitter avant l’écriture métier peut perdre le travail si le processus tombe en panne ensuite.</p>
+<p>La concurrence doit être bornée. Si chaque worker ouvre un nombre illimité d’appels vers une API ou une base, la file peut transformer une panne limitée en surcharge générale. Dimensionnez la concurrence en fonction des quotas externes, du pool SQL et de la mémoire disponible.</p>
+<h2>2.2 Contrat de message TypeScript</h2>
+<pre><code>type SendReceiptV1 = {
+  type: 'receipt.send';
+  version: 1;
+  messageId: string;
+  orderId: string;
+  occurredAt: string;
+};
+
+function isSendReceiptV1(value: unknown): value is SendReceiptV1 {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record&lt;string, unknown&gt;;
+  return v.type === 'receipt.send'
+    &amp;&amp; v.version === 1
+    &amp;&amp; typeof v.messageId === 'string'
+    &amp;&amp; typeof v.orderId === 'string'
+    &amp;&amp; typeof v.occurredAt === 'string';
+}</code></pre>
+<p>Le garde-fou TypeScript n’est utile que si la valeur est contrôlée à l’exécution. Les messages viennent souvent d’un broker, d’un autre service ou d’un stockage persistant : ils doivent être considérés comme des entrées non fiables. Une validation par schéma est préférable pour les contrats plus riches.</p>
+<h2>2.3 Backpressure</h2>
+<p>La file absorbe les variations de charge, mais elle ne crée pas de capacité de traitement. Si les producteurs publient durablement plus vite que les consommateurs ne travaillent, le backlog croît. Définissez une capacité maximale, une politique de rejet ou de ralentissement, et une alerte sur l’âge du plus ancien message — souvent plus révélatrice que le seul nombre de messages.</p>
+<hr><h1>Module 3 — Garanties de livraison</h1>
+<table><thead><tr><th>Garantie</th><th>Conséquence</th><th>Précaution</th></tr></thead><tbody><tr><td>Au plus une fois</td><td>Un message peut être perdu, mais n’est pas redélivré par le mécanisme</td><td>À réserver aux effets tolérant la perte</td></tr><tr><td>Au moins une fois</td><td>Un message peut être livré plusieurs fois</td><td>Rendre les effets idempotents</td></tr><tr><td>Ordre garanti</td><td>Un ordre est préservé dans un périmètre défini</td><td>Identifier la portée exacte : partition, clé ou file</td></tr></tbody></table>
+<p>Une livraison « exactement une fois » au niveau d’un broker ne garantit pas qu’un effet externe — envoi d’un courriel, appel HTTP ou mouvement d’argent — ne se produira qu’une seule fois. La livraison et les effets métier sont deux problèmes distincts. Concevez les opérations pour supporter les doublons et définissez explicitement les garanties de durabilité, d’ordre et de reprise du système retenu.</p>
+<h2>3.1 Ordre et partitionnement</h2>
+<p>Un système parallèle peut traiter deux messages dans un ordre différent de leur publication. Si l’ordre compte pour une commande donnée, partitionnez ou séquencez par identifiant métier et protégez les transitions par version, verrou ou condition SQL. Ne supposez pas qu’une file globale ordonne les effets externes quand plusieurs workers fonctionnent en parallèle.</p>
+<hr><h1>Module 4 — Retries et erreurs</h1>
+<h2>4.1 Classer avant de retenter</h2>
+<ul><li><strong>Transitoire :</strong> timeout, indisponibilité temporaire ou limitation de débit ; un retry peut réussir.</li><li><strong>Permanent :</strong> payload invalide, ressource inexistante ou contrat incompatible ; retenter à l’identique ne résout rien.</li><li><strong>Inconnu :</strong> timeout après un appel externe ; l’effet peut avoir eu lieu même si la réponse n’a pas été reçue.</li></ul>
+<p>Utilisez un nombre maximal de tentatives, un délai croissant et une part d’aléatoire (<em>jitter</em>) pour éviter que tous les workers réessaient simultanément. Respectez les indications de limitation de débit du fournisseur. À l’épuisement des tentatives, placez le message dans une file d’échec ou un état consultable avec la cause, l’horodatage et un mécanisme de reprise contrôlé.</p>
+<pre><code>function retryDelayMs(attempt: number): number {
+  const baseMs = 500;
+  const capMs = 30_000;
+  const exponential = Math.min(capMs, baseMs * 2 ** attempt);
+  return Math.floor(exponential * (0.5 + Math.random() * 0.5));
+}</code></pre>
+<p>Cette fonction illustre un backoff avec jitter, mais ne remplace pas la politique du broker : définissez une limite de tentatives, un délai total maximal, la classification des erreurs et la stratégie d’échec définitif. Contrôlez également les valeurs extrêmes de <code>attempt</code>.</p>
+<h2>4.2 Messages poison</h2>
+<p>Un message poison échoue à chaque tentative : données incompatibles, bug déterministe ou ressource dans un état impossible. Une file de quarantaine évite qu’il bloque indéfiniment les autres messages. Conservez un diagnostic expurgé des secrets, identifiez la version du contrat et prévoyez une procédure de correction puis de rejeu. Ne rejouez pas aveuglément un lot complet en production.</p>
+<hr><h1>Module 5 — Idempotence et effets métier</h1>
+<p>Une opération est idempotente lorsque la répétition du même traitement ne multiplie pas son effet métier. Pour une tâche de facturation, utilisez un identifiant stable de commande et une contrainte d’unicité en base. La déduplication uniquement en mémoire ne suffit pas lorsque le worker redémarre ou que plusieurs instances travaillent simultanément.</p>
+<pre><code>// Exemple SQL conceptuel, à adapter au schéma réel :
+INSERT INTO processed_messages (message_id, processed_at)
+VALUES ($1, now())
+ON CONFLICT (message_id) DO NOTHING;</code></pre>
+<p>Le marqueur de déduplication et l’effet métier doivent appartenir à la même transaction lorsque tous deux sont dans la même base. Si le marqueur est enregistré avant l’effet et que le processus tombe ensuite, le message peut être considéré à tort comme traité. S’il est enregistré après, deux workers peuvent agir simultanément sans contrainte appropriée.</p>
+<p>Pour un fournisseur externe, utilisez sa clé d’idempotence quand elle existe. Sinon, modélisez explicitement les états de l’opération, stockez la référence externe et prévoyez la réconciliation des résultats incertains. Un timeout ne prouve pas que l’action distante a échoué.</p>
+<hr><h1>Module 6 — Transactions et pattern outbox</h1>
+<h2>6.1 Le double écrit problématique</h2>
+<p>Enregistrer une commande dans PostgreSQL puis publier un message dans un broker crée une fenêtre de panne : la transaction SQL peut réussir tandis que la publication échoue. Publier d’abord crée le problème inverse si la transaction est ensuite annulée. Sans transaction distribuée appropriée, deux écritures indépendantes ne sont pas atomiques.</p>
+<h2>6.2 Outbox transactionnelle</h2>
+<p>Insérez la commande et un enregistrement d’outbox dans la même transaction SQL. Un processus relay lit les événements non publiés, les envoie au broker puis marque leur publication. Si le relay tombe après la publication mais avant le marquage, il peut republier l’événement : le consommateur doit rester idempotent.</p>
+<pre><code>await db.transaction(async (tx) =&gt; {
+  const order = await tx.orders.insert(input);
+  await tx.outbox.insert({
+    eventId: crypto.randomUUID(),
+    eventType: 'order.created',
+    aggregateId: order.id,
+    payload: JSON.stringify({ orderId: order.id, version: 1 })
+  });
+});</code></pre>
+<p>L’API illustrative dépend de la bibliothèque d’accès aux données choisie. La propriété importante est que l’écriture métier et l’écriture outbox partagent la même transaction. Le relay doit gérer les verrous, la reprise, les doublons, la rétention et le nettoyage sans supprimer des événements encore nécessaires.</p>
+<hr><h1>Module 7 — Planification, sécurité et arrêt</h1>
+<h2>7.1 Tâches planifiées</h2>
+<p>Dans un déploiement à plusieurs instances, un cron local peut lancer la même tâche sur chacune. Si une seule exécution est requise, utilisez un ordonnanceur central ou un mécanisme de verrouillage distribué avec expiration et stratégie de reprise. Même avec un verrou, rendez le traitement idempotent : les pannes et les expirations peuvent conduire à des exécutions concurrentes.</p>
+<h2>7.2 Sécurité des messages</h2>
+<ul><li>Valider la structure, les limites de taille, les identifiants et la version du message.</li><li>Ne pas considérer un message comme une preuve d’autorisation ; revérifier les droits au moment de l’effet sensible.</li><li>Éviter mots de passe, jetons, données personnelles inutiles et secrets dans les payloads ou journaux.</li><li>Limiter les permissions du compte broker et isoler les files par environnement.</li><li>Protéger les outils de rejeu et d’inspection, qui peuvent déclencher de vrais effets métier.</li></ul>
+<h2>7.3 Arrêt propre</h2>
+<p>Lors d’un arrêt, cessez d’accepter de nouveaux messages, attendez les tâches en cours pendant une durée bornée puis acquittez ou relâchez les tâches selon le protocole du système. Le processus doit pouvoir être arrêté sans marquer comme terminée une tâche inachevée. Les signaux de terminaison, les timeouts et la stratégie de redémarrage doivent être testés.</p>
+<hr><h1>Module 8 — Observabilité et exploitation</h1>
+<p>Suivez au minimum : profondeur de file, âge du message le plus ancien, temps d’attente avant prise en charge, durée de traitement, débit, nombre de retries, taux d’échec définitif et taille de la file de quarantaine. Ajoutez des identifiants de corrélation entre requête HTTP, commande, événement et tâche, sans placer de données sensibles dans les logs.</p>
+<p>Définissez des objectifs de service : délai maximal de traitement, taux d’échec toléré et temps de reprise. Une alerte doit pointer vers une action : augmenter temporairement la capacité si les dépendances le permettent, ralentir les producteurs, corriger un message poison ou rétablir un fournisseur. Augmenter le nombre de workers peut aggraver une panne de base de données ou de service externe.</p>
+<h2>Exercice 1 — Choix du modèle</h2><p>Une API accepte une commande, envoie un reçu et génère un rapport PDF. Proposez les étapes synchrones et asynchrones, les états visibles par le client et les données à conserver.</p>
+<details><summary>Corrigé indicatif</summary><p>Authentifier, autoriser, valider puis enregistrer la commande dans une transaction. Retourner un identifiant et un état, souvent avec <code>202 Accepted</code> si le traitement différé est accepté. Publier les événements via une outbox ; les workers envoient le reçu et génèrent le PDF séparément. Conserver l’état de chaque tâche, les tentatives et une référence au résultat. Prévoir l’idempotence, les erreurs récupérables et un moyen de consulter le statut.</p></details>
+<h2>Exercice 2 — Retry ou quarantaine ?</h2><p>Classez ces situations : timeout d’un fournisseur, payload sans identifiant obligatoire, réponse HTTP 429, erreur de programmation répétée.</p>
+<details><summary>Corrigé indicatif</summary><p>Le timeout peut être transitoire mais son effet est incertain : vérifier l’idempotence avant de retenter. Le payload invalide est permanent et doit être mis en quarantaine. Le statut 429 doit suivre la politique de limitation de débit et, si présent, le délai de reprise indiqué. Une erreur de programmation répétée doit déclencher une alerte et une quarantaine après une politique bornée, pas une boucle infinie.</p></details>
+<h2>Exercice 3 — Doublon après panne</h2><p>Un worker publie une notification puis s’arrête avant l’acquittement. Décrivez le risque et une solution.</p>
+<details><summary>Corrigé indicatif</summary><p>Le broker peut redélivrer le message et provoquer une deuxième notification. Employer une clé d’idempotence du fournisseur, une table de suivi persistante ou un modèle d’état qui permet de détecter l’opération déjà réalisée. Si le fournisseur ne propose aucune déduplication, expliquer la limite et prévoir une réconciliation ; la seule mémoire du worker ne suffit pas.</p></details>
+<h2>Exercice 4 — Outbox</h2><p>Pourquoi une transaction SQL suivie d’un appel au broker n’est-elle pas suffisante ?</p>
+<details><summary>Corrigé indicatif</summary><p>Parce que la base et le broker ne partagent pas nécessairement une transaction atomique. Une panne entre les deux opérations crée une commande sans événement ou un événement sans commande. L’outbox enregistre l’événement dans la même transaction que la commande, puis un relay le publie avec possibilité de doublon et consommateur idempotent.</p></details>
+<h2>Exercice 5 — Capacité</h2><p>Les producteurs génèrent 120 tâches par seconde et les workers en traitent 90. Que se passe-t-il et que mesurer ?</p>
+<details><summary>Corrigé indicatif</summary><p>Le backlog augmente en moyenne de 30 tâches par seconde tant que ces débits restent constants. Mesurer le débit entrant et sortant, l’âge du message le plus ancien, la durée de traitement et les limites des dépendances. Réduire le travail par tâche, augmenter la capacité si les dépendances le supportent, ou appliquer du backpressure aux producteurs.</p></details>
+<h2>Exercice 6 — Contrat versionné</h2><p>Comment faire évoluer un message utilisé par plusieurs versions de workers ?</p>
+<details><summary>Corrigé indicatif</summary><p>Ajouter des champs optionnels compatibles, maintenir temporairement la lecture des anciennes versions, valider à l’exécution et utiliser un champ de version explicite. Pour une rupture, déployer des consommateurs compatibles avant les producteurs, migrer progressivement puis retirer l’ancienne version après observation du trafic.</p></details>
+<h2>Quiz de vérification</h2>
+<ol><li>Une promesse non attendue constitue-t-elle une file durable ? <details><summary>Réponse</summary><p>Non. Elle s’exécute dans le processus courant et peut être perdue au redémarrage.</p></details></li>
+<li>Pourquoi une file au moins une fois nécessite-t-elle l’idempotence ? <details><summary>Réponse</summary><p>Parce qu’un message peut être redélivré, notamment si le worker tombe avant l’acquittement.</p></details></li>
+<li>Faut-il retenter indéfiniment un message invalide ? <details><summary>Réponse</summary><p>Non. Une erreur permanente doit être isolée après classification, pas retentée sans limite.</p></details></li>
+<li>Que protège le pattern outbox ? <details><summary>Réponse</summary><p>Il rend atomiques, dans la base, l’écriture métier et l’enregistrement de l’événement à publier ; la livraison reste susceptible de doublons.</p></details></li>
+<li>Le statut HTTP 202 signifie-t-il que le travail est terminé ? <details><summary>Réponse</summary><p>Non. Il indique que la demande a été acceptée pour traitement, pas que celui-ci est achevé.</p></details></li>
+<li>Quel indicateur révèle souvent un retard utilisateur ? <details><summary>Réponse</summary><p>L’âge du message le plus ancien, complété par le temps d’attente et la durée de traitement.</p></details></li>
+<li>Pourquoi borner la concurrence des workers ? <details><summary>Réponse</summary><p>Pour respecter les capacités des dépendances et éviter qu’une file n’amplifie une surcharge.</p></details></li>
+<li>Un verrou distribué dispense-t-il d’idempotence ? <details><summary>Réponse</summary><p>Non. Une expiration ou une panne peut permettre plusieurs exécutions ; l’effet doit rester sûr en cas de répétition.</p></details></li></ol>
+<h2>Projet intégrateur — Pipeline fiable de commandes</h2>
+<p>Concevez un service TypeScript qui accepte une commande, l’enregistre avec un événement outbox et délègue la confirmation et la notification à des workers. Le choix du broker est libre ; documentez les garanties réellement offertes par l’outil choisi et ne confondez pas sa livraison avec l’idempotence des effets métier.</p>
+<h3>Critères d’acceptation</h3><ul><li>Le client reçoit une réponse rapide et un identifiant de suivi.</li><li>La commande et l’événement outbox sont enregistrés dans une seule transaction.</li><li>Les messages sont validés et versionnés à l’exécution.</li><li>Les retries ont des limites, un backoff et une classification des erreurs.</li><li>Les doublons ne multiplient pas les effets métier.</li><li>Les messages impossibles à traiter peuvent être inspectés et rejoués de façon contrôlée.</li><li>L’arrêt et le redémarrage des workers ne perdent pas silencieusement les tâches.</li><li>Des métriques rendent visibles le backlog, l’âge, la durée et les échecs.</li><li>Les permissions, secrets et données personnelles sont protégés.</li></ul>
+<h3>Barème sur 20</h3><p>Modèle et contrats : 3 points · Fiabilité et transactions : 5 points · Idempotence et retries : 4 points · Sécurité : 2 points · Observabilité : 3 points · Tests et documentation opératoire : 3 points.</p>
+<h2>Références techniques</h2><ul><li><a href="https://nodejs.org/api/worker_threads.html">Node.js — Worker threads</a> : threads de travail CPU, à distinguer des workers applicatifs consommateurs de files.</li><li><a href="https://nodejs.org/api/process.html">Node.js — Process et signaux</a> : cycle de vie et arrêt.</li><li><a href="https://www.rabbitmq.com/docs/reliability">RabbitMQ — Reliability</a> : acquittements, redélivraisons et fiabilité.</li><li><a href="https://www.rabbitmq.com/docs/confirms">RabbitMQ — Publisher confirms and consumer acknowledgements</a>.</li><li><a href="https://docs.bullmq.io/">BullMQ — Documentation</a> : files de tâches et workers Node.js.</li><li><a href="https://microservices.io/patterns/data/transactional-outbox.html">Transactional Outbox pattern</a>.</li><li><a href="https://microservices.io/patterns/communication-style/idempotent-consumer.html">Idempotent Consumer pattern</a>.</li><li><a href="https://opentelemetry.io/docs/">OpenTelemetry — Documentation</a> : traces, métriques et corrélation.</li></ul>
+</body></html>

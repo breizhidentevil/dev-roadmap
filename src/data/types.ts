@@ -25,6 +25,7 @@ export interface CourseModule {
   summary: string;
   concepts: string[];
   exercise: string;
+  solution?: string;
   sections?: CourseSection[];
   example?: {
     language: string;
@@ -48,6 +49,7 @@ export interface Course {
   prerequisites: string[];
   objectives: string[];
   modules: CourseModule[];
+  contentPath?: string;
   references?: CourseReference[];
   finalProject: {
     title: string;

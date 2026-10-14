@@ -82,7 +82,7 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
         <ThemeToggle theme={theme} onToggleTheme={onToggleTheme} />
       </div>
       <h1>Devenir développeur Full Stack</h1>
-      <p>Un catalogue navigable de compétences, avec conservation des tutoriels HTML de la version source.</p>
+      <p>Des cours structurés et une bibliothèque de compétences pour progresser en développement web et logiciel.</p>
       <div className="stats"><div><strong>{catalog.chapters.length}</strong><span>chapitres</span></div><div><strong>{lessons.length}</strong><span>compétences</span></div><div><strong>{courses.length}</strong><span>cours</span></div></div>
       <label className="search-label" htmlFor="search">Rechercher dans le catalogue</label>
       <input id="search" className="search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ex. React, SQL, accessibilité…" aria-describedby="search-results" />
@@ -242,7 +242,9 @@ function CourseConceptPage({ theme, onToggleTheme }: ThemeProps) {
       <p className="course-description">{module.summary}</p>
       <p className="course-duration">Cours {course.title} · {course.level} · {course.duration}</p>
     </header>
-    <section className="course-syllabus" aria-labelledby="syllabus-heading">
+    {course.contentPath ? <section className="course-full-content" aria-label={`Contenu complet du cours ${course.title}`}>
+      <iframe className="full-course-frame" title={`Contenu complet — ${course.title}`} src={`${import.meta.env.BASE_URL}${course.contentPath.replace(/^\//, '')}`} loading="lazy" />
+    </section> : <section className="course-syllabus" aria-labelledby="syllabus-heading">
       <h2 id="syllabus-heading">{module.title}</h2>
       {module.sections?.map((section) => <section className="course-subsection" key={section.title}>
         <h3>{section.title}</h3>
@@ -258,15 +260,16 @@ function CourseConceptPage({ theme, onToggleTheme }: ThemeProps) {
       </section>
       {module.example && <CodeExample example={module.example} theme={theme} />}
       <p className="course-exercise"><strong>À pratiquer :</strong> {module.exercise}</p>
-    </section>
-    {!next && <section className="course-project" aria-labelledby="project-heading">
+      {module.solution && <details className="course-solution"><summary>Voir le corrigé indicatif</summary><p>{module.solution}</p></details>}
+    </section>}
+    {!course.contentPath && !next && <section className="course-project" aria-labelledby="project-heading">
       <p className="course-kicker">Projet de synthèse</p>
       <h2 id="project-heading">{course.finalProject.title}</h2>
       <p>{course.finalProject.description}</p>
       <h3>Critères de réussite</h3>
       <ul>{course.finalProject.criteria.map((criterion) => <li key={criterion}>{criterion}</li>)}</ul>
     </section>}
-    {course.references && <section className="course-references" aria-labelledby="references-heading">
+    {!course.contentPath && course.references && <section className="course-references" aria-labelledby="references-heading">
       <details>
         <summary id="references-heading">Références du cours {course.title} ({course.references.length})</summary>
         <ol>{course.references.map((reference) => <li key={reference.url}><a href={reference.url} target="_blank" rel="noreferrer">{reference.title}</a></li>)}</ol>

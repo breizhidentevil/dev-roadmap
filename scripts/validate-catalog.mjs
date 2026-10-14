@@ -7,22 +7,8 @@ const catalog = JSON.parse(readFileSync(resolve(root, 'src/data/catalog.json'), 
 const errors = [];
 const lessons = catalog.chapters.flatMap((chapter) => chapter.lessons);
 const ids = lessons.map((lesson) => lesson.id);
-const projectChapter = catalog.chapters.find((chapter) => chapter.id === '24-projets-pratiques');
-const expectedProjectIds = [
-  'projet-1-site-frontend',
-  'projet-2-api-base-donnees',
-  'projet-3-application-fullstack',
-  'projet-4-production',
-  'projet-5-application-professionnelle',
-];
-const projectIds = projectChapter?.lessons.map((lesson) => lesson.id) ?? [];
-
-if (catalog.chapters.length !== 25) errors.push(`Expected 25 chapters, found ${catalog.chapters.length}`);
-if (lessons.length !== 174) errors.push(`Expected 174 catalogue entries, found ${lessons.length}`);
-if (projectIds.length !== 5 || expectedProjectIds.some((id) => !projectIds.includes(id))) {
-  errors.push('Expected the five source projects in chapter 24-projets-pratiques');
-}
-if (lessons.length - projectIds.length !== 169) errors.push(`Expected 169 skills, found ${lessons.length - projectIds.length}`);
+if (catalog.chapters.length !== 24) errors.push(`Expected 24 chapters, found ${catalog.chapters.length}`);
+if (lessons.length !== 169) errors.push(`Expected 169 catalogue entries, found ${lessons.length}`);
 if (new Set(ids).size !== ids.length) errors.push('Duplicate lesson IDs detected');
 if (!existsSync(resolve(root, 'public/style.css'))) errors.push('Missing shared stylesheet: public/style.css');
 
@@ -53,7 +39,7 @@ for (const lesson of lessons) {
 }
 
 const htmlCount = lessons.filter((lesson) => lesson.path.endsWith('.html')).length;
-if (htmlCount !== 174) errors.push(`Expected 174 HTML lesson references, found ${htmlCount}`);
+if (htmlCount !== 169) errors.push(`Expected 169 HTML lesson references, found ${htmlCount}`);
 if (errors.length) {
   console.error('CATALOG VALIDATION FAILED');
   for (const error of errors) console.error(`- ${error}`);
@@ -63,8 +49,8 @@ console.log(JSON.stringify({
   result: 'passed',
   chapters: catalog.chapters.length,
   entries: lessons.length,
-  skills: lessons.length - projectIds.length,
-  projects: projectIds.length,
+  skills: lessons.length,
+  projects: 0,
   uniqueIds: new Set(ids).size,
   sourceFilesResolved: htmlCount,
   sharedStylesheet: 'present',

@@ -12,7 +12,7 @@ import sqlLanguage from 'react-syntax-highlighter/dist/esm/languages/prism/sql';
 import { Link, Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
 import { courses } from './data/courses';
 import catalogData from './data/catalog.json';
-import type { Catalog, CatalogFilter, Course, Lesson, LessonKind } from './data/types';
+import type { Catalog, CatalogFilter, Course, Lesson } from './data/types';
 import './app.css';
 
 SyntaxHighlighter.registerLanguage('markup', markup);
@@ -29,9 +29,7 @@ const catalog = catalogData as Catalog;
 const courseConceptCount = courses.reduce((total, course) => total + course.modules.length, 0);
 const lessons = catalog.chapters.flatMap((chapter) => chapter.lessons.map((lesson) => ({
   ...lesson,
-  kind: chapter.id === '24-projets-pratiques' ? 'project' as const : 'skill' as const,
   chapterTitle: chapter.title,
-  chapterId: chapter.id,
 })));
 
 type Theme = 'light' | 'dark';
@@ -52,7 +50,7 @@ function ThemeToggle({ theme, onToggleTheme }: ThemeProps) {
 function Home({ theme, onToggleTheme }: ThemeProps) {
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
-  const [kindFilter, setKindFilter] = useState<CatalogFilter>('all');
+  const [kindFilter, setKindFilter] = useState<CatalogFilter>('course');
   const [selectedCourseId, setSelectedCourseId] = useState(courses[0]?.id ?? '');
   const [selectedChapterId, setSelectedChapterId] = useState(catalog.chapters[0]?.id ?? '');
   useEffect(() => setQuery(searchParams.get('q') ?? ''), [searchParams]);
@@ -60,8 +58,7 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
   const filtered = useMemo(() => catalog.chapters.map((chapter) => ({
     ...chapter,
     lessons: chapter.lessons.filter((lesson) => {
-      const lessonKind: LessonKind = chapter.id === '24-projets-pratiques' ? 'project' : 'skill';
-      const matchesKind = kindFilter === 'all' || (kindFilter !== 'course' && lessonKind === kindFilter);
+      const matchesKind = kindFilter === 'skill';
       const searchableText = `${lesson.title} ${lesson.description} ${chapter.title}`.toLocaleLowerCase('fr').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       return matchesKind && (!normalized || searchableText.includes(normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
     }),
@@ -69,7 +66,7 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
   const filteredCourses = useMemo(() => courses.map((course) => ({
     ...course,
     modules: course.modules.filter((module) => {
-      const matchesKind = kindFilter === 'all' || kindFilter === 'course';
+      const matchesKind = kindFilter === 'course';
       const moduleDetails = module.sections?.map((section) => `${section.title} ${section.body} ${section.examples?.map((example) => `${example.title} ${example.code}`).join(' ')}`).join(' ') ?? '';
       const searchableText = `${course.title} ${course.category} ${course.tags.join(' ')} ${module.id} ${module.title} ${module.summary} ${module.exercise} ${module.concepts.join(' ')} ${moduleDetails}`.toLocaleLowerCase('fr').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       return matchesKind && (!normalized || searchableText.includes(normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
@@ -86,19 +83,17 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
       </div>
       <h1>Devenir développeur Full Stack</h1>
       <p>Un catalogue navigable de compétences, avec conservation des tutoriels HTML de la version source.</p>
-      <div className="stats"><div><strong>{catalog.chapters.length}</strong><span>chapitres</span></div><div><strong>{lessons.filter((lesson) => lesson.kind === 'skill').length}</strong><span>compétences</span></div><div><strong>{lessons.filter((lesson) => lesson.kind === 'project').length}</strong><span>projets</span></div><div><strong>{courses.length}</strong><span>cours</span></div></div>
+      <div className="stats"><div><strong>{catalog.chapters.length}</strong><span>chapitres</span></div><div><strong>{lessons.length}</strong><span>compétences</span></div><div><strong>{courses.length}</strong><span>cours</span></div></div>
       <label className="search-label" htmlFor="search">Rechercher dans le catalogue</label>
       <input id="search" className="search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ex. React, SQL, accessibilité…" aria-describedby="search-results" />
-      <div className="entry-filters" role="group" aria-label="Filtrer les entrées">
-        <button type="button" aria-pressed={kindFilter === 'all'} onClick={() => setKindFilter('all')}>Tout</button>
-        <button type="button" aria-pressed={kindFilter === 'skill'} onClick={() => setKindFilter('skill')}>Compétences</button>
-        <button type="button" aria-pressed={kindFilter === 'project'} onClick={() => setKindFilter('project')}>Projets</button>
+      <div className="entry-filters" role="group" aria-label="Afficher les cours ou les compétences">
         <button type="button" aria-pressed={kindFilter === 'course'} onClick={() => setKindFilter('course')}>Cours</button>
+        <button type="button" aria-pressed={kindFilter === 'skill'} onClick={() => setKindFilter('skill')}>Compétences</button>
       </div>
       <p className="search-results" id="search-results" role="status" aria-live="polite">
         {kindFilter === 'course'
           ? normalized ? `${resultCount} module(s) correspondant(s) dans ${filteredCourses.length} cours` : `${courses.length} cours · ${courseConceptCount} modules au total`
-          : normalized ? `${resultCount} résultat(s) pour « ${query.trim()} »` : `${resultCount} entrée(s) affichée(s)`}
+          : normalized ? `${resultCount} résultat(s) pour « ${query.trim()} »` : `${resultCount} compétence(s) affichée(s)`}
       </p>
     </header>
     {kindFilter !== 'skill' && <div className="catalogue">{filtered.map((chapter) => <section className="chapter" id={chapter.id} key={chapter.id}>
@@ -163,7 +158,7 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
       <div className="chapter-heading"><span className="chapter-number" aria-hidden="true">{course.title.slice(0, 2)}</span><div><h2 id={`course-${course.id}`}>{course.title}</h2><p>{course.modules.length} grand(s) concept(s) · {course.category}</p></div></div>
       <div className="lesson-grid course-grid">{course.modules.map((module) => <ConceptCard course={course} module={module} key={module.id} />)}</div>
     </section>)}
-    {resultCount === 0 && kindFilter !== 'skill' && kindFilter !== 'course' && <p className="empty-state">Aucune entrée ne correspond à ces filtres.</p>}
+    {resultCount === 0 && kindFilter === 'skill' && <p className="empty-state">Aucune compétence ne correspond à cette recherche.</p>}
     <footer>Catalogue migré depuis V41. Les tutoriels HTML sont conservés ; la validation fonctionnelle complète reste en cours.</footer>
   </main>;
 }

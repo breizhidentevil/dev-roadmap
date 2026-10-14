@@ -5,8 +5,7 @@ export interface Lesson {
   path: string;
 }
 
-export type LessonKind = 'skill' | 'project';
-export type CatalogFilter = LessonKind | 'course' | 'all';
+export type CatalogFilter = 'skill' | 'course';
 
 export interface CourseCodeExample {
   title: string;

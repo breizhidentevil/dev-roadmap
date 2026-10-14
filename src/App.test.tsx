@@ -19,10 +19,10 @@ function renderApp() {
 }
 
 describe('catalogue de migration', () => {
-  it('contient 25 chapitres et 174 entrées avec des identifiants uniques', () => {
-    expect(catalog.chapters).toHaveLength(25);
+  it('contient 24 chapitres et 169 compétences avec des identifiants uniques', () => {
+    expect(catalog.chapters).toHaveLength(24);
     const entries = catalog.chapters.flatMap((chapter) => chapter.lessons);
-    expect(entries).toHaveLength(174);
+    expect(entries).toHaveLength(169);
     expect(entries.every((entry) => entry.path.startsWith('/lessons/'))).toBe(true);
     expect(new Set(entries.map((entry) => entry.id)).size).toBe(entries.length);
   });
@@ -52,11 +52,12 @@ describe('catalogue de migration', () => {
   it('affiche le catalogue et son volume initial', () => {
     renderApp();
     expect(screen.getByRole('heading', { name: 'Devenir développeur Full Stack' })).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain(`${catalogEntryCount + courseConceptCount} entrée(s) affichée(s)`);
+    expect(screen.getByRole('status').textContent).toContain(`${courses.length} cours · ${courseConceptCount} modules au total`);
   });
 
   it('filtre les compétences sans tenir compte des accents', () => {
     renderApp();
+    fireEvent.click(screen.getByRole('button', { name: 'Compétences' }));
     const search = screen.getByRole('searchbox', { name: 'Rechercher dans le catalogue' });
     fireEvent.change(search, { target: { value: 'accessibilite' } });
     expect(screen.getByRole('status').textContent).toContain('résultat(s) pour « accessibilite »');
@@ -67,18 +68,17 @@ describe('catalogue de migration', () => {
     renderApp();
     fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher dans le catalogue' }), { target: { value: 'zzzz-introuvable' } });
     expect(screen.getByRole('status').textContent).toContain('0 résultat');
-    expect(screen.getByText('Aucune entrée ne correspond à ces filtres.')).toBeTruthy();
+    expect(screen.getByText('Aucun cours ne correspond à cette recherche.')).toBeTruthy();
   });
 
-  it('filtre les cinq projets et les 169 compétences selon la source', () => {
+  it('affiche les cours par défaut puis permet de naviguer parmi les 169 compétences', () => {
     renderApp();
-    fireEvent.click(screen.getByRole('button', { name: 'Projets' }));
-    expect(screen.getByRole('status').textContent).toContain('5 entrée(s) affichée(s)');
-    expect(screen.getAllByRole('link')).toHaveLength(5);
-
+    expect(screen.getByRole('button', { name: 'Cours' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByRole('button', { name: 'Tout' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Projets' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Compétences' }));
-    expect(screen.getByRole('status').textContent).toContain('169 entrée(s) affichée(s)');
-    const skillChapters = catalog.chapters.filter((chapter) => chapter.id !== '24-projets-pratiques');
+    expect(screen.getByRole('status').textContent).toContain('169 compétence(s) affichée(s)');
+    const skillChapters = catalog.chapters;
     expect(screen.getByRole('region', { name: 'Bibliothèque de compétences' })).toBeTruthy();
     expect(document.querySelectorAll('.skills-sidebar-item')).toHaveLength(skillChapters.length);
     expect(document.querySelectorAll('.skills-entry-row')).toHaveLength(skillChapters[0].lessons.length);

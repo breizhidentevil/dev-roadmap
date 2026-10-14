@@ -1207,44 +1207,6 @@
           "path": "/lessons/applications-temps-reel.html"
         }
       ]
-    },
-    {
-      "id": "24-projets-pratiques",
-      "number": "24",
-      "title": "Projets pratiques et validation des acquis",
-      "description": "5 projets de synthèse pour transformer les connaissances en compétences",
-      "lessons": [
-        {
-          "id": "projet-1-site-frontend",
-          "title": "Projet 1 — Site frontend",
-          "description": "HTML, CSS, JavaScript, responsive design et accessibilité.",
-          "path": "/lessons/projet-1-site-frontend.html"
-        },
-        {
-          "id": "projet-2-api-base-donnees",
-          "title": "Projet 2 — API et base de données",
-          "description": "TypeScript, Node.js, API REST, PostgreSQL, validation et tests.",
-          "path": "/lessons/projet-2-api-base-donnees.html"
-        },
-        {
-          "id": "projet-3-application-fullstack",
-          "title": "Projet 3 — Application Full Stack",
-          "description": "React, authentification, CRUD, permissions et gestion des erreurs.",
-          "path": "/lessons/projet-3-application-fullstack.html"
-        },
-        {
-          "id": "projet-4-production",
-          "title": "Projet 4 — Mise en production",
-          "description": "Docker, CI/CD, déploiement, sauvegardes, logs et monitoring.",
-          "path": "/lessons/projet-4-production.html"
-        },
-        {
-          "id": "projet-5-application-professionnelle",
-          "title": "Projet 5 — Application de niveau professionnel",
-          "description": "Architecture modulaire, sécurité, tests complets, performance et documentation.",
-          "path": "/lessons/projet-5-application-professionnelle.html"
-        }
-      ]
     }
   ]
 }

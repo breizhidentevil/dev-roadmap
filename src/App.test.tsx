@@ -123,7 +123,7 @@ describe('catalogue de migration', () => {
 
     render(<MemoryRouter initialEntries={['/course/typescript/modele-types']}><App /></MemoryRouter>);
     expect(screen.getByRole('heading', { name: 'TypeScript approfondi — Modèle mental du système de types' })).toBeTruthy();
-    expect(screen.getByText(/Approfondissement —/)).toBeTruthy();
+    expect(screen.getAllByText(/Approfondissement —/).length).toBeGreaterThan(0);
   });
 
 

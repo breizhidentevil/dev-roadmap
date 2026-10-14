@@ -1,0 +1,16 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tests d&#x27;intégration et cohérence schéma/code</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h2>10. Tests d'intégration et cohérence schéma/code</h2>
+<p>Les tests unitaires peuvent tester les règles métier avec un dépôt simulé, mais ils ne prouvent pas que SQL, contraintes, migrations, transactions ou types du pilote fonctionnent ensemble.</p>
+<p>Une suite d'intégration utile :</p>
+<ul>
+<li>démarre une base isolée de la même famille/version que la cible ;</li>
+<li>applique toutes les migrations depuis un état vide ;</li>
+<li>insère des données représentatives et vérifie les contraintes ;</li>
+<li>teste les chemins de succès et d'échec d'une transaction ;</li>
+<li>provoque des accès concurrents sur les invariants critiques ;</li>
+<li>vérifie la pagination, les filtres et les limites de taille ;</li>
+<li>détruit ou réinitialise l'environnement de test sans toucher aux données réelles.</li>
+</ul>
+<p>Ne pas utiliser une base de production pour les tests. Ne pas affirmer qu'une suite a réussi si elle n'a pas été exécutée. Les tests peuvent nécessiter Docker ou un service PostgreSQL disponible ; ces prérequis doivent être explicites.</p>
+</body></html>

@@ -1,0 +1,48 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ports, adaptateurs et injection de dépendances</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Ports, adaptateurs et injection de dépendances</h1>
+<h2>4.1 Injection sans conteneur</h2>
+<p>L'injection de dépendances consiste à fournir une collaboration depuis l'extérieur au lieu de la construire à l'intérieur du module. Elle peut se faire par paramètres de fonction, constructeur ou fabrique. Un conteneur automatique n'est pas nécessaire pour quelques dépendances.</p>
+<pre><code class="language-ts">export interface Clock {
+  now(): Date;
+}
+
+export interface OrderStore {
+  save(order: Order): Promise&lt;void&gt;;
+}
+
+export function createPlaceOrder(deps: {
+  store: OrderStore;
+  clock: Clock;
+}) {
+  return async (input: { id: string; totalCents: number }): Promise&lt;Order&gt; =&gt; {
+    if (!Number.isSafeInteger(input.totalCents) || input.totalCents &lt;= 0) {
+      throw new Error(&quot;ORDER_TOTAL_INVALID&quot;);
+    }
+    const order: Order = {
+      id: input.id,
+      totalCents: input.totalCents,
+      status: &quot;draft&quot;,
+    };
+    // Le temps est injecté pour être contrôlable en test, même si cette
+    // version minimale ne stocke pas encore createdAt.
+    deps.clock.now();
+    await deps.store.save(order);
+    return order;
+  };
+}
+</code></pre>
+<p>Les ports doivent représenter des besoins métier ou applicatifs utiles, pas recopier toutes les méthodes d'un fournisseur. Une interface par classe concrète, sans variation ou besoin de substitution, ajoute parfois plus de maintenance que de valeur.</p>
+<h2>4.2 Composition à la racine</h2>
+<p>Le point de composition crée les adaptateurs concrets puis injecte les dépendances. Le code métier n'a pas besoin de savoir si <code>OrderStore</code> est implémenté par PostgreSQL, un fake en test ou un service externe.</p>
+<pre><code class="language-ts">// Pseudocode d'assemblage : les constructeurs concrets dépendent
+// de bibliothèques et de variables d'environnement propres au projet.
+const store = createPostgresOrderStore(pool);
+const clock = { now: () =&gt; new Date() };
+const placeOrder = createPlaceOrder({ store, clock });
+const app = createHttpApp({ placeOrder });
+</code></pre>
+<p><strong>Exercice 4.</strong> Faut-il injecter <code>Array.map</code> derrière une interface pour tester une transformation simple ?</p>
+<p><strong>Corrigé.</strong> Non. Une dépendance stable et intrinsèque au langage ne justifie pas une abstraction. Injecter une horloge, un générateur d'identifiants, un stockage ou un fournisseur externe peut en revanche améliorer le contrôle et l'isolation.</p>
+<hr />
+</body></html>

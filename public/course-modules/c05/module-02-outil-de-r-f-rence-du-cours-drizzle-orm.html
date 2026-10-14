@@ -1,0 +1,16 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Outil de référence du cours : Drizzle ORM</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h2>2. Outil de référence du cours : Drizzle ORM</h2>
+<p>Pour les exemples ORM de ce cours, Drizzle est retenu comme outil de référence pédagogique : sa démarche « SQL-first » conserve une proximité visible avec les tables et les requêtes. Ce choix ne signifie pas qu'il est déjà installé dans le dépôt ou qu'il convient à tous les projets. Prisma reste une option pertinente lorsque l'équipe préfère un modèle de données et un workflow centrés sur son schéma et ses outils générés.</p>
+<p>Avant adoption réelle, vérifier les versions compatibles, les pilotes, la stratégie de migrations, les capacités de transaction, le support de PostgreSQL, les exigences d'exploitation et les pratiques de l'équipe. Ne pas installer de dépendance ni migrer un projet existant sans décision explicite.</p>
+<p>Exemple schématique Drizzle pour PostgreSQL :</p>
+<pre><code class="language-ts">import { pgTable, uuid, varchar, timestamp } from &quot;drizzle-orm/pg-core&quot;;
+
+export const users = pgTable(&quot;users&quot;, {
+  id: uuid(&quot;id&quot;).defaultRandom().primaryKey(),
+  email: varchar(&quot;email&quot;, { length: 320 }).notNull().unique(),
+  createdAt: timestamp(&quot;created_at&quot;, { withTimezone: true }).defaultNow().notNull(),
+});
+</code></pre>
+<p>Le schéma décrit les colonnes et contraintes gérées par l'outil. Il faut encore vérifier la migration produite et l'état réel de la base. Une colonne TypeScript <code>string</code> ne garantit pas que la valeur reçue d'une requête HTTP soit un e-mail valide.</p>
+</body></html>

@@ -1,0 +1,51 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fixtures, déterminisme et couverture</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Fixtures, déterminisme et couverture</h1>
+<h2>9.1 Fixtures et données de test</h2>
+<p>Une fixture est un état de départ contrôlé. Elle doit être petite, explicite et adaptée au scénario. Éviter les usines de données si complexes qu’elles masquent les propriétés importantes. Les données peuvent être générées, mais la graine et les contraintes doivent être maîtrisées pour permettre de reproduire un échec.</p>
+<p>Chaque test doit pouvoir être exécuté seul et dans un ordre différent. Un test qui passe seulement après un autre dépend d’un état caché.</p>
+<h2>9.2 Maîtriser l’horloge, l’aléatoire et l’environnement</h2>
+<ul>
+<li>Injecter une horloge ou utiliser les faux timers du runner pour les règles dépendantes du temps.</li>
+<li>Contrôler la génération d’identifiants lorsque leur valeur influe sur l’assertion.</li>
+<li>Ne pas dépendre d’un fuseau horaire implicite : utiliser des dates ISO et UTC lorsque cela correspond au contrat.</li>
+<li>Fixer la locale, les variables d’environnement et la configuration pertinentes.</li>
+<li>Ne pas appeler de services externes réels dans les tests unitaires.</li>
+<li>Toujours restaurer les mocks, timers et variables modifiées.</li>
+</ul>
+<p>Un test déterministe n’est pas un test qui ignore les pannes : les erreurs doivent être simulées intentionnellement, et les tests d’intégration doivent échouer clairement si leur infrastructure requise n’est pas disponible.</p>
+<h2>9.3 Couverture de code</h2>
+<p>Les métriques habituelles incluent :</p>
+<ul>
+<li><strong>lignes</strong> : lignes exécutées ;</li>
+<li><strong>instructions</strong> : instructions exécutées ;</li>
+<li><strong>branches</strong> : chemins conditionnels observés ;</li>
+<li><strong>fonctions</strong> : fonctions appelées.</li>
+</ul>
+<p>La couverture aide à identifier des zones non exercées. Elle ne mesure pas directement la pertinence des assertions, la qualité des scénarios, la conformité aux besoins ou la robustesse concurrente.</p>
+<p>Un objectif global de 80 % peut être un repère d’équipe, pas une preuve de qualité. Un module de calcul critique peut nécessiter une couverture de branches plus élevée ; une configuration générée ou un adaptateur trivial peut avoir un autre objectif. Éviter de modifier les seuils seulement pour faire passer la CI.</p>
+<h2>9.4 Mutation testing et qualité des assertions</h2>
+<p>Le mutation testing introduit volontairement de petites erreurs (par exemple inverser <code>&gt;</code> en <code>&gt;=</code>) et observe si les tests les détectent. Si une mutation plausible survit, les assertions ou les scénarios sont peut-être trop faibles. Cette technique complète la couverture, sans remplacer la revue du modèle métier.</p>
+<h2>9.5 Définir une porte de qualité reproductible</h2>
+<p>Un pipeline raisonnable peut exécuter, dans cet ordre :</p>
+<ol>
+<li>formatage et lint ;</li>
+<li>vérification TypeScript ;</li>
+<li>tests unitaires rapides ;</li>
+<li>tests d’intégration avec dépendances isolées ;</li>
+<li>tests de contrat ;</li>
+<li>couverture et contrôle de seuil ;</li>
+<li>tests end-to-end ciblés.</li>
+</ol>
+<p>Les étapes exactes dépendent des scripts du dépôt. Un résultat local n’est pas reproductible si les versions, les variables d’environnement, les migrations ou les services requis ne sont pas documentés.</p>
+<h3>Exercice 9</h3>
+<p>Une suite affiche 98 % de couverture, mais ne teste pas les erreurs SQL, l’accès interdit ni la concurrence. Peut-on conclure que le backend est fiable ?</p>
+<p><strong>Correction expliquée :</strong> non. La couverture élevée décrit l’exécution des lignes/branches mesurées, pas les propriétés non testées. Ajouter des scénarios correspondant aux risques : panne de dépendance, accès croisé, rollback et opérations concurrentes.</p>
+<h3>Quiz 9</h3>
+<p><strong>Quel est le meilleur usage d’un rapport de couverture ?</strong></p>
+<p>A. Remplacer la revue de code.<br />
+B. Identifier les zones non exécutées et guider l’ajout de tests pertinents.<br />
+C. Déclarer l’absence de bugs dès qu’un seuil est atteint.</p>
+<p><strong>Réponse : B.</strong> La couverture est un outil de diagnostic et de priorisation, pas une garantie de correction.</p>
+<hr />
+</body></html>

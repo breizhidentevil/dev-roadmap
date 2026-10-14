@@ -1,0 +1,19 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Modèle, types et contraintes : qui garantit quoi ?</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h2>3. Modèle, types et contraintes : qui garantit quoi ?</h2>
+<p>Distinguer trois niveaux :</p>
+<ol>
+<li><strong>Validation d'entrée</strong> : contrôle les données non fiables à la frontière HTTP (présence, format, longueur, règles métier).</li>
+<li><strong>Types TypeScript</strong> : détectent certaines incohérences au développement ; ils disparaissent à l'exécution.</li>
+<li><strong>Contraintes SQL</strong> : garantissent l'intégrité au niveau de la base, y compris lorsque plusieurs processus ou outils écrivent simultanément.</li>
+</ol>
+<p>Exemple PostgreSQL :</p>
+<pre><code class="language-sql">CREATE TABLE accounts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  balance_cents bigint NOT NULL CHECK (balance_cents &gt;= 0),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+</code></pre>
+<p>Utiliser <code>NOT NULL</code>, <code>UNIQUE</code>, <code>CHECK</code>, clés étrangères et contraintes adaptées. Les validations applicatives améliorent les messages d'erreur ; elles ne remplacent pas les contraintes. Attention aux types SQL dont la représentation JavaScript n'est pas exacte pour toutes les valeurs : les entiers 64 bits et les décimaux doivent être traités explicitement.</p>
+</body></html>

@@ -1,0 +1,61 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Choisir un runner et écrire des assertions utiles</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Choisir un runner et écrire des assertions utiles</h1>
+<h2>3.1 Runner natif ou bibliothèque spécialisée</h2>
+<p>Node.js fournit <code>node:test</code> et <code>node:assert/strict</code>, sans dépendance de test tierce. Vitest offre une expérience familière aux projets TypeScript modernes, des mocks, des snapshots et des rapports de couverture. Le choix dépend des conventions du dépôt, du système de modules, de la configuration TypeScript et des besoins de l’équipe.</p>
+<p>Ne pas introduire un deuxième runner uniquement pour suivre une préférence personnelle. Une équipe qui possède déjà Vitest devrait d’abord utiliser son infrastructure existante ; un petit package Node.js peut préférer le runner natif.</p>
+<p>Exemple avec le runner natif, en JavaScript ESM :</p>
+<pre><code class="language-js">import test from &quot;node:test&quot;;
+import assert from &quot;node:assert/strict&quot;;
+
+test(&quot;une fonction additionne deux valeurs&quot;, () =&gt; {
+  assert.equal(2 + 3, 5);
+});
+</code></pre>
+<p>Exemple Vitest :</p>
+<pre><code class="language-ts">import { expect, it } from &quot;vitest&quot;;
+
+it(&quot;additionne deux valeurs&quot;, () =&gt; {
+  expect(2 + 3).toBe(5);
+});
+</code></pre>
+<p>Ces extraits illustrent les API ; leur exécution dépend de la configuration et des scripts du projet.</p>
+<h2>3.2 Une assertion doit pouvoir échouer</h2>
+<p>Cette assertion ne prouve presque rien :</p>
+<pre><code class="language-ts">expect(result).toBeDefined();
+</code></pre>
+<p>Si le contrat exige un identifiant, une date ISO et un statut, tester ces propriétés :</p>
+<pre><code class="language-ts">expect(result).toMatchObject({
+  status: &quot;confirmed&quot;,
+  id: expect.any(String),
+  startsAt: expect.any(String),
+});
+expect(Number.isNaN(Date.parse(result.startsAt))).toBe(false);
+</code></pre>
+<p>Éviter les snapshots géants et opaques. Un snapshot peut être utile pour un format stable et lisible, mais une modification massive du snapshot ne doit pas être acceptée sans comprendre ce qui a changé.</p>
+<h2>3.3 Tester les erreurs avec précision</h2>
+<p>Un test d’erreur doit vérifier :</p>
+<ul>
+<li>que l’opération échoue ;</li>
+<li>que l’erreur correspond au contrat attendu ;</li>
+<li>qu’aucun effet secondaire interdit n’a eu lieu.</li>
+</ul>
+<pre><code class="language-ts">await expect(service.confirm(&quot;missing-id&quot;))
+  .rejects.toMatchObject({ code: &quot;RESERVATION_NOT_FOUND&quot; });
+expect(repository.save).not.toHaveBeenCalled();
+</code></pre>
+<p>Ne pas comparer le texte complet d’une erreur technique si ce texte n’est pas un contrat public. Préférer un code métier stable, un statut HTTP ou une structure documentée.</p>
+<h2>3.4 Asynchronisme et nettoyage</h2>
+<p>Toujours <code>await</code> les promesses dont le résultat est testé. Une promesse oubliée peut laisser un test passer avant le rejet, ou créer une erreur non attribuée au bon cas. Fermer les serveurs, connexions, streams et conteneurs même si une assertion échoue.</p>
+<p>Utiliser les hooks du runner (<code>afterEach</code>, <code>afterAll</code>, ou leurs équivalents) et les blocs <code>try/finally</code> lorsqu’une ressource doit impérativement être libérée.</p>
+<h3>Exercice 3</h3>
+<p>Un test appelle une fonction asynchrone sans <code>await</code>, puis vérifie un compteur avant que l’opération ne soit terminée. Expliquer le risque et corriger le test.</p>
+<p><strong>Correction expliquée :</strong> le test peut terminer avant la résolution ou le rejet de la promesse. Attendre l’opération (<code>await action()</code>) puis vérifier l’état final ; si le contrat est le rejet, employer l’assertion asynchrone appropriée du runner.</p>
+<h3>Quiz 3</h3>
+<p><strong>Quelle assertion est la plus utile pour un contrat métier ?</strong></p>
+<p>A. Vérifier seulement que le résultat n’est pas <code>undefined</code>.<br />
+B. Vérifier le code d’erreur stable et l’absence d’effet secondaire interdit.<br />
+C. Vérifier le nom d’une variable locale.</p>
+<p><strong>Réponse : B.</strong> Elle décrit un comportement visible et protège contre une régression significative.</p>
+<hr />
+</body></html>

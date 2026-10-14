@@ -1,0 +1,35 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idempotence et clés de requête</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Idempotence et clés de requête</h1>
+<h2>8.1 Idempotence HTTP et idempotence métier</h2>
+<p>Une méthode HTTP idempotente produit le même effet demandé lorsqu’une requête identique est répétée, même si les réponses peuvent différer. Cela ne signifie pas que toutes les méthodes <code>POST</code> sont non idempotentes, ni qu’une clé d’idempotence transforme automatiquement une opération en opération sûre. L’idempotence doit être définie dans le contrat métier.</p>
+<p>Les clés d’idempotence sont utiles quand le client ne sait pas si une création a réussi après un timeout. Le serveur doit définir la portée de la clé (utilisateur, route/opération, durée), le comportement d’une même clé avec un corps différent, le traitement des requêtes concurrentes, le stockage du résultat et l’expiration. Une simple <code>Map</code> en mémoire ne suffit pas pour plusieurs processus, un redémarrage ou plusieurs instances.</p>
+<h2>8.2 Modèle de registre durable</h2>
+<p>Un registre peut contenir :</p>
+<ul>
+<li>identité du client ou du compte appelant ;</li>
+<li>opération et clé d’idempotence ;</li>
+<li>empreinte canonique de la requête ;</li>
+<li>état (<code>in_progress</code>, <code>completed</code>, éventuellement <code>failed_retryable</code>) ;</li>
+<li>résultat métier ou référence vers la ressource créée ;</li>
+<li>horodatages et politique d’expiration.</li>
+</ul>
+<p>Une contrainte d’unicité en base protège contre deux requêtes concurrentes utilisant la même clé. Pour un effet entièrement local à une base, l’enregistrement de la clé et l’effet métier doivent être coordonnés dans une transaction. Pour un effet externe (paiement, e-mail, service tiers), une transaction SQL ne peut pas rendre l’effet distant atomique : employer un mécanisme de déduplication côté fournisseur, une outbox ou un processus de réconciliation selon le besoin.</p>
+<h2>8.3 Pseudocode du contrat</h2>
+<pre><code class="language-text">1. Valider authentification, autorisation, clé et corps.
+2. Calculer une empreinte stable de la requête validée.
+3. Tenter de réserver (appelant, opération, clé) dans le stockage durable.
+4. Si la clé existe avec une autre empreinte : répondre par un conflit documenté.
+5. Si l’opération est terminée : retourner le résultat enregistré.
+6. Si une opération identique est en cours : attendre ou répondre selon le contrat.
+7. Exécuter l’effet métier avec la stratégie transactionnelle prévue.
+8. Enregistrer le résultat final et le rendre disponible aux répétitions.
+</code></pre>
+<p>Ce pseudocode n’est pas une implémentation prête à copier. La gestion des crashs entre réservation et effet, la durée des verrous, les états récupérables, la cohérence avec les transactions et la rétention doivent être spécifiées et testées.</p>
+<h3>Exercice 8 — Timeout après création</h3>
+<p>Le client envoie <code>POST /reservations</code> avec la clé <code>abc</code>, perd la connexion et réessaie avec la même clé et le même corps.</p>
+<p><strong>Corrigé :</strong> le serveur doit retrouver la réservation/résultat déjà créé ou déterminer l’état de l’opération et ne pas créer un doublon. La clé doit être liée à l’identité et à l’opération, protégée par une contrainte durable et associée à l’empreinte du corps. Si la même clé est réutilisée avec un corps différent, retourner un conflit selon le contrat.</p>
+<h3>Quiz 8</h3>
+<p><strong>Un UUID aléatoire dans un en-tête suffit-il à garantir l’idempotence ?</strong> Non. Il faut le stockage, l’unicité, les règles de concurrence, l’association à la requête et la restitution du résultat.</p>
+<hr />
+</body></html>

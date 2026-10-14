@@ -155,7 +155,7 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
         </> : <p className="empty-state">Aucun cours ne correspond à cette recherche.</p>}
       </div>
     </section> : filteredCourses.map((course) => <section className="course-section" aria-labelledby={`course-${course.id}`} key={course.id}>
-      <div className="chapter-heading"><span className="chapter-number" aria-hidden="true">{course.title.slice(0, 2)}</span><div><h2 id={`course-${course.id}`}>{course.title}</h2><p>{course.modules.length} grand(s) concept(s) · {course.category}</p></div></div>
+      <div className="chapter-heading"><span className="chapter-number" aria-hidden="true">{course.category}</span><div><h2 id={`course-${course.id}`}>{course.title}</h2><p>{course.modules.length} grand(s) concept(s) · {course.category}</p></div></div>
       <div className="lesson-grid course-grid">{course.modules.map((module) => <ConceptCard course={course} module={module} key={module.id} />)}</div>
     </section>)}
     {resultCount === 0 && kindFilter === 'skill' && <p className="empty-state">Aucune compétence ne correspond à cette recherche.</p>}
@@ -234,16 +234,16 @@ function CourseConceptPage({ theme, onToggleTheme }: ThemeProps) {
   return <main className="container course-page">
     <header className="course-header">
       <nav className="course-nav" aria-label="Navigation du cours"><Link to="/">← Catalogue</Link><span>{course.category}</span><ThemeToggle theme={theme} onToggleTheme={onToggleTheme} /></nav>
-      <p className="course-kicker">{course.title} · Concept {conceptIndex + 1} sur {course.modules.length}</p>
+      <p className="course-kicker">{course.category} · Module {conceptIndex + 1} sur {course.modules.length}</p>
       <nav className="course-tags" aria-label={`Hashtags du concept ${module.title}`}>
         {tags.map((tag) => <Link key={tag} to={`/?q=${encodeURIComponent(tag)}`}>#{tag}</Link>)}
       </nav>
-      <h1>{course.title} — {module.title.replace(/^\d+\.\s*/, '')}</h1>
+      <h1>{module.title.replace(/^\d+\.\s*/, '')}</h1>
       <p className="course-description">{module.summary}</p>
-      <p className="course-duration">Cours {course.title} · {course.level} · {course.duration}</p>
+      <p className="course-duration">Cours {course.level} · {course.duration}</p>
     </header>
-    {course.contentPath ? <section className="course-full-content" aria-label={`Contenu complet du cours ${course.title}`}>
-      <iframe className="full-course-frame" title={`Contenu complet — ${course.title}`} src={`${import.meta.env.BASE_URL}${course.contentPath.replace(/^\//, '')}`} loading="lazy" />
+    {module.contentPath ? <section className="course-full-content" aria-label={`Contenu du module ${module.title}`}>
+      <iframe className="full-course-frame" title={module.title} src={`${import.meta.env.BASE_URL}${module.contentPath.replace(/^\//, '')}`} loading="lazy" />
     </section> : <section className="course-syllabus" aria-labelledby="syllabus-heading">
       <h2 id="syllabus-heading">{module.title}</h2>
       {module.sections?.map((section) => <section className="course-subsection" key={section.title}>

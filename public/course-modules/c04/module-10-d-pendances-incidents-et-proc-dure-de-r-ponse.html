@@ -1,0 +1,35 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dépendances, incidents et procédure de réponse</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Dépendances, incidents et procédure de réponse</h1>
+<h2>10.1 Sécurité de la chaîne logicielle</h2>
+<p>Utiliser des dépendances maintenues, des versions maîtrisées et un lockfile. Examiner les alertes de vulnérabilité, l’origine des paquets et les scripts d’installation. Un audit automatique peut produire des faux positifs ou ne pas détecter une vulnérabilité exploitable dans le contexte : évaluer la gravité, l’exposition et les mitigations, puis documenter les décisions.</p>
+<p>Limiter les permissions des pipelines CI et des tokens de publication. Ne pas exposer les secrets de production aux jobs exécutant du code non fiable. Séparer les tâches de vérification des tâches de déploiement.</p>
+<h2>10.2 Réponse à incident</h2>
+<p>Préparer un processus avant l’incident :</p>
+<ol>
+<li>détecter et confirmer le signal ;</li>
+<li>contenir l’exposition (révoquer une clé, désactiver une route ou isoler un composant) ;</li>
+<li>préserver les preuves utiles sans copier de secrets ;</li>
+<li>mesurer le périmètre et l’impact ;</li>
+<li>corriger la cause et vérifier les contrôles ;</li>
+<li>restaurer le service de façon contrôlée ;</li>
+<li>documenter les actions et prévenir la récurrence.</li>
+</ol>
+<p>Ne pas supprimer les journaux pertinents au moment où un incident est détecté. Prévoir qui peut révoquer un secret et comment redéployer en urgence. Les obligations de notification dépendent du contexte juridique et des données concernées ; consulter les responsables compétents.</p>
+<h2>10.3 Checklist avant livraison</h2>
+<ul>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Aucun secret ni jeton dans le code, l’historique récent ou les logs.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Hachage de mot de passe spécialisé, paramètres évalués.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Sessions renouvelées après authentification et invalidées à la déconnexion.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Cookies et CSRF adaptés au modèle d’authentification.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>JWT vérifiés avec algorithmes, émetteur, audience et dates attendus.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Flux OAuth/OIDC aligné sur les spécifications et le fournisseur.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Permissions vérifiées côté serveur et au niveau de chaque ressource.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Tests négatifs avec plusieurs identités.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Limites de débit, de taille et de temps configurées.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Journaux sans secrets, avec accès contrôlé.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Dépendances et pipeline CI examinés.</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Procédure de rotation et de réponse à incident documentée.</li>
+</ul>
+<hr />
+</body></html>

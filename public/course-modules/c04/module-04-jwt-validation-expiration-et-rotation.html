@@ -1,0 +1,31 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JWT : validation, expiration et rotation</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>JWT : validation, expiration et rotation</h1>
+<h2>4.1 Ce qu’un JWT apporte — et ce qu’il n’apporte pas</h2>
+<p>Un JWT signé permet au destinataire de vérifier l’intégrité et l’origine du contenu selon une clé et un algorithme attendus. Un JWT signé n’est généralement pas chiffré : son payload peut être lisible par quiconque possède le token. Ne jamais y placer un mot de passe, un secret ou des données personnelles non nécessaires.</p>
+<p>Les claims usuels incluent <code>iss</code> (émetteur), <code>aud</code> (destinataire), <code>sub</code> (sujet), <code>exp</code> (expiration), <code>nbf</code> (pas avant) et parfois <code>iat</code> ou <code>jti</code>. Leur sens doit être défini par le contrat. Le serveur doit vérifier les claims attendus, pas simplement décoder le payload.</p>
+<h2>4.2 Validation obligatoire</h2>
+<p>Lors de la vérification d’un JWT :</p>
+<ol>
+<li>choisir côté serveur une liste d’algorithmes acceptés ; ne pas laisser le token décider seul ;</li>
+<li>vérifier la signature avec la bonne clé ;</li>
+<li>vérifier <code>iss</code> et <code>aud</code> lorsque le protocole les exige ;</li>
+<li>vérifier <code>exp</code> et <code>nbf</code>, avec une tolérance d’horloge limitée et documentée ;</li>
+<li>valider le type de token et les claims nécessaires ;</li>
+<li>refuser les tokens mal formés ou inattendus ;</li>
+<li>appliquer l’autorisation à chaque ressource après authentification.</li>
+</ol>
+<p>Ne jamais considérer <code>jwt.decode()</code> ou une simple lecture du payload comme une vérification. Employer une bibliothèque maintenue, suivre sa documentation et limiter les algorithmes et clés autorisés.</p>
+<h2>4.3 Durée de vie et révocation</h2>
+<p>Les access tokens doivent avoir une durée de vie limitée selon le risque. Un refresh token est plus sensible : le stocker et le transmettre de manière appropriée, le faire tourner à chaque usage lorsque le protocole le prévoit, détecter la réutilisation d’un ancien refresh token et révoquer la famille ou la session en cas de compromission.</p>
+<p>Un JWT autonome n’est pas facilement révocable sans état côté serveur. Selon le besoin, employer des access tokens courts, un registre de révocation, une version de session ou un fournisseur d’identité. Éviter d’ajouter des rôles à longue durée de vie qui restent valides après la révocation d’un privilège.</p>
+<h2>4.4 Ne pas choisir JWT par réflexe</h2>
+<p>JWT n’est pas automatiquement plus sûr ou plus évolutif qu’une session. Pour une application web monolithique, une session opaque stockée côté serveur peut simplifier la révocation. Les tokens sont utiles dans certains échanges entre services et dans les architectures OAuth/OIDC, mais augmentent la complexité de gestion des clés, de l’expiration et de la révocation.</p>
+<h3>Exercice 4</h3>
+<p>Un backend décode un JWT et lit <code>role: &quot;admin&quot;</code> sans vérifier la signature. Identifier le défaut et la correction.</p>
+<p><strong>Correction expliquée :</strong> le client peut fabriquer un payload. Le serveur doit vérifier la signature avec les clés et algorithmes attendus, vérifier les claims requis, puis déterminer les permissions selon une source d’autorité fiable. Un rôle fourni par le client n’est jamais une preuve d’autorisation.</p>
+<h3>Quiz 4</h3>
+<p><strong>Un JWT signé cache-t-il son payload ?</strong></p>
+<p><strong>Réponse : non, pas dans le cas habituel d’un JWT signé (JWS).</strong> La signature protège l’intégrité, pas la confidentialité. Ne pas y placer de secrets.</p>
+<hr />
+</body></html>

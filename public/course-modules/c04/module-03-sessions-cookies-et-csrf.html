@@ -1,0 +1,45 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sessions, cookies et CSRF</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Sessions, cookies et CSRF</h1>
+<h2>3.1 Les cookies de session</h2>
+<p>Pour une application navigateur classique, une session serveur peut être plus simple à révoquer qu’un jeton autonome. Le cookie ne doit contenir qu’un identifiant opaque et aléatoire ; les données d’autorisation et l’état de session sont conservés côté serveur ou dans un stockage adapté.</p>
+<p>Exemple d’attributs à adapter au domaine et au déploiement :</p>
+<pre><code class="language-http">Set-Cookie: __Host-session=&lt;opaque-value&gt;; Path=/; Secure; HttpOnly; SameSite=Lax
+</code></pre>
+<ul>
+<li><code>Secure</code> : le navigateur n’envoie le cookie que sur HTTPS.</li>
+<li><code>HttpOnly</code> : le JavaScript côté page ne peut pas lire le cookie via <code>document.cookie</code>.</li>
+<li><code>SameSite</code> : contrôle certains envois intersites ; <code>Lax</code> est un compromis courant, pas une protection universelle.</li>
+<li><code>Path=/</code> et l’absence de <code>Domain</code> sont requis par le préfixe <code>__Host-</code>.</li>
+<li><code>Max-Age</code> ou <code>Expires</code> définit la durée de vie côté navigateur ; la session côté serveur doit aussi expirer.</li>
+</ul>
+<p>Le nom et les attributs doivent correspondre à l’environnement. En développement local, HTTPS et les règles de cookies peuvent différer ; ne pas affaiblir silencieusement la configuration de production pour résoudre un problème local.</p>
+<h2>3.2 Rotation et révocation</h2>
+<p>Renouveler l’identifiant de session après connexion, élévation de privilège ou événement sensible afin de prévenir la fixation de session. À la déconnexion, invalider la session côté serveur et expirer le cookie. Une suppression du cookie côté navigateur seule ne révoque pas nécessairement une session encore valide côté serveur.</p>
+<p>Prévoir :</p>
+<ul>
+<li>expiration après inactivité ;</li>
+<li>durée maximale absolue ;</li>
+<li>révocation après changement de mot de passe ou suspicion de compromission ;</li>
+<li>limitation du nombre de sessions si nécessaire ;</li>
+<li>stockage serveur adapté à plusieurs instances.</li>
+</ul>
+<h2>3.3 CSRF</h2>
+<p>Une attaque CSRF tente de faire exécuter au navigateur authentifié une action non désirée. Les cookies étant envoyés automatiquement, une application qui s’appuie sur des cookies doit analyser ce risque.</p>
+<p>Mesures possibles selon l’architecture :</p>
+<ul>
+<li>cookies <code>SameSite</code> adaptés ;</li>
+<li>jeton CSRF lié à la session et vérifié côté serveur ;</li>
+<li>validation de <code>Origin</code> ou <code>Referer</code> selon le contexte ;</li>
+<li>ne pas utiliser <code>GET</code> pour modifier un état ;</li>
+<li>éviter les points d’entrée qui acceptent des types de contenu inattendus.</li>
+</ul>
+<p><code>SameSite</code> réduit certaines attaques mais ne remplace pas une analyse complète, notamment avec des sous-domaines, des flux OAuth ou des intégrations particulières. CORS n’est pas un mécanisme de prévention CSRF général : il contrôle principalement l’accès des scripts à certaines réponses, pas l’ensemble des requêtes que le navigateur peut envoyer.</p>
+<h3>Exercice 3</h3>
+<p>Un utilisateur se déconnecte, mais son ancien cookie est rejoué. Quel contrôle doit rendre ce rejeu inefficace ?</p>
+<p><strong>Correction expliquée :</strong> la session doit être invalidée côté serveur, puis le cookie expiré côté client. Si le serveur accepte encore l’identifiant, effacer le cookie ne suffit pas.</p>
+<h3>Quiz 3</h3>
+<p><strong><code>HttpOnly</code> empêche-t-il toutes les conséquences d’une faille XSS ?</strong></p>
+<p><strong>Réponse : non.</strong> Il réduit la possibilité de lire le cookie via JavaScript, mais un script injecté peut encore effectuer des actions au nom de l’utilisateur ou lire les données accessibles dans la page.</p>
+<hr />
+</body></html>

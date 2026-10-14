@@ -1,0 +1,49 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cache-aside avec TypeScript et Redis</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}
+</style></head><body><h1>Cache-aside avec TypeScript et Redis</h1>
+<p>Dans le modèle <strong>cache-aside</strong>, le service consulte d’abord le cache. En cas d’absence, il lit la source de vérité, place le résultat dans le cache avec un TTL puis le retourne. La source reste responsable de l’exactitude métier.</p><p>Exemple avec le client <code>redis</code> officiel pour Node.js. L’installation et la configuration du service Redis dépendent de l’environnement ; l’extrait présente la logique applicative.</p><pre><code class="language-ts">import { createClient } from 'redis';
+
+type Product = {
+  id: string;
+  name: string;
+  priceCents: number;
+};
+
+const redis = createClient({ url: process.env.REDIS_URL });
+redis.on('error', (error: Error) => {
+  // À connecter au système de journalisation de l’application.
+  console.error('Redis error', error.message);
+});
+await redis.connect();
+
+async function getProductFromDatabase(id: string): Promise<Product | null> {
+  // Remplacer par le dépôt SQL réel et ses requêtes paramétrées.
+  return productRepository.findById(id);
+}
+
+export async function getProduct(id: string): Promise<Product | null> {
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(id)) {
+    throw new Error('Identifiant de produit invalide');
+  }
+  const key = `catalog:v1:product:${id}`;
+  try {
+    const cached = await redis.get(key);
+    if (cached !== null) return JSON.parse(cached) as Product;
+  } catch {
+    // Une panne du cache ne doit pas forcément rendre la lecture impossible.
+    // La politique de repli doit être adaptée au niveau de criticité.
+  }
+
+  const product = await getProductFromDatabase(id);
+  if (product !== null) {
+    try {
+      await redis.set(key, JSON.stringify(product), { EX: 60 });
+    } catch {
+      // La source de vérité a répondu : ne pas perdre le résultat à cause du cache.
+    }
+  }
+  return product;
+}
+</code></pre><p><strong>Points à renforcer en production :</strong> valider le schéma après parsing, éviter de masquer toutes les erreurs indistinctement, ajouter des métriques, limiter la durée d’attente du cache, définir un comportement pour les pannes de base et vérifier que les données mises en cache sont partageables. L’exemple suppose l’existence d’un dépôt <code>productRepository</code>.</p>
+<h3>Exercice 4</h3><p>Pourquoi ne faut-il pas mettre automatiquement en cache un résultat <code>null</code> pour une durée longue ?</p><details><summary>Corrigé</summary><p>Une ressource absente peut être créée juste après la lecture. Un cache négatif peut alors retarder sa visibilité. Le cache négatif est utile contre des recherches répétées de ressources inexistantes, mais son TTL doit être court et sa suppression prévue lors de la création.</p></details>
+<hr></body></html>

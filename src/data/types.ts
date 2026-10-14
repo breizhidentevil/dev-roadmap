@@ -23,6 +23,7 @@ export interface CourseModule {
   id: string;
   title: string;
   summary: string;
+  contentPath?: string;
   concepts: string[];
   exercise: string;
   solution?: string;

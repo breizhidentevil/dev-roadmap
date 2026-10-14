@@ -1,0 +1,40 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IDOR/BOLA et tests de contrôle d’accès</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>IDOR/BOLA et tests de contrôle d’accès</h1>
+<h2>7.1 Le danger des identifiants manipulables</h2>
+<p>IDOR (Insecure Direct Object Reference) et BOLA (Broken Object Level Authorization) désignent des problèmes où une application n’applique pas correctement les permissions sur une ressource identifiée par l’utilisateur. L’identifiant peut être séquentiel, UUID ou autre : un identifiant difficile à deviner ne remplace pas l’autorisation.</p>
+<p>Une route comme <code>GET /api/invoices/:id</code> doit vérifier la permission sur la facture correspondante. Il faut faire de même pour les exports, fichiers, messages, rapports, jobs asynchrones et opérations administratives.</p>
+<h2>7.2 Tester deux propriétaires</h2>
+<p>Pour chaque type de ressource :</p>
+<ol>
+<li>créer l’utilisateur A et l’utilisateur B ;</li>
+<li>créer une ressource appartenant à A ;</li>
+<li>appeler la route avec l’identité de B et l’identifiant de la ressource de A ;</li>
+<li>vérifier le statut et l’absence de données sensibles ;</li>
+<li>vérifier qu’aucune mutation ou action externe n’a eu lieu ;</li>
+<li>répéter pour lecture, mise à jour, suppression et actions secondaires pertinentes.</li>
+</ol>
+<p>Selon la politique de confidentialité, l’API peut renvoyer <code>403 Forbidden</code> ou <code>404 Not Found</code>. Choisir un comportement cohérent et documenté ; le test ne doit pas imposer une réponse qui divulgue l’existence d’une ressource privée.</p>
+<h2>7.3 Exemple de test d’intégration</h2>
+<pre><code class="language-ts">it(&quot;n'expose pas la facture d'un autre utilisateur&quot;, async () =&gt; {
+  const owner = await fixtures.user();
+  const other = await fixtures.user();
+  const invoice = await fixtures.invoice({ ownerId: owner.id });
+
+  const response = await request(app)
+    .get(`/api/invoices/${invoice.id}`)
+    .set(&quot;Authorization&quot;, `Bearer ${other.accessToken}`);
+
+  expect([403, 404]).toContain(response.status);
+  expect(response.body).not.toHaveProperty(&quot;total&quot;);
+});
+</code></pre>
+<p>Le code est un patron illustratif : les fixtures, l’application de test et le mécanisme d’authentification doivent être ceux du projet. Le test doit exercer le véritable middleware et la véritable règle d’autorisation ; mocker le contrôle d’accès invaliderait la preuve recherchée.</p>
+<h3>Exercice 7</h3>
+<p>Créer trois tests négatifs pour une API de documents.</p>
+<p><strong>Correction expliquée :</strong> utilisateur B lit le document privé de A ; B modifie son contenu ; B télécharge une pièce jointe de A. Pour chaque cas, vérifier le refus, l’absence de fuite du contenu et l’absence de modification ou de téléchargement effectif.</p>
+<h3>Quiz 7</h3>
+<p><strong>Pourquoi un UUID ne corrige-t-il pas BOLA ?</strong></p>
+<p><strong>Réponse :</strong> un UUID peut réduire la facilité de découverte, mais un identifiant obtenu par fuite, partage ou autre route reste exploitable si le serveur n’applique pas les permissions.</p>
+<hr />
+</body></html>

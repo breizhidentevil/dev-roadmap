@@ -1,0 +1,28 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OAuth 2.0 et OpenID Connect</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>OAuth 2.0 et OpenID Connect</h1>
+<h2>5.1 Deux protocoles aux objectifs distincts</h2>
+<p>OAuth 2.0 est un cadre d’autorisation déléguée : il permet à un client d’obtenir un accès limité à une ressource. OpenID Connect (OIDC) ajoute une couche d’authentification standardisée au-dessus d’OAuth 2.0 et fournit notamment un ID Token.</p>
+<p>Ne pas utiliser un access token comme preuve d’identité sans respecter le protocole prévu. Un access token est destiné à une API ; un ID Token est destiné au client OIDC et ses claims doivent être validés selon les règles OIDC.</p>
+<h2>5.2 Authorization Code et PKCE</h2>
+<p>Pour une application interactive moderne, le flux Authorization Code avec PKCE est généralement privilégié. Le client crée un <code>code_verifier</code> imprévisible, en dérive un <code>code_challenge</code>, puis le fournisseur d’identité vérifie le code au moment de l’échange. PKCE réduit le risque qu’un code d’autorisation intercepté soit échangé par un autre acteur.</p>
+<p>Mesures essentielles :</p>
+<ul>
+<li>valider exactement le paramètre <code>state</code> pour lier la réponse au démarrage de l’authentification ;</li>
+<li>utiliser <code>nonce</code> lorsque requis par le flux OIDC et vérifier sa valeur ;</li>
+<li>enregistrer des URI de redirection exactes, sans joker dangereux ;</li>
+<li>valider la signature et les claims de l’ID Token ;</li>
+<li>gérer expiration, erreurs, révocation et déconnexion ;</li>
+<li>ne pas intégrer un client secret dans une application publique distribuée au navigateur ou à un mobile.</li>
+</ul>
+<p>Le protocole et le choix du client doivent être alignés sur les recommandations actuelles du fournisseur et les spécifications en vigueur. Éviter les anciens flux qui transmettent directement des tokens dans l’URL de redirection.</p>
+<h2>5.3 Comptes liés et identité externe</h2>
+<p>Ne pas lier automatiquement un compte existant à un compte externe sur la seule base d’une adresse e-mail reçue. Vérifier les garanties du fournisseur et l’état de vérification de l’adresse, puis définir un processus explicite de liaison et de déliaison. Le couple émetteur/sujet (<code>iss</code>, <code>sub</code>) est généralement plus adapté comme identifiant stable OIDC qu’une adresse e-mail mutable.</p>
+<h3>Exercice 5</h3>
+<p>Une application confond access token et ID Token. Quel est le risque ?</p>
+<p><strong>Correction expliquée :</strong> les deux tokens ont des destinataires et des usages distincts. Le serveur doit valider un access token selon les règles de l’API ; le client doit valider l’ID Token selon OIDC. Intervertir leurs usages peut conduire à accepter un token destiné à un autre composant ou à mal interpréter les claims.</p>
+<h3>Quiz 5</h3>
+<p><strong>Que fait PKCE ?</strong></p>
+<p><strong>Réponse :</strong> il lie l’échange du code d’autorisation au client qui a initié le flux, en exigeant la preuve du <code>code_verifier</code>. Il ne remplace pas <code>state</code>, la validation des tokens ou les URI de redirection exactes.</p>
+<hr />
+</body></html>

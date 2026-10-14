@@ -1,0 +1,30 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Choisir le niveau d’abstraction HTTP</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Choisir le niveau d’abstraction HTTP</h1>
+<h2>1.1 Node.js natif ou framework ?</h2>
+<p>Le module <code>node:http</code> expose directement les primitives HTTP : serveur, requête, réponse, en-têtes et flux. Il convient aux démonstrations, aux petits services et aux cas où l’équipe veut contrôler explicitement le traitement. En contrepartie, le routage, la validation, la composition des middlewares et la convention de gestion des erreurs restent à concevoir.</p>
+<p>Un framework ajoute des conventions et des abstractions. Express privilégie une chaîne de middlewares et un routage simple ; Fastify met notamment l’accent sur les schémas de validation/sérialisation et les performances ; NestJS apporte une architecture plus prescriptive. Aucun choix ne remplace la compréhension du protocole ni ne garantit à lui seul la sécurité.</p>
+<p>Critères de choix : taille et durée de vie du service, compétences de l’équipe, exigences de validation et de documentation, intégrations existantes, modèle de plugins, stratégie de tests et coût de migration. Éviter de mélanger plusieurs frameworks dans un même service sans raison opérationnelle.</p>
+<h2>1.2 Exemple minimal avec Express 5</h2>
+<pre><code class="language-ts">import express from &quot;express&quot;;
+
+const app = express();
+app.disable(&quot;x-powered-by&quot;);
+app.use(express.json({ limit: &quot;100kb&quot; }));
+
+app.get(&quot;/health&quot;, (_req, res) =&gt; {
+  res.status(200).json({ status: &quot;ok&quot; });
+});
+
+app.listen(3000, &quot;127.0.0.1&quot;, () =&gt; {
+  console.log(&quot;API disponible sur http://127.0.0.1:3000&quot;);
+});
+</code></pre>
+<p>Le parseur JSON est limité en taille pour éviter d’accepter sans borne des corps arbitraires. Cet exemple reste incomplet pour la production : configuration validée, arrêt gracieux, journalisation, contrôle de disponibilité des dépendances et gestion d’erreurs sont traités ailleurs. Le typage exact dépend aussi des paquets de types installés dans le projet.</p>
+<h3>Exercice 1 — Choix d’architecture</h3>
+<p>Une API interne expose quatre routes, doit être déployée dans un conteneur et sera maintenue plusieurs années par une équipe de trois développeurs. L’équipe connaît déjà Express.</p>
+<p><strong>Corrigé :</strong> Express est un choix raisonnable pour limiter le coût d’apprentissage. Documenter les raisons, fixer les versions majeures, définir les conventions de validation/erreurs et conserver une séparation des responsabilités. Il n’est pas nécessaire d’adopter NestJS uniquement pour donner une apparence architecturée au projet.</p>
+<h3>Quiz 1</h3>
+<p><strong>Un framework dispense-t-il de valider les entrées à l’exécution ?</strong> Non. Le framework peut fournir des outils, mais les données reçues restent non fiables et leur validation dépend du contrat et de la configuration effective.</p>
+<hr />
+</body></html>

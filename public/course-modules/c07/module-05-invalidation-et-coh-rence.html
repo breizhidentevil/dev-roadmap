@@ -1,0 +1,16 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invalidation et cohérence</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}
+</style></head><body><h1>Invalidation et cohérence</h1>
+<h2>5.1 Invalider après une écriture</h2><p>Une stratégie simple consiste à écrire dans la base, puis à supprimer la clé correspondante. Supprimer avant la transaction peut laisser une lecture concurrente recharger l’ancienne valeur. Supprimer après validation réduit ce risque, sans l’éliminer totalement : une lecture peut avoir commencé avant l’écriture et replacer ensuite une ancienne valeur dans le cache.</p><pre><code class="language-ts">async function renameProduct(id: string, name: string): Promise<void> {
+  await productRepository.rename(id, name); // La base reste la source de vérité.
+  try {
+    await redis.del(`catalog:v1:product:${id}`);
+  } catch (error) {
+    // Journaliser et surveiller : le TTL borne la durée de l’éventuelle valeur périmée.
+    logger.warn({ error, productId: id }, 'Cache invalidation failed');
+  }
+}
+</code></pre><p>Pour les opérations critiques, une simple invalidation best-effort peut être insuffisante. Un outbox transactionnel, un événement durable, une version de donnée ou une lecture sans cache peuvent être nécessaires. L’architecture dépend de la tolérance métier à l’incohérence.</p>
+<h2>5.2 Éviter les données privées croisées</h2><p>Une clé partagée ne doit jamais retourner à un utilisateur la réponse personnalisée d’un autre. Les réponses contenant des droits, des informations personnelles ou des prix individualisés exigent une séparation des clés et une politique HTTP appropriée, ou doivent être exclues du cache partagé. Ne considérez pas le cache comme un mécanisme d’autorisation.</p>
+<h3>Exercice 5</h3><p>Après une mise à jour, la suppression de la clé Redis échoue. Quelles mesures prendre ?</p><details><summary>Corrigé</summary><p>Retourner le résultat de la transaction confirmée si la mutation a réussi, journaliser l’échec sans exposer de données sensibles, produire une métrique/alerte, et s’appuyer sur un TTL court ou un mécanisme durable de réinvalidation. Pour une donnée où la fraîcheur est critique, ne pas servir une valeur potentiellement périmée.</p></details>
+<hr></body></html>

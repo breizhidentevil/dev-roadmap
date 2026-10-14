@@ -1,0 +1,50 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Validation runtime et frontière de confiance</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Validation runtime et frontière de confiance</h1>
+<h2>3.1 TypeScript ne valide pas les requêtes</h2>
+<p>Les annotations et interfaces TypeScript sont supprimées à la compilation. Une déclaration <code>const body = req.body as CreateTaskInput</code> n’inspecte pas le contenu reçu. Le corps peut être absent, mal formé, incomplet, trop grand ou contenir des propriétés inattendues. Il faut analyser la donnée à l’exécution puis construire une valeur interne à partir du résultat validé.</p>
+<p>Décider explicitement si les champs inconnus sont rejetés, ignorés ou supprimés. Pour les commandes sensibles, le rejet strict évite qu’un client pense avoir modifié un champ que le serveur ignore, ou qu’un champ inattendu atteigne la persistance. Les identifiants, tailles, formats, plages numériques et règles de normalisation doivent être spécifiés.</p>
+<h2>3.2 Garde de type sans bibliothèque</h2>
+<pre><code class="language-ts">type CreateTaskInput = { title: string };
+
+function parseCreateTaskInput(value: unknown): CreateTaskInput {
+  if (typeof value !== &quot;object&quot; || value === null || Array.isArray(value)) {
+    throw new InputValidationError(&quot;Body must be an object&quot;);
+  }
+
+  const record = value as Record&lt;string, unknown&gt;;
+  const keys = Object.keys(record);
+  if (keys.some((key) =&gt; key !== &quot;title&quot;)) {
+    throw new InputValidationError(&quot;Unexpected property&quot;);
+  }
+
+  if (typeof record.title !== &quot;string&quot;) {
+    throw new InputValidationError(&quot;title must be a string&quot;);
+  }
+
+  const title = record.title.trim();
+  if (title.length &lt; 1 || title.length &gt; 120) {
+    throw new InputValidationError(&quot;title must contain 1 to 120 characters&quot;);
+  }
+
+  return { title };
+}
+
+export class InputValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = &quot;InputValidationError&quot;;
+  }
+}
+</code></pre>
+<p>Ce garde est volontairement simple et ne remplace pas une bibliothèque de schémas lorsque les contrats deviennent nombreux. Une bibliothèque comme Zod peut inférer un type depuis un schéma, mais le projet doit choisir une version, définir la politique des clés inconnues et éviter de dupliquer manuellement la même règle à plusieurs endroits.</p>
+<h2>3.3 Validation par emplacement</h2>
+<p>Valider séparément : paramètres de chemin, query string, en-têtes applicatifs et corps. Les query strings sont des chaînes ou des listes de chaînes ; <code>?limit=10</code> ne fournit pas directement un nombre validé. Vérifier aussi les paramètres répétés, les valeurs vides et les limites. Ne jamais concaténer des entrées utilisateur dans une requête SQL : utiliser des paramètres liés.</p>
+<h3>Exercice 3 — Assertion ou validation ?</h3>
+<pre><code class="language-ts">const input = req.body as { role: &quot;user&quot; | &quot;admin&quot; };
+</code></pre>
+<p><strong>Corrigé :</strong> il s’agit uniquement d’une assertion statique. Elle ne prouve pas que <code>role</code> existe ou vaut l’une des chaînes autorisées. Le serveur doit vérifier la valeur à l’exécution, puis produire un objet validé.</p>
+<h3>Quiz 3</h3>
+<p><strong>Un type <code>number</code> empêche-t-il une chaîne malveillante d’arriver depuis JSON ?</strong> Non. Le type ne s’exécute pas sur le payload. La validation doit être faite au point d’entrée.</p>
+<hr />
+</body></html>

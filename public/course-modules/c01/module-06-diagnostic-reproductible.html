@@ -1,0 +1,50 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Diagnostic reproductible</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Diagnostic reproductible</h1>
+<h2>6.1 Une séquence de diagnostic</h2>
+<p>Procédez par couches et conservez les observations :</p>
+<ol>
+<li><strong>Nom</strong> : le nom est-il résolu ? Comparer <code>dig</code>/<code>nslookup</code> et la configuration DNS.</li>
+<li><strong>Transport</strong> : la cible et le port sont-ils joignables ? Distinguer refus, absence de route et filtrage.</li>
+<li><strong>TLS</strong> : certificat, nom, chaîne et négociation sont-ils valides ?</li>
+<li><strong>HTTP</strong> : quel statut, quels en-têtes et quelle durée ? Une réponse <code>4xx</code> ou <code>5xx</code> confirme que la couche HTTP a répondu.</li>
+<li><strong>Application</strong> : identifier la route, l’exception, le service amont et l’identifiant de corrélation sans exposer les secrets.</li>
+<li><strong>Navigateur</strong> : examiner Network, Console, la requête <code>OPTIONS</code>, les cookies, le cache et les en-têtes.</li>
+</ol>
+<h2>6.2 <code>curl</code> et DevTools</h2>
+<p>Commandes utiles :</p>
+<pre><code class="language-bash"># Afficher les détails de connexion et les en-têtes
+curl -v https://example.com/api/status
+
+# N'afficher que les en-têtes de réponse
+curl -I https://example.com/
+
+# Mesurer quelques phases de la requête
+curl -sS -o /dev/null \
+  -w 'dns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s first_byte=%{time_starttransfer}s total=%{time_total}s status=%{http_code}\n' \
+  https://example.com/
+</code></pre>
+<p>Les métriques affichées dépendent du build de <code>curl</code> et du protocole utilisé ; elles constituent des indices, pas une preuve isolée de la cause. Dans DevTools → Network, examinez URL, méthode, statut, timing, request/response headers, cookies, initiateur et éventuelle préflight. Masquez les jetons et cookies avant de partager une capture.</p>
+<h2>6.3 Journalisation côté Node.js</h2>
+<p>Les logs doivent permettre de corréler les étapes sans enregistrer des secrets. Préférez des champs structurés tels que méthode, chemin normalisé, statut, durée, identifiant de requête et résultat technique. Évitez le corps complet, les cookies, les en-têtes d’authentification et les paramètres d’URL sensibles.</p>
+<p>Exemple illustratif d’un journal structuré, à adapter au serveur réellement utilisé :</p>
+<pre><code class="language-ts">type RequestSummary = {
+  method: string;
+  route: string; // modèle de route, pas URL brute avec données sensibles
+  statusCode: number;
+  durationMs: number;
+  requestId: string;
+};
+
+function logRequest(summary: RequestSummary): void {
+  console.log(JSON.stringify({ event: &quot;http.request.completed&quot;, ...summary }));
+}
+</code></pre>
+<p>Ce helper ne collecte pas lui-même les données et ne génère pas d’identifiant ; il montre seulement la forme des événements à émettre. L’intégration dépend du serveur HTTP et du middleware de corrélation retenus.</p>
+<h3>Exercice 6 — Établir une hypothèse testable</h3>
+<p><code>curl -v https://api.example.test/health</code> montre une connexion TLS établie puis <code>HTTP/1.1 503 Service Unavailable</code>. Quelle conclusion est justifiée, et quelles vérifications suivent ?</p>
+<p><strong>Corrigé :</strong> DNS, transport, TLS et HTTP ont suffisamment fonctionné pour recevoir une réponse HTTP. <code>503</code> indique que le serveur ou l’intermédiaire déclare le service temporairement indisponible ; cela ne permet pas d’identifier seul la cause. Vérifier les en-têtes de réponse, les logs avec l’identifiant de requête, l’état du service amont, les limites de capacité et les éventuels déploiements en cours.</p>
+<h3>Quiz du module 6</h3>
+<p><strong>Quel est l’avantage d’un diagnostic par couches ?</strong> Il transforme « le site ne marche pas » en hypothèses localisées, testables et reproductibles, au lieu de modifier plusieurs composants au hasard.</p>
+<hr />
+</body></html>

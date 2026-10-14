@@ -1,0 +1,30 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Trois niveaux d&#x27;abstraction : SQL direct, query builder et ORM</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h2>1. Trois niveaux d'abstraction : SQL direct, query builder et ORM</h2>
+<h3>SQL direct</h3>
+<p>Le développeur écrit le SQL et contrôle explicitement les jointures, les projections, les clauses de verrouillage et les opérations. C'est adapté aux requêtes complexes, aux besoins de performance mesurés et aux équipes qui maîtrisent le modèle relationnel. Le coût est la gestion des conversions de types, de la composition des requêtes et de la correspondance entre résultats et types TypeScript.</p>
+<pre><code class="language-ts">import { Pool } from &quot;pg&quot;;
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+interface UserRow {
+  id: string;
+  email: string;
+  created_at: Date;
+}
+
+export async function findUserByEmail(email: string): Promise&lt;UserRow | undefined&gt; {
+  const result = await pool.query&lt;UserRow&gt;(
+    `SELECT id, email, created_at FROM users WHERE email = $1`,
+    [email],
+  );
+  return result.rows[0];
+}
+</code></pre>
+<p>Le paramètre <code>$1</code> protège la valeur contre l'interprétation comme fragment SQL. Le type générique <code>UserRow</code> est une déclaration de l'application : il ne valide pas à lui seul les données renvoyées par le serveur et ne remplace pas les contraintes de la base.</p>
+<h3>Query builder</h3>
+<p>Un query builder compose une requête par API TypeScript, tout en exposant généralement les concepts SQL. Il peut améliorer la réutilisation et le typage, mais la requête finale doit toujours être inspectée. Un builder ne rend pas automatiquement sûre une interpolation de SQL brut.</p>
+<h3>ORM</h3>
+<p>Un ORM représente tables et relations par des modèles ou schémas de code et automatise une partie des opérations de lecture/écriture. Il peut réduire le code répétitif et offrir des types dérivés du schéma. Il peut aussi masquer le coût des requêtes, produire des chargements inattendus et rendre les opérations SQL spécifiques moins évidentes.</p>
+<p><strong>Règle de décision :</strong> choisir l'abstraction la plus simple qui couvre les besoins démontrés. Une application peut combiner ORM pour les opérations courantes et SQL explicite pour quelques requêtes spécialisées, à condition d'encadrer cette frontière.</p>
+</body></html>

@@ -1,0 +1,51 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Transactions, isolation et verrouillage</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h2>5. Transactions, isolation et verrouillage</h2>
+<p>Une transaction regroupe des opérations qui doivent réussir ou échouer ensemble. Avec <code>node-postgres</code>, toutes les instructions d'une transaction doivent utiliser <strong>le même client</strong>, pas des appels indépendants au pool.</p>
+<pre><code class="language-ts">import type { Pool, PoolClient } from &quot;pg&quot;;
+
+export async function transfer(
+  pool: Pool,
+  fromId: string,
+  toId: string,
+  amount: number,
+): Promise&lt;void&gt; {
+  if (!Number.isSafeInteger(amount) || amount &lt;= 0) {
+    throw new Error(&quot;amount must be a positive safe integer&quot;);
+  }
+
+  const client: PoolClient = await pool.connect();
+  try {
+    await client.query(&quot;BEGIN&quot;);
+    const debit = await client.query(
+      `UPDATE accounts
+       SET balance_cents = balance_cents - $1
+       WHERE id = $2 AND balance_cents &gt;= $1
+       RETURNING id`,
+      [amount, fromId],
+    );
+    if (debit.rowCount !== 1) throw new Error(&quot;Insufficient funds or account missing&quot;);
+
+    const credit = await client.query(
+      &quot;UPDATE accounts SET balance_cents = balance_cents + $1 WHERE id = $2 RETURNING id&quot;,
+      [amount, toId],
+    );
+    if (credit.rowCount !== 1) throw new Error(&quot;Destination account missing&quot;);
+    await client.query(&quot;COMMIT&quot;);
+  } catch (error) {
+    try { await client.query(&quot;ROLLBACK&quot;); } catch { /* préserver l'erreur initiale */ }
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+</code></pre>
+<p>Cet extrait illustre la structure, mais ne suffit pas à rendre un transfert complet en production : il faut notamment valider l'existence et la différence des comptes, définir les règles de devise, gérer les deadlocks et les erreurs de sérialisation, prévoir l'idempotence au niveau métier et tester les écritures concurrentes. En production, ne pas relancer aveuglément une opération dont l'issue est incertaine après une coupure réseau.</p>
+<ul>
+<li><strong>READ COMMITTED</strong> : chaque instruction voit un nouvel instantané ; deux lectures dans une transaction peuvent donc différer.</li>
+<li><strong>REPEATABLE READ</strong> : cohérence de l'instantané transactionnel, avec des conflits possibles.</li>
+<li><strong>SERIALIZABLE</strong> : vise l'équivalence à une exécution séquentielle, mais peut annuler une transaction ; l'application doit prévoir une reprise bornée et sûre.</li>
+<li><strong>Verrouillage</strong> (<code>SELECT ... FOR UPDATE</code>) : utile pour certaines règles concurrentes, mais peut créer attente et deadlock. Toujours définir un ordre de prise de verrous et des délais adaptés.</li>
+</ul>
+<p>Ne pas augmenter l'isolation par réflexe : identifier d'abord l'invariant métier et le mécanisme nécessaire.</p>
+</body></html>

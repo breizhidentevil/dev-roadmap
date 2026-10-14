@@ -1,0 +1,28 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Architecture en couches et architecture hexagonale</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Architecture en couches et architecture hexagonale</h1>
+<h2>3.1 Les couches</h2>
+<ul>
+<li><strong>Domaine :</strong> règles et invariants métier indépendants des détails techniques.</li>
+<li><strong>Application :</strong> cas d'utilisation, orchestration et politiques de transaction.</li>
+<li><strong>Adaptateurs entrants :</strong> HTTP, tâche planifiée ou message ; ils traduisent l'entrée vers un cas d'utilisation.</li>
+<li><strong>Adaptateurs sortants :</strong> base de données, service externe, système de fichiers ; ils implémentent les contrats nécessaires.</li>
+<li><strong>Composition :</strong> point où les implémentations concrètes sont assemblées.</li>
+</ul>
+<p>L'architecture hexagonale (ports et adaptateurs) met l'accent sur la séparation entre le cœur applicatif et ses interactions. Les couches sont un moyen de matérialiser cette séparation, pas une obligation de multiplier les fichiers.</p>
+<h2>3.2 Direction des dépendances</h2>
+<p>Les détails techniques dépendent des contrats dont le cœur a besoin, plutôt que le cœur ne dépende de tous les détails. Le domaine n'importe pas Express, <code>pg</code>, Drizzle ou un SDK externe. Le contrôleur peut dépendre d'un cas d'utilisation ; l'adaptateur PostgreSQL peut implémenter un port défini côté application.</p>
+<pre><code class="language-ts">export interface OrderRepository {
+  findById(id: string): Promise&lt;Order | undefined&gt;;
+  save(order: Order): Promise&lt;void&gt;;
+}
+
+export interface TransactionRunner {
+  run&lt;T&gt;(work: (repositories: { orders: OrderRepository }) =&gt; Promise&lt;T&gt;): Promise&lt;T&gt;;
+}
+</code></pre>
+<p>Le contrat ci-dessus est schématique : dans une implémentation réelle, il faut garantir que le dépôt fourni dans <code>work</code> utilise la même transaction que les autres écritures. Exposer un simple <code>transaction()</code> sans clarifier la portée de ses dépôts peut donner une fausse impression de cohérence.</p>
+<p><strong>Exercice 3.</strong> Un fichier de domaine importe <code>Request</code> depuis Express pour accéder à <code>req.user</code>. Quelle est la violation et comment la corriger ?</p>
+<p><strong>Corrigé.</strong> Le domaine dépend du transport et de son modèle de requête. L'adaptateur HTTP extrait l'identité authentifiée, puis transmet au cas d'utilisation un contexte applicatif explicite (par exemple <code>actorId</code>) après les contrôles de validation et d'autorisation requis.</p>
+<hr />
+</body></html>

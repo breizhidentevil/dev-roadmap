@@ -1,0 +1,48 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Du nom de domaine au processus Node.js</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Du nom de domaine au processus Node.js</h1>
+<h2>1.1 Les couches et le trajet d’une requête</h2>
+<p>Un échange Web traverse plusieurs responsabilités distinctes :</p>
+<ol>
+<li><strong>Application</strong> : le navigateur ou le client construit une requête HTTP.</li>
+<li><strong>DNS</strong> : le nom est résolu en une ou plusieurs adresses IP, en tenant compte des caches et des règles DNS applicables.</li>
+<li><strong>Routage IP</strong> : les paquets sont acheminés vers la machine cible.</li>
+<li><strong>Transport</strong> : TCP établit un flux fiable et ordonné ; HTTP/3 utilise QUIC au-dessus d’UDP.</li>
+<li><strong>Sécurité de transport</strong> : pour HTTPS, TLS négocie des paramètres cryptographiques et permet de vérifier l’identité présentée par le serveur.</li>
+<li><strong>HTTP</strong> : le serveur interprète méthode, cible, en-têtes et corps, puis renvoie statut, en-têtes et éventuellement corps.</li>
+<li><strong>Application métier</strong> : Node.js applique la logique, appelle éventuellement une base ou un service distant et construit la réponse.</li>
+</ol>
+<p>Le chemin réel peut inclure un proxy d’entreprise, un CDN, un répartiteur de charge, un pare-feu ou un reverse proxy. Le serveur HTTP Node.js n’est donc pas nécessairement le premier composant rencontré sur la machine d’hébergement.</p>
+<p>Une erreur <code>404</code> est une réponse HTTP reçue ; <code>ECONNREFUSED</code> signale généralement que la connexion a été refusée ; <code>ENOTFOUND</code> ou <code>EAI_AGAIN</code> concerne la résolution de nom ; une erreur de certificat concerne TLS. Ces erreurs ne se corrigent pas au même endroit.</p>
+<h2>1.2 IP, ports, sockets et écoute Node.js</h2>
+<p>Une adresse IP permet l’acheminement. Un port identifie un point d’extrémité de transport. Le couple adresse/port local d’un serveur doit être compatible avec le client et la configuration réseau. Le port <code>443</code> est conventionnel pour HTTPS, mais un numéro de port ne garantit pas le protocole réellement servi.</p>
+<p><code>127.0.0.1</code> et <code>::1</code> désignent la boucle locale IPv4 et IPv6. Un service lié à <code>127.0.0.1</code> n’est normalement accessible que depuis la machine elle-même. Un service lié à <code>0.0.0.0</code> écoute sur toutes les interfaces IPv4 disponibles : cette configuration ne doit pas être choisie sans comprendre l’exposition réseau et les règles de pare-feu.</p>
+<p>Exemple minimal en TypeScript, à compiler avant exécution selon la configuration du projet :</p>
+<pre><code class="language-ts">import { createServer } from &quot;node:http&quot;;
+
+const server = createServer((_request, response) =&gt; {
+  response.writeHead(200, { &quot;content-type&quot;: &quot;text/plain; charset=utf-8&quot; });
+  response.end(&quot;Serveur Node.js disponible\n&quot;);
+});
+
+server.listen(3000, &quot;127.0.0.1&quot;, () =&gt; {
+  console.log(&quot;Écoute sur http://127.0.0.1:3000&quot;);
+});
+</code></pre>
+<p>Cet exemple n’implémente ni routage, ni validation d’entrée, ni arrêt gracieux : il sert uniquement à illustrer l’écoute HTTP. Il ne constitue pas une base de production.</p>
+<h2>1.3 DNS : résolution, TTL et diagnostic</h2>
+<p>DNS associe un nom à des enregistrements : <code>A</code> (IPv4), <code>AAAA</code> (IPv6), <code>CNAME</code> (alias), <code>MX</code> (messagerie), <code>TXT</code> (texte et vérifications diverses). Un résolveur peut répondre depuis son cache jusqu’à l’expiration du TTL. Après une modification DNS, la propagation apparente dépend des caches, des TTL et de la configuration des résolveurs ; ce n’est pas nécessairement une réplication instantanée mondiale.</p>
+<p>Commandes de diagnostic (selon le système, <code>dig</code> peut nécessiter l’installation d’un paquet système) :</p>
+<pre><code class="language-bash">dig example.com A
+dig example.com AAAA
+nslookup example.com
+</code></pre>
+<p>Ne concluez pas à une panne HTTP lorsque la résolution du nom échoue. Testez d’abord la résolution, puis la connexion, puis TLS et enfin la réponse applicative.</p>
+<h3>Exercice 1 — Localiser la panne</h3>
+<p>Un navigateur affiche « site inaccessible ». <code>dig api.example.test A</code> renvoie une erreur de résolution ; aucune connexion TCP n’est tentée vers l’adresse attendue.</p>
+<p><strong>Question :</strong> quelle couche vérifier en premier et pourquoi ?</p>
+<p><strong>Corrigé :</strong> vérifier la résolution DNS (nom, zone, résolveur, configuration locale et cache). Sans adresse cible résolue, le diagnostic d’une réponse HTTP n’est pas pertinent. Si le DNS est ensuite correct, poursuivre vers la connexion TCP, TLS puis HTTP.</p>
+<h3>Quiz du module 1</h3>
+<p><strong>Un port 443 garantit-il que le serveur parle HTTPS ?</strong> Non. Le port est une convention ; c’est la négociation TLS et le protocole réellement servi qui déterminent l’échange.</p>
+<hr />
+</body></html>

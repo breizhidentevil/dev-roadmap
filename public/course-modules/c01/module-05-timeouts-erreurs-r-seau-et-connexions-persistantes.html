@@ -1,0 +1,41 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Timeouts, erreurs réseau et connexions persistantes</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Timeouts, erreurs réseau et connexions persistantes</h1>
+<h2>5.1 Pourquoi un délai maximal est nécessaire</h2>
+<p>Une opération réseau peut rester en attente : résolution DNS, établissement de connexion, négociation TLS, attente des en-têtes ou lecture du corps. Les timeouts doivent être cohérents avec le budget de latence de l’application. Un timeout côté client n’annule pas nécessairement le traitement déjà commencé côté serveur ; le serveur peut avoir réalisé l’action métier alors que le client a abandonné l’attente.</p>
+<p>Avec Node.js 22+, <code>AbortSignal.timeout()</code> peut borner une opération <code>fetch</code>. Le code suivant vérifie le statut, la durée et les erreurs, mais le délai couvre l’opération Fetch selon les règles de l’API et ne remplace pas les timeouts des autres couches :</p>
+<pre><code class="language-ts">const startedAt = performance.now();
+
+try {
+  const response = await fetch(&quot;https://example.com/api/status&quot;, {
+    signal: AbortSignal.timeout(3_000),
+    headers: { Accept: &quot;application/json&quot; },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Réponse HTTP ${response.status}`);
+  }
+
+  const body: unknown = await response.json();
+  console.log({ status: response.status, elapsedMs: performance.now() - startedAt, body });
+} catch (error: unknown) {
+  if (error instanceof Error) {
+    console.error({ message: error.message, elapsedMs: performance.now() - startedAt });
+  } else {
+    console.error(&quot;Échec réseau inconnu&quot;);
+  }
+}
+</code></pre>
+<p>Dans une vraie application, ne journalisez pas aveuglément le corps : il peut contenir des données personnelles, des secrets ou un volume excessif. Les erreurs doivent être classées avec prudence : <code>fetch</code> et les systèmes d’exploitation ne donnent pas toujours une distinction portable entre DNS, connexion, TLS et timeout.</p>
+<h2>5.2 Keep-alive, pooling et limites</h2>
+<p>Les connexions persistantes évitent de recréer une connexion pour chaque échange, ce qui peut réduire la latence et la charge. La réutilisation est gérée par le protocole et le client HTTP. Il faut cependant définir des limites adaptées : nombre de sockets, durée d’inactivité, concurrence, taille des réponses et temps maximal de traitement.</p>
+<p>Une saturation peut provenir d’un trop grand nombre de requêtes simultanées, d’un pool trop petit, d’un service amont lent ou d’un travail synchrone qui bloque la boucle d’événements. Augmenter les timeouts sans diagnostiquer la cause peut augmenter le nombre de requêtes en attente et aggraver la saturation.</p>
+<h2>5.3 Reprises et incertitude après coupure</h2>
+<p>Ne répétez pas automatiquement une opération non idempotente parce qu’un timeout a eu lieu. La requête a pu être traitée avant la coupure de connexion. Pour les écritures métier, concevez une stratégie de reprise explicite : clé d’idempotence, identifiant d’opération, vérification de l’état côté serveur, délais avec backoff et limite de tentatives. Les retries ne doivent pas multiplier une panne ni ignorer les statuts qui ne sont pas transitoires.</p>
+<h3>Exercice 5 — Un timeout après POST</h3>
+<p>Un client envoie <code>POST /reservations</code>, attend 3 secondes puis abandonne. Il n’a reçu aucune réponse. Peut-il réenvoyer immédiatement la même requête ?</p>
+<p><strong>Corrigé :</strong> pas sans connaître le contrat de l’API. Le serveur a peut-être créé la réservation avant la coupure. Il faut une clé d’idempotence ou un mécanisme de consultation de l’état, puis une stratégie de reprise bornée. Le timeout du client n’est pas une preuve d’échec métier.</p>
+<h3>Quiz du module 5</h3>
+<p><strong>Un timeout prouve-t-il que le serveur n’a pas exécuté l’opération ?</strong> Non. Il prouve que le client n’a pas obtenu le résultat attendu dans le délai fixé.</p>
+<hr />
+</body></html>

@@ -1,0 +1,39 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Erreurs, autorisations et limites</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Erreurs, autorisations et limites</h1>
+<h2>7.1 Les cas négatifs sont des comportements de première classe</h2>
+<p>Une suite robuste vérifie les refus aussi explicitement que les réussites :</p>
+<ul>
+<li>JSON mal formé ;</li>
+<li>champs manquants ou types incorrects ;</li>
+<li>identifiant inexistant ;</li>
+<li>ressource existante mais appartenant à un autre utilisateur ;</li>
+<li>absence d’authentification ;</li>
+<li>authentification valide mais rôle insuffisant ;</li>
+<li>pagination excessive ;</li>
+<li>dépendance en panne ou délai dépassé ;</li>
+<li>conflit de version ou état métier incompatible.</li>
+</ul>
+<p>Le cas « utilisateur A tente de lire la ressource de B » est différent du cas « ressource inexistante ». Selon la politique de sécurité, l’API peut renvoyer <code>404</code> dans les deux cas pour éviter de révéler l’existence de ressources privées. Le test doit refléter la politique décidée et documentée.</p>
+<h2>7.2 Tester les permissions avec plusieurs identités</h2>
+<p>Un test d’autorisation doit créer au moins deux identités distinctes et une ressource possédée par l’une d’elles. Vérifier que l’autre ne peut ni lire, ni modifier, ni supprimer la ressource en changeant simplement son identifiant.</p>
+<p>Ne pas mocker la fonction d’autorisation dans le test censé prouver qu’une route applique cette autorisation. Le test d’intégration doit traverser la route, le middleware et le service concernés.</p>
+<h2>7.3 Erreurs publiques et erreurs internes</h2>
+<p>Une réponse publique peut exposer un code stable et un message compréhensible. Elle ne doit pas révéler les secrets, les chaînes de connexion, les traces de pile, les requêtes SQL ou des détails personnels non nécessaires. Les journaux internes doivent être structurés et contenir un identifiant de corrélation, sans enregistrer de mots de passe, jetons ou données sensibles.</p>
+<p>Tester à la fois :</p>
+<ul>
+<li>le statut et la structure de l’erreur ;</li>
+<li>l’absence de champs internes interdits ;</li>
+<li>l’absence d’effet secondaire ;</li>
+<li>la journalisation attendue, si elle est un contrat opérationnel important.</li>
+</ul>
+<h2>7.4 Limites et bornes</h2>
+<p>Pour une pagination limitée à 100 éléments, tester les valeurs 0, 1, 100, 101, un entier négatif, une chaîne et une valeur gigantesque. Pour les tailles de corps, délais et tentatives, choisir des tests ciblés qui vérifient les limites de sécurité et la réponse observable.</p>
+<h3>Exercice 7</h3>
+<p>Un utilisateur authentifié modifie <code>/api/orders/123</code> en <code>/api/orders/124</code>. La seconde commande appartient à un autre utilisateur. Écrire les assertions essentielles.</p>
+<p><strong>Correction expliquée :</strong> la réponse doit respecter la politique de confidentialité choisie (souvent <code>404</code> ou <code>403</code>), ne contenir aucune donnée de la commande 124, ne modifier aucun état et ne déclencher aucune action externe. Créer explicitement les deux utilisateurs et leurs commandes dans l’environnement de test.</p>
+<h3>Quiz 7</h3>
+<p><strong>Pourquoi un test de permission doit-il utiliser deux identités réelles dans le scénario ?</strong></p>
+<p><strong>Réponse :</strong> sans deux propriétaires distincts, le test ne prouve pas que le contrôle d’accès à la ressource est appliqué. Une simple vérification qu’un utilisateur authentifié peut accéder à sa propre ressource ne détecte pas une faille IDOR/BOLA.</p>
+<hr />
+</body></html>

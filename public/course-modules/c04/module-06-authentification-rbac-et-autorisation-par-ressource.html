@@ -1,0 +1,48 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Authentification, RBAC et autorisation par ressource</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Authentification, RBAC et autorisation par ressource</h1>
+<h2>6.1 Trois questions différentes</h2>
+<ul>
+<li><strong>Authentification :</strong> quelle identité est présentée et comment sa preuve est-elle vérifiée ?</li>
+<li><strong>Autorisation :</strong> cette identité peut-elle réaliser cette action sur cette ressource dans ce contexte ?</li>
+<li><strong>Logique métier :</strong> l’action est-elle valide selon l’état et les règles du domaine ?</li>
+</ul>
+<p>Une authentification réussie ne signifie pas que l’utilisateur peut accéder à toutes les données. Un rôle <code>admin</code> ne doit pas être attribué par le client, et un utilisateur ayant un rôle autorisé peut encore être soumis à des contraintes de propriété, d’organisation ou d’état.</p>
+<h2>6.2 RBAC et permissions</h2>
+<p>Le RBAC associe des permissions à des rôles, puis des rôles à des utilisateurs. Il est utile lorsque les responsabilités sont relativement stables. Pour des règles dépendant de l’objet, du propriétaire, de l’organisation ou du contexte, compléter le RBAC par une vérification par ressource ou par des politiques d’autorisation explicites.</p>
+<p>Exemple de politique lisible :</p>
+<pre><code class="language-ts">type Principal = {
+  userId: string;
+  roles: string[];
+  organizationId: string;
+};
+
+type DocumentRecord = {
+  id: string;
+  ownerId: string;
+  organizationId: string;
+  visibility: &quot;private&quot; | &quot;organization&quot;;
+};
+
+export function canReadDocument(
+  principal: Principal,
+  document: DocumentRecord,
+): boolean {
+  if (principal.roles.includes(&quot;platform-admin&quot;)) return true;
+  if (document.ownerId === principal.userId) return true;
+  return document.visibility === &quot;organization&quot; &amp;&amp;
+    document.organizationId === principal.organizationId;
+}
+</code></pre>
+<p>Cette fonction illustre une politique métier, pas une architecture complète. Les règles de rôle administrateur doivent être justifiées et auditées ; dans certains systèmes, même les administrateurs n’ont pas un accès implicite à tous les contenus. Tester chaque branche et les combinaisons limites.</p>
+<h2>6.3 Appliquer l’autorisation à chaque requête</h2>
+<p>Ne pas vérifier les permissions uniquement dans l’interface. Le serveur doit contrôler l’accès à chaque opération, y compris lecture, modification, suppression, export, téléchargement et actions en arrière-plan. Éviter les routes qui autorisent une action parce que l’utilisateur connaît un identifiant.</p>
+<p>Lorsque c’est possible, appliquer la portée d’accès dans la requête de données, par exemple en sélectionnant la ressource par identifiant et propriétaire. Cela réduit le risque qu’une vérification séparée soit oubliée, mais ne dispense pas de gérer correctement les rôles et les règles plus complexes.</p>
+<h3>Exercice 6</h3>
+<p>Un utilisateur peut modifier son profil mais envoie <code>{&quot;role&quot;:&quot;admin&quot;}</code> dans la requête. Comment prévenir l’escalade de privilèges ?</p>
+<p><strong>Correction expliquée :</strong> définir un schéma d’entrée qui n’accepte que les champs modifiables par l’utilisateur ; ne pas réutiliser directement l’objet de requête pour mettre à jour le modèle complet ; gérer les changements de rôle dans une opération distincte, autorisée et auditée côté serveur.</p>
+<h3>Quiz 6</h3>
+<p><strong>Une route protégée par authentification est-elle forcément protégée contre l’accès non autorisé aux objets ?</strong></p>
+<p><strong>Réponse : non.</strong> Elle doit aussi vérifier que le principal peut agir sur la ressource demandée. C’est une cause fréquente de vulnérabilités BOLA/IDOR.</p>
+<hr />
+</body></html>

@@ -1,0 +1,99 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Doubles de test : mock, stub, fake et spy</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Doubles de test : mock, stub, fake et spy</h1>
+<h2>4.1 Quatre notions distinctes</h2>
+<ul>
+<li><strong>Stub</strong> : renvoie une valeur contrôlée ou simule une réponse pour un scénario.</li>
+<li><strong>Mock</strong> : permet aussi d’attendre des interactions précises, par exemple l’envoi d’un message.</li>
+<li><strong>Fake</strong> : implémentation simplifiée mais fonctionnelle, par exemple un dépôt en mémoire.</li>
+<li><strong>Spy</strong> : observe les appels d’une vraie fonction ou d’un objet sans nécessairement remplacer son comportement.</li>
+</ul>
+<p>Les termes varient parfois selon les équipes ; l’important est de préciser le rôle du double.</p>
+<h2>4.2 Exemple : isoler un service</h2>
+<pre><code class="language-ts">type Reservation = { id: string; status: &quot;pending&quot; | &quot;confirmed&quot; };
+
+interface ReservationRepository {
+  findById(id: string): Promise&lt;Reservation | null&gt;;
+  save(reservation: Reservation): Promise&lt;void&gt;;
+}
+
+interface NotificationGateway {
+  sendConfirmation(reservationId: string): Promise&lt;void&gt;;
+}
+
+export class ReservationService {
+  constructor(
+    private readonly repository: ReservationRepository,
+    private readonly notifications: NotificationGateway,
+  ) {}
+
+  async confirm(id: string): Promise&lt;void&gt; {
+    const reservation = await this.repository.findById(id);
+    if (!reservation) throw new Error(&quot;RESERVATION_NOT_FOUND&quot;);
+    if (reservation.status !== &quot;pending&quot;) throw new Error(&quot;INVALID_STATE&quot;);
+
+    const confirmed = { ...reservation, status: &quot;confirmed&quot; as const };
+    await this.repository.save(confirmed);
+    await this.notifications.sendConfirmation(id);
+  }
+}
+</code></pre>
+<p>Le service dépend d’interfaces explicites. Le test peut injecter un fake de dépôt et un mock de notification. Le design rend les effets de bord visibles, sans imposer une bibliothèque de mocks.</p>
+<p><strong>Attention :</strong> ce service illustre une séquence métier simple, pas une garantie transactionnelle. Si l’envoi de notification échoue après l’écriture, la réservation est déjà confirmée. En production, envisager une outbox transactionnelle ou un processus de reprise plutôt que d’imaginer qu’un mock prouve la fiabilité distribuée.</p>
+<h2>4.3 Exemple de test isolé</h2>
+<pre><code class="language-ts">import { beforeEach, expect, it, vi } from &quot;vitest&quot;;
+
+const repository = {
+  findById: vi.fn(),
+  save: vi.fn(),
+};
+const notifications = {
+  sendConfirmation: vi.fn(),
+};
+
+beforeEach(() =&gt; {
+  vi.resetAllMocks();
+});
+
+it(&quot;enregistre la confirmation puis notifie&quot;, async () =&gt; {
+  repository.findById.mockResolvedValue({ id: &quot;r-17&quot;, status: &quot;pending&quot; });
+  repository.save.mockResolvedValue(undefined);
+  notifications.sendConfirmation.mockResolvedValue(undefined);
+
+  const service = new ReservationService(repository, notifications);
+  await service.confirm(&quot;r-17&quot;);
+
+  expect(repository.save).toHaveBeenCalledWith({
+    id: &quot;r-17&quot;,
+    status: &quot;confirmed&quot;,
+  });
+  expect(notifications.sendConfirmation).toHaveBeenCalledWith(&quot;r-17&quot;);
+});
+
+it(&quot;ne notifie pas si la réservation est absente&quot;, async () =&gt; {
+  repository.findById.mockResolvedValue(null);
+
+  const service = new ReservationService(repository, notifications);
+  await expect(service.confirm(&quot;missing&quot;)).rejects.toThrow(&quot;RESERVATION_NOT_FOUND&quot;);
+  expect(repository.save).not.toHaveBeenCalled();
+  expect(notifications.sendConfirmation).not.toHaveBeenCalled();
+});
+</code></pre>
+<p>Dans un vrai projet TypeScript strict, déclarer les types des mocks ou employer <code>vi.mocked</code> selon la structure des modules afin d’éviter des types trop permissifs. L’extrait privilégie la lisibilité conceptuelle.</p>
+<h2>4.4 Quand ne pas mocker ?</h2>
+<p>Ne pas mocker la base pour prouver une contrainte SQL, une transaction ou une isolation concurrente. Ne pas mocker le routeur pour prétendre tester le contrat HTTP. Un double ne peut prouver que son propre comportement et le code qui l’appelle, pas la compatibilité réelle avec l’infrastructure.</p>
+<p>Un mock trop détaillé peut transformer le test en miroir de l’implémentation. Une modification interne fait alors échouer la suite sans changement métier. Mockez les frontières instables ou coûteuses, mais gardez des tests d’intégration ciblés.</p>
+<h3>Exercice 4</h3>
+<p>Choisir le double adapté :</p>
+<ol>
+<li>Forcer une passerelle de paiement à répondre « refusée ».</li>
+<li>Vérifier qu’un événement est publié une seule fois.</li>
+<li>Tester un algorithme de recherche sans serveur de base.</li>
+<li>Vérifier une contrainte <code>UNIQUE</code> PostgreSQL.</li>
+</ol>
+<p><strong>Correction expliquée :</strong> 1) stub ; 2) mock/spy sur le port de publication ; 3) fake de dépôt si le but est le service, mais tester l’algorithme directement si possible ; 4) vraie base PostgreSQL, pas un mock.</p>
+<h3>Quiz 4</h3>
+<p><strong>Pourquoi un fake en mémoire ne suffit-il pas pour tester une contrainte SQL ?</strong></p>
+<p><strong>Réponse :</strong> il ne reproduit pas nécessairement le moteur SQL, les transactions, les verrous, les contraintes ou l’isolation. Il peut être utile pour tester une logique applicative, mais pas pour prouver le comportement du SGBD.</p>
+<hr />
+</body></html>

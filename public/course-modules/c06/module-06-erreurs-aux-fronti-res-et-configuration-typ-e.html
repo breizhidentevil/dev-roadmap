@@ -1,0 +1,48 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Erreurs aux frontières et configuration typée</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Erreurs aux frontières et configuration typée</h1>
+<h2>6.1 Erreurs internes et erreurs publiques</h2>
+<p>Le domaine peut émettre des erreurs métier identifiables ou retourner une union de résultats. L'adaptateur HTTP traduit les résultats en statuts et formats de réponse. Une erreur de base de données ne doit pas être renvoyée telle quelle au client : elle peut révéler le schéma, les requêtes ou des données sensibles.</p>
+<p>Définir une correspondance cohérente, par exemple : entrée invalide → <code>400</code> ou <code>422</code> selon le contrat ; ressource absente → <code>404</code> ; absence d'autorisation → <code>403</code> ou <code>404</code> selon la politique de divulgation ; conflit métier → <code>409</code> ; erreur inattendue → <code>500</code> avec identifiant de corrélation. Le choix doit rester cohérent avec l'API documentée.</p>
+<pre><code class="language-ts">type PublicError = {
+  status: number;
+  code: string;
+  message: string;
+};
+
+function toPublicError(error: unknown): PublicError {
+  if (error instanceof Error &amp;&amp; error.message === &quot;ORDER_NOT_FOUND&quot;) {
+    return { status: 404, code: &quot;ORDER_NOT_FOUND&quot;, message: &quot;Commande introuvable.&quot; };
+  }
+  return { status: 500, code: &quot;INTERNAL_ERROR&quot;, message: &quot;Une erreur inattendue est survenue.&quot; };
+}
+</code></pre>
+<p>En production, préférer des classes d'erreurs ou codes discriminés plutôt que comparer des messages ; ne jamais exposer stack trace, secrets, SQL ou corps sensibles dans la réponse. Journaliser les détails utiles avec une politique de masquage et un identifiant de corrélation.</p>
+<h2>6.2 Configuration au démarrage</h2>
+<p>Lire les variables d'environnement une fois à la frontière, vérifier leur présence et leur format, puis transmettre un objet de configuration validé. Éviter de lire <code>process.env</code> partout dans le domaine et de convertir silencieusement une valeur absente en chaîne vide.</p>
+<pre><code class="language-ts">interface AppConfig {
+  port: number;
+  databaseUrl: string;
+  nodeEnv: &quot;development&quot; | &quot;test&quot; | &quot;production&quot;;
+}
+
+export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
+  const port = Number(env.PORT ?? &quot;3000&quot;);
+  const databaseUrl = env.DATABASE_URL;
+  const nodeEnv = env.NODE_ENV ?? &quot;development&quot;;
+
+  if (!Number.isInteger(port) || port &lt; 1 || port &gt; 65535) {
+    throw new Error(&quot;Invalid PORT configuration&quot;);
+  }
+  if (!databaseUrl) throw new Error(&quot;DATABASE_URL is required&quot;);
+  if (nodeEnv !== &quot;development&quot; &amp;&amp; nodeEnv !== &quot;test&quot; &amp;&amp; nodeEnv !== &quot;production&quot;) {
+    throw new Error(&quot;Invalid NODE_ENV configuration&quot;);
+  }
+  return { port, databaseUrl, nodeEnv };
+}
+</code></pre>
+<p>Ce type utilise <code>NodeJS.ProcessEnv</code>, qui suppose les types Node.js présents dans le projet d'exemple. Le dépôt pédagogique ne reçoit aucune dépendance supplémentaire pour ce cours. Ne pas journaliser la chaîne de connexion complète.</p>
+<p><strong>Exercice 6.</strong> L'application démarre même si <code>DATABASE_URL</code> manque et échoue au premier appel utilisateur. Quelle amélioration appliquer ?</p>
+<p><strong>Corrigé.</strong> Valider la configuration avant d'ouvrir le serveur et échouer avec un message d'exploitation explicite, sans secret. Le démarrage ne doit être déclaré prêt qu'après les contrôles requis, par exemple une connexion initiale si la stratégie opérationnelle l'impose.</p>
+<hr />
+</body></html>

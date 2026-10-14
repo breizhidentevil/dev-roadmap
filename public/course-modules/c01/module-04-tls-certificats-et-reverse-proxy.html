@@ -1,0 +1,21 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TLS, certificats et reverse proxy</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>TLS, certificats et reverse proxy</h1>
+<h2>4.1 Ce que HTTPS garantit</h2>
+<p>HTTPS encapsule HTTP dans TLS. TLS vise notamment la confidentialité et l’intégrité des échanges, ainsi que l’authentification du serveur au moyen de la validation de son certificat. Le client vérifie la chaîne de confiance, la validité temporelle et la correspondance du nom d’hôte avec les identités du certificat. Un certificat valide ne prouve pas que l’application est sûre, que l’utilisateur est autorisé ou que le serveur ne contient pas de vulnérabilité.</p>
+<p>Le navigateur résout le nom, établit le transport, négocie TLS puis échange HTTP de façon protégée. Les détails varient selon HTTP/1.1, HTTP/2 ou HTTP/3 et les capacités négociées. Une erreur de certificat doit être traitée comme un problème de confiance ou de configuration, pas contournée pour « faire fonctionner » une application de production.</p>
+<h2>4.2 Reverse proxy et terminaison TLS</h2>
+<p>En production, TLS peut se terminer sur un reverse proxy ou un load balancer. Celui-ci transmet ensuite la requête à Node.js, parfois sur un réseau interne. Le proxy peut ajouter <code>Forwarded</code> ou des en-têtes <code>X-Forwarded-*</code> décrivant le protocole, l’hôte ou l’adresse du client d’origine.</p>
+<p>Ces champs ne sont fiables que si la requête provient d’un proxy de confiance et que la topologie est correctement configurée. Si l’application accepte ces en-têtes d’un client quelconque, elle peut construire des URL, journaux ou décisions de sécurité à partir de valeurs falsifiées. Configurez explicitement les proxys de confiance dans le framework choisi et n’inférez pas la sécurité d’une requête uniquement depuis un en-tête contrôlé par le client.</p>
+<h2>4.3 Vérifications pratiques</h2>
+<pre><code class="language-bash">curl -v https://example.com/
+curl -I https://example.com/
+</code></pre>
+<p><code>-v</code> affiche des détails de connexion utiles au diagnostic ; <code>-I</code> demande les en-têtes via une requête <code>HEAD</code> si le serveur la prend en charge. N’ajoutez pas <code>-k</code> / <code>--insecure</code> comme correction : cette option désactive la vérification du certificat et peut masquer le défaut réel.</p>
+<h3>Exercice 4 — Certificat invalide</h3>
+<p>Un client reçoit une erreur indiquant que le certificat ne correspond pas au nom demandé. La chaîne semble par ailleurs émise par une autorité de confiance.</p>
+<p><strong>Corrigé :</strong> vérifier le nom d’hôte demandé, les SAN du certificat présenté, le certificat réellement servi par le proxy/load balancer, le SNI et le routage vers le bon virtual host. Une chaîne de confiance valide ne compense pas une identité de serveur incorrecte.</p>
+<h3>Quiz du module 4</h3>
+<p><strong>Le TLS qui se termine au reverse proxy rend-il automatiquement le lien proxy → Node.js sûr ?</strong> Non. Ce tronçon doit être protégé et contrôlé selon le modèle de menace, et l’application doit faire confiance uniquement aux proxys prévus.</p>
+<hr />
+</body></html>

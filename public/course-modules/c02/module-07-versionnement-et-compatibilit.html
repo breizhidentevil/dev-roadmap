@@ -1,0 +1,22 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Versionnement et compatibilité</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Versionnement et compatibilité</h1>
+<h2>7.1 Faire évoluer un contrat</h2>
+<p>Une modification est <strong>compatible</strong> si les clients existants peuvent continuer à fonctionner selon le contrat promis. Renommer un champ, changer son type, supprimer une route, rendre obligatoire un champ auparavant facultatif ou changer la signification d’un statut peut casser des clients. Ajouter un champ facultatif est souvent compatible, mais pas pour tous les clients stricts ou générateurs de code.</p>
+<p>Avant une évolution : identifier les consommateurs, mesurer l’usage lorsque c’est possible, publier une politique de dépréciation, documenter la date de retrait, proposer une période de transition et vérifier les usages avant suppression. Une version dans le chemin (<code>/v1</code>) rend le routage explicite ; une version dans un en-tête ou un type média a d’autres avantages et coûts. La cohérence de politique importe davantage que la forme choisie isolément.</p>
+<h2>7.2 Règles de compatibilité</h2>
+<ul>
+<li>Ne pas réutiliser un nom de champ avec une nouvelle sémantique.</li>
+<li>Ajouter les champs de réponse avec une politique claire sur les clients stricts.</li>
+<li>Ne pas rendre obligatoire une propriété d’entrée sans transition ou nouvelle version.</li>
+<li>Documenter la dépréciation, les dates et les solutions de remplacement.</li>
+<li>Tester les contrats consommés par les clients importants.</li>
+<li>Traiter une migration de base et une migration d’API comme deux changements liés mais distincts.</li>
+</ul>
+<h3>Exercice 7 — Champ obligatoire</h3>
+<p>Une API v1 accepte <code>{ &quot;title&quot;: &quot;x&quot; }</code>. L’équipe veut désormais exiger <code>projectId</code>.</p>
+<p><strong>Corrigé :</strong> rendre le champ obligatoire immédiatement peut casser les clients existants. Choisir une transition (champ facultatif avec comportement défini, annonce et métriques d’usage) ou publier une nouvelle version si la rupture est nécessaire. Ne pas accepter silencieusement des données qui ne permettent pas de respecter les invariants métier.</p>
+<h3>Quiz 7</h3>
+<p><strong>Une version <code>v2</code> dans l’URL garantit-elle la compatibilité ?</strong> Non. Elle rend le choix de version visible, mais chaque version doit avoir un contrat et une politique de support précis.</p>
+<hr />
+</body></html>

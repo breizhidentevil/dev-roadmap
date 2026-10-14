@@ -1,0 +1,28 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Files et workers</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}
+</style></head><body><h1>Files et workers</h1>
+<h2>2.1 Cycle de vie d’un message</h2>
+<p>Le producteur publie une tâche ; le système la conserve selon ses garanties ; un worker la réserve ; il valide le message et exécute le traitement ; enfin il acquitte le message ou le laisse être retenté. L’acquittement doit intervenir après la réussite des effets requis. Acquitter avant l’écriture métier peut perdre le travail si le processus tombe en panne ensuite.</p>
+<p>La concurrence doit être bornée. Si chaque worker ouvre un nombre illimité d’appels vers une API ou une base, la file peut transformer une panne limitée en surcharge générale. Dimensionnez la concurrence en fonction des quotas externes, du pool SQL et de la mémoire disponible.</p>
+<h2>2.2 Contrat de message TypeScript</h2>
+<pre><code>type SendReceiptV1 = {
+  type: 'receipt.send';
+  version: 1;
+  messageId: string;
+  orderId: string;
+  occurredAt: string;
+};
+
+function isSendReceiptV1(value: unknown): value is SendReceiptV1 {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record&lt;string, unknown&gt;;
+  return v.type === 'receipt.send'
+    &amp;&amp; v.version === 1
+    &amp;&amp; typeof v.messageId === 'string'
+    &amp;&amp; typeof v.orderId === 'string'
+    &amp;&amp; typeof v.occurredAt === 'string';
+}</code></pre>
+<p>Le garde-fou TypeScript n’est utile que si la valeur est contrôlée à l’exécution. Les messages viennent souvent d’un broker, d’un autre service ou d’un stockage persistant : ils doivent être considérés comme des entrées non fiables. Une validation par schéma est préférable pour les contrats plus riches.</p>
+<h2>2.3 Backpressure</h2>
+<p>La file absorbe les variations de charge, mais elle ne crée pas de capacité de traitement. Si les producteurs publient durablement plus vite que les consommateurs ne travaillent, le backlog croît. Définissez une capacité maximale, une politique de rejet ou de ralentissement, et une alerte sur l’âge du plus ancien message — souvent plus révélatrice que le seul nombre de messages.</p>
+<hr></body></html>

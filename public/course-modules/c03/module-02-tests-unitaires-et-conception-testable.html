@@ -1,0 +1,103 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tests unitaires et conception testable</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Tests unitaires et conception testable</h1>
+<h2>2.1 Extraire la logique métier des effets de bord</h2>
+<p>Une fonction pure renvoie le même résultat pour les mêmes entrées et n’altère pas d’état externe. Elle est généralement facile à tester. Les appels réseau, l’horloge, les identifiants aléatoires, les fichiers et la base de données sont des effets de bord ; les placer derrière des dépendances explicites facilite leur contrôle.</p>
+<p>Exemple de règle métier :</p>
+<pre><code class="language-ts">export type ReservationInput = {
+  startsAt: Date;
+  now: Date;
+  durationMinutes: number;
+};
+
+export function validateReservation(input: ReservationInput): string[] {
+  const errors: string[] = [];
+
+  if (!Number.isFinite(input.startsAt.getTime())) {
+    errors.push(&quot;startsAt must be a valid date&quot;);
+  } else if (input.startsAt.getTime() &lt;= input.now.getTime()) {
+    errors.push(&quot;startsAt must be in the future&quot;);
+  }
+
+  if (!Number.isInteger(input.durationMinutes) ||
+      input.durationMinutes &lt; 15 ||
+      input.durationMinutes &gt; 240) {
+    errors.push(&quot;durationMinutes must be between 15 and 240&quot;);
+  }
+
+  return errors;
+}
+</code></pre>
+<p>Le code reçoit <code>now</code> au lieu d’appeler <code>new Date()</code> à l’intérieur. Le test peut ainsi vérifier une limite exacte sans dépendre de l’heure réelle.</p>
+<pre><code class="language-ts">import { describe, expect, it } from &quot;vitest&quot;;
+import { validateReservation } from &quot;./reservation-validation.js&quot;;
+
+describe(&quot;validateReservation&quot;, () =&gt; {
+  const now = new Date(&quot;2030-04-01T10:00:00.000Z&quot;);
+
+  it(&quot;accepte une réservation future de durée autorisée&quot;, () =&gt; {
+    expect(validateReservation({
+      startsAt: new Date(&quot;2030-04-01T11:00:00.000Z&quot;),
+      now,
+      durationMinutes: 60,
+    })).toEqual([]);
+  });
+
+  it(&quot;refuse une date égale à maintenant&quot;, () =&gt; {
+    expect(validateReservation({
+      startsAt: now,
+      now,
+      durationMinutes: 60,
+    })).toContain(&quot;startsAt must be in the future&quot;);
+  });
+
+  it(&quot;refuse une durée hors limites&quot;, () =&gt; {
+    expect(validateReservation({
+      startsAt: new Date(&quot;2030-04-01T11:00:00.000Z&quot;),
+      now,
+      durationMinutes: 10,
+    })).toContain(&quot;durationMinutes must be between 15 and 240&quot;);
+  });
+});
+</code></pre>
+<p>Les extensions <code>.js</code> dans les imports sont courantes dans des projets TypeScript compilés en modules ES, mais la configuration exacte dépend du <code>tsconfig</code> et du runner. Adapter l’import au projet réel plutôt que de copier mécaniquement l’exemple.</p>
+<h2>2.2 Tester les frontières et les invariants</h2>
+<p>Pour une règle qui accepte les valeurs entre <code>min</code> et <code>max</code>, tester au minimum :</p>
+<ul>
+<li><code>min - 1</code> ;</li>
+<li><code>min</code> ;</li>
+<li>une valeur représentative au milieu ;</li>
+<li><code>max</code> ;</li>
+<li><code>max + 1</code> ;</li>
+<li>les types incorrects, les valeurs manquantes et les valeurs non finies si elles sont possibles à l’entrée.</li>
+</ul>
+<p>Un invariant est une propriété qui doit rester vraie quel que soit le chemin d’exécution : un montant ne devient pas négatif, une réservation confirmée possède un créneau, une réponse publique ne contient jamais un hash de mot de passe.</p>
+<p>Ne pas multiplier artificiellement les cas si une table de cas apporte une meilleure lisibilité :</p>
+<pre><code class="language-ts">it.each([
+  { duration: 14, valid: false },
+  { duration: 15, valid: true },
+  { duration: 60, valid: true },
+  { duration: 240, valid: true },
+  { duration: 241, valid: false },
+])(&quot;duration=$duration valid=$valid&quot;, ({ duration, valid }) =&gt; {
+  const errors = validateReservation({
+    startsAt: new Date(&quot;2030-04-01T11:00:00.000Z&quot;),
+    now: new Date(&quot;2030-04-01T10:00:00.000Z&quot;),
+    durationMinutes: duration,
+  });
+  expect(errors.length === 0).toBe(valid);
+});
+</code></pre>
+<h2>2.3 Ne pas tester uniquement les détails</h2>
+<p>Éviter d’asserter qu’une fonction privée est appelée trois fois ou que l’implémentation emploie une boucle spécifique. Vérifier le résultat métier et les interactions qui font partie du contrat : par exemple, qu’un e-mail n’est pas envoyé si l’écriture en base échoue.</p>
+<h3>Exercice 2</h3>
+<p>Écrire des tests pour une fonction qui accepte une quantité entière entre 1 et 20. Couvrir les limites, les valeurs hors plage et les valeurs non entières.</p>
+<p><strong>Correction expliquée :</strong> tester 0, 1, 20, 21, 1.5, <code>NaN</code> et une valeur absente si le type d’entrée externe permet cette absence. Les cas 1 et 20 prouvent que les bornes sont inclusives ; 0 et 21 prouvent le rejet au-delà des bornes ; 1.5 vérifie l’intégralité ; <code>NaN</code> empêche une comparaison numérique naïve de passer involontairement.</p>
+<h3>Quiz 2</h3>
+<p><strong>Pourquoi injecter une horloge ou un générateur d’identifiants ?</strong></p>
+<p>A. Pour rendre toutes les dépendances fictives en production.<br />
+B. Pour rendre le résultat contrôlable et les tests déterministes.<br />
+C. Pour supprimer le besoin de tests d’intégration.</p>
+<p><strong>Réponse : B.</strong> Les dépendances variables doivent être contrôlées en test. Les tests d’intégration restent nécessaires pour vérifier que les composants fonctionnent avec les vraies dépendances.</p>
+<hr />
+</body></html>

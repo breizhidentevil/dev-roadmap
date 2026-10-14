@@ -1,0 +1,36 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Domaine, cas d&#x27;utilisation et validation</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Domaine, cas d&#x27;utilisation et validation</h1>
+<h2>5.1 TypeScript ne valide pas les entrées à l'exécution</h2>
+<p>Une annotation comme <code>input: CreateOrderInput</code> n'empêche pas un client HTTP d'envoyer un objet invalide. Les données externes sont <code>unknown</code> jusqu'à validation. Le contrôleur ou un adaptateur valide leur forme ; le domaine protège les invariants qui doivent rester vrais quelle que soit la provenance de l'appel.</p>
+<p>Il faut distinguer :</p>
+<ol>
+<li><strong>Validation de forme</strong> : JSON, champs requis, types primitifs, longueurs et formats.</li>
+<li><strong>Règle métier</strong> : transition d'état autorisée, montant positif, quantité disponible.</li>
+<li><strong>Contrainte de persistance</strong> : unicité, clé étrangère, <code>NOT NULL</code>, transaction.</li>
+<li><strong>Autorisation</strong> : l'acteur a-t-il le droit d'effectuer cette action sur cette ressource ?</li>
+</ol>
+<p>Ces contrôles sont complémentaires. La validation HTTP ne remplace pas une contrainte unique en base, et un type TypeScript ne remplace ni la validation ni l'autorisation.</p>
+<h2>5.2 Cas d'utilisation explicite</h2>
+<p>Un cas d'utilisation orchestre une action qui a un sens pour le métier : confirmer une commande, inscrire un utilisateur, rembourser un paiement. Il reçoit des données déjà décodées, appelle le domaine et les ports requis, puis renvoie un résultat applicatif. Il ne devrait pas construire une réponse <code>Response</code> HTTP.</p>
+<pre><code class="language-ts">type ConfirmOrderResult =
+  | { ok: true; order: Order }
+  | { ok: false; reason: &quot;NOT_FOUND&quot; | &quot;INVALID_STATE&quot; };
+
+export async function confirmOrderUseCase(
+  id: string,
+  repository: OrderRepository,
+): Promise&lt;ConfirmOrderResult&gt; {
+  const order = await repository.findById(id);
+  if (!order) return { ok: false, reason: &quot;NOT_FOUND&quot; };
+  if (order.status !== &quot;draft&quot;) return { ok: false, reason: &quot;INVALID_STATE&quot; };
+  const confirmed = { ...order, status: &quot;confirmed&quot; as const };
+  await repository.save(confirmed);
+  return { ok: true, order: confirmed };
+}
+</code></pre>
+<p>Cette version simplifiée illustre la séparation ; si plusieurs lectures/écritures doivent être atomiques, le cas d'utilisation doit utiliser un contrat transactionnel adapté et gérer la concurrence. Vérifier uniquement l'état lu en mémoire ne prévient pas deux confirmations simultanées.</p>
+<p><strong>Exercice 5.</strong> Une requête fournit <code>quantity: -2</code>. Où placer les contrôles ?</p>
+<p><strong>Corrigé.</strong> Le schéma d'entrée rejette une valeur de forme ou de plage invalide ; le domaine ou le cas d'utilisation protège également l'invariant métier pour les autres voies d'entrée ; la base conserve les contraintes persistantes adaptées, par exemple <code>CHECK (quantity &gt; 0)</code>. L'autorisation est vérifiée séparément.</p>
+<hr />
+</body></html>

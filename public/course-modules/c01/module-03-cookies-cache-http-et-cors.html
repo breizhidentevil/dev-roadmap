@@ -1,0 +1,43 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cookies, cache HTTP et CORS</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Cookies, cache HTTP et CORS</h1>
+<h2>3.1 Cookies et sécurité navigateur</h2>
+<p>Un serveur peut envoyer un cookie avec <code>Set-Cookie</code>. Le navigateur le renvoie ensuite selon son domaine, son chemin, son expiration et ses règles de contexte. Les attributs importants comprennent :</p>
+<ul>
+<li><code>HttpOnly</code> : empêche l’accès au cookie depuis les API JavaScript du navigateur ; il ne bloque pas l’envoi automatique du cookie.</li>
+<li><code>Secure</code> : limite son envoi aux connexions sécurisées, sous réserve des règles particulières des environnements locaux.</li>
+<li><code>SameSite=Lax|Strict|None</code> : contrôle certains envois intersites. <code>SameSite=None</code> exige <code>Secure</code> dans les navigateurs modernes.</li>
+<li><code>Path</code>, <code>Domain</code>, <code>Max-Age</code> et <code>Expires</code> : contrôlent portée et durée de vie.</li>
+</ul>
+<p><code>HttpOnly</code> réduit certains risques de vol via JavaScript, mais ne supprime pas le risque CSRF lorsqu’un navigateur joint automatiquement une session à une requête. La stratégie de session doit aussi prendre en compte CSRF, l’autorisation et la rotation/invalidation de session.</p>
+<h2>3.2 Cache HTTP</h2>
+<p>Le cache peut se trouver dans le navigateur, un proxy, un CDN ou un autre intermédiaire. La politique doit tenir compte de la fraîcheur, de la sensibilité des données et de la possibilité de revalidation.</p>
+<ul>
+<li><code>Cache-Control: no-store</code> demande de ne pas stocker la réponse.</li>
+<li><code>Cache-Control: no-cache</code> permet le stockage, mais exige une revalidation avant réutilisation.</li>
+<li><code>max-age=60</code> autorise une fraîcheur de 60 secondes dans les conditions prévues par la directive.</li>
+<li><code>ETag</code> permet de comparer une représentation ; <code>If-None-Match</code> permet une revalidation. Une réponse <code>304 Not Modified</code> ne transporte pas une nouvelle représentation complète.</li>
+<li><code>Vary: Accept-Encoding</code> indique que la représentation varie selon cet en-tête de requête.</li>
+</ul>
+<p>Ne mettez pas en cache publiquement des réponses personnalisées ou confidentielles sans analyse stricte des clés de cache et des directives. Une mauvaise configuration peut exposer les données d’un utilisateur à un autre.</p>
+<h2>3.3 CORS et préflight</h2>
+<p>CORS est une politique appliquée par les navigateurs pour contrôler si un script d’une origine peut lire une réponse provenant d’une autre origine. Une origine est le triplet <strong>schéma + hôte + port</strong>. CORS n’est ni une authentification ni un pare-feu serveur : un client non navigateur peut appeler directement l’API, et l’API doit toujours appliquer ses contrôles d’accès.</p>
+<p>Une requête interorigine peut déclencher une préflight <code>OPTIONS</code>, notamment selon la méthode et les en-têtes utilisés. Le serveur répond alors avec des champs comme <code>Access-Control-Allow-Origin</code>, <code>Access-Control-Allow-Methods</code> et <code>Access-Control-Allow-Headers</code>. Si des cookies ou d’autres identifiants sont utilisés avec <code>credentials: &quot;include&quot;</code>, le serveur doit autoriser explicitement l’origine ; <code>Access-Control-Allow-Origin: *</code> n’est pas valide avec les credentials. Il faut également traiter <code>Vary: Origin</code> lorsque la valeur autorisée est sélectionnée dynamiquement.</p>
+<p>Exemple de client :</p>
+<pre><code class="language-ts">const response = await fetch(&quot;https://api.example.test/profile&quot;, {
+  credentials: &quot;include&quot;,
+  headers: { Accept: &quot;application/json&quot; },
+});
+
+if (!response.ok) {
+  throw new Error(`HTTP ${response.status}`);
+}
+</code></pre>
+<p>Ce code suppose que le serveur a correctement configuré CORS et que la politique de session est adaptée. <code>fetch</code> rejette la promesse pour certaines erreurs réseau ou de politique navigateur, mais une réponse HTTP <code>404</code> ou <code>500</code> ne fait pas automatiquement rejeter la promesse : il faut examiner <code>response.ok</code> ou <code>response.status</code>.</p>
+<h3>Exercice 3 — Diagnostiquer CORS</h3>
+<p>Une requête depuis <code>https://front.example.test</code> échoue dans le navigateur. La console signale que l’en-tête <code>Access-Control-Allow-Origin</code> manque. L’API renvoie <code>200</code> quand elle est appelée directement avec <code>curl</code>.</p>
+<p><strong>Corrigé :</strong> <code>curl</code> confirme que l’API répond, mais n’applique pas la politique de lecture CORS du navigateur. Vérifier la réponse de la préflight <code>OPTIONS</code> si elle existe, l’origine exacte (schéma, hôte, port), les méthodes/en-têtes autorisés et la configuration des credentials. Ne pas « corriger » en ouvrant toutes les origines sans nécessité et ne pas traiter CORS comme un contrôle d’accès.</p>
+<h3>Quiz du module 3</h3>
+<p><strong>CORS protège-t-il l’API contre un client malveillant hors navigateur ?</strong> Non. CORS encadre principalement la lecture de réponses par des scripts de navigateur ; l’API doit authentifier et autoriser chaque opération elle-même.</p>
+<hr />
+</body></html>

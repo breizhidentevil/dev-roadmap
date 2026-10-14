@@ -1,0 +1,47 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Contrats OpenAPI</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Contrats OpenAPI</h1>
+<h2>6.1 Pourquoi un contrat explicite ?</h2>
+<p>OpenAPI décrit les chemins, méthodes, paramètres, corps, réponses, schémas, mécanismes de sécurité et métadonnées d’une API HTTP. Il permet de générer une documentation interactive et, selon l’outillage, des clients, des stubs et des contrôles de contrat. Le document ne prouve pas que le serveur respecte réellement le contrat : des tests doivent comparer l’implémentation et la spécification.</p>
+<p>Choisir et documenter la version OpenAPI employée. La spécification OpenAPI 3.1 s’appuie sur une compatibilité étroite avec le modèle de schéma JSON ; les outils ne prennent pas nécessairement en charge toutes les fonctionnalités de manière identique. Épingler les versions d’outils et vérifier les écarts dans la CI.</p>
+<h2>6.2 Extrait minimal</h2>
+<pre><code class="language-yaml">openapi: 3.1.1
+info:
+  title: Tasks API
+  version: 1.0.0
+paths:
+  /tasks:
+    post:
+      operationId: createTask
+      summary: Créer une tâche
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [title]
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+      responses:
+        '201':
+          description: Tâche créée
+        '400':
+          description: Corps invalide
+        '500':
+          description: Erreur inattendue
+</code></pre>
+<p>L’extrait illustre la forme du contrat et ne décrit pas toutes les réponses utiles : il faudrait documenter les schémas des réponses, les erreurs, les en-têtes, l’authentification, les limites et les éventuelles réponses 409/413. La version <code>info.version</code> identifie la version publiée du contrat, mais ne définit pas à elle seule la stratégie de versionnement des URLs.</p>
+<h2>6.3 Éviter la dérive</h2>
+<p>Une seule source de vérité réduit les divergences : schémas runtime partagés, génération du document depuis le code, ou contrat OpenAPI utilisé pour générer des types et valider l’implémentation. Chacune de ces stratégies a des compromis. Éviter de maintenir manuellement trois schémas identiques (TypeScript, validateur runtime, OpenAPI) sans mécanisme de cohérence.</p>
+<h3>Exercice 6 — Contrat sans réponse</h3>
+<p>Une opération <code>POST /tasks</code> documente seulement <code>200</code>, mais l’implémentation renvoie <code>201</code> et un corps contenant l’identifiant.</p>
+<p><strong>Corrigé :</strong> mettre le contrat et l’implémentation en accord. Si la création est la sémantique retenue, documenter <code>201</code>, le schéma du corps et les en-têtes pertinents, puis ajouter un test de contrat. Ne pas supposer que la documentation interactive détectera automatiquement cet écart.</p>
+<h3>Quiz 6</h3>
+<p><strong>OpenAPI valide-t-il automatiquement les requêtes en production ?</strong> Non. Il décrit un contrat ; il faut une intégration de validation ou des contrôles côté serveur et des tests pour faire respecter ce contrat.</p>
+<hr />
+</body></html>

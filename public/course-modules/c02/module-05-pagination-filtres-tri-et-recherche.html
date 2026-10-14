@@ -1,0 +1,34 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pagination, filtres, tri et recherche</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Pagination, filtres, tri et recherche</h1>
+<h2>5.1 Limiter le coût des requêtes</h2>
+<p>Ne renvoyez pas un ensemble de résultats non borné. Définissez une taille par défaut, une limite maximale, les champs filtrables et triables, ainsi que les règles de validation. Ne construisez jamais un fragment <code>ORDER BY</code> à partir d’une chaîne libre : associez les noms de tri acceptés à une liste blanche de colonnes.</p>
+<p>La pagination par offset est facile à comprendre mais peut devenir coûteuse sur de grands offsets et produire des doublons/omissions si l’ordre change entre deux pages. La pagination par curseur utilise un ordre stable, avec un dernier élément de référence. Le tri doit être déterministe, par exemple <code>created_at DESC, id DESC</code>, et le curseur doit encoder ou référencer tous les éléments nécessaires à la continuité. Un curseur opaque n’est pas une autorisation : chaque requête doit encore vérifier l’identité et les droits d’accès.</p>
+<h2>5.2 Parser des paramètres bornés</h2>
+<pre><code class="language-ts">function parseLimit(raw: unknown, defaultValue = 20, maximum = 100): number {
+  if (raw === undefined) return defaultValue;
+  if (typeof raw !== &quot;string&quot; || !/^[1-9]\d*$/.test(raw)) {
+    throw new InputValidationError(&quot;limit must be a positive integer&quot;);
+  }
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value &gt; maximum) {
+    throw new InputValidationError(`limit must be between 1 and ${maximum}`);
+  }
+  return value;
+}
+</code></pre>
+<p>Cette validation refuse <code>0</code>, les nombres négatifs, les décimaux, les notations exponentielles, les chaînes vides et les valeurs supérieures à la limite. Adapter la règle si l’API choisit explicitement une autre grammaire. Vérifier aussi la présence de paramètres dupliqués, car certains parseurs produisent un tableau lorsqu’un paramètre apparaît plusieurs fois.</p>
+<p>Exemple de contrat de réponse :</p>
+<pre><code class="language-json">{
+  &quot;data&quot;: [{ &quot;id&quot;: &quot;tsk_123&quot;, &quot;title&quot;: &quot;Lire la documentation&quot; }],
+  &quot;page&quot;: { &quot;limit&quot;: 20, &quot;nextCursor&quot;: &quot;opaque-cursor-or-null&quot; }
+}
+</code></pre>
+<p>N’exposez pas le curseur comme une garantie de sécurité. Il doit être validé, borné en taille, et éventuellement signé si l’intégrité du contenu encodé est importante. La requête SQL sous-jacente doit toujours employer des paramètres liés.</p>
+<h3>Exercice 5 — Conception de pagination</h3>
+<p>Une liste de 500 000 événements est triée par date décroissante. Les événements peuvent être insérés pendant que l’utilisateur navigue.</p>
+<p><strong>Corrigé :</strong> préférer une pagination par curseur basée sur un ordre total et stable, par exemple date + identifiant unique. Définir le comportement des événements insérés entre les pages et vérifier que le prédicat de continuation correspond exactement à l’ordre. L’offset peut rester acceptable pour de petits ensembles ou un besoin d’accès direct à une page précise.</p>
+<h3>Quiz 5</h3>
+<p><strong>Le paramètre <code>sort=createdAt;DROP...</code> peut-il être injecté directement dans SQL ?</strong> Non. Utiliser une liste blanche de champs et de directions, puis construire la requête à partir des options validées ; lier les valeurs avec des paramètres SQL.</p>
+<hr />
+</body></html>

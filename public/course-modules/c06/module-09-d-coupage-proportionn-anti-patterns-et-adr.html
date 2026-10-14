@@ -1,0 +1,39 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Découpage proportionné, anti-patterns et ADR</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Découpage proportionné, anti-patterns et ADR</h1>
+<h2>9.1 Quand créer un module ou un service ?</h2>
+<p>Créer une frontière quand elle réduit un coût réel : règle métier cohérente, équipe responsable, dépendance variable, politique de sécurité distincte, besoin de test ou rythme d'évolution différent. Ne pas extraire un service distant seulement parce qu'un dossier devient volumineux. Les microservices introduisent réseau, pannes partielles, déploiements coordonnés, observabilité distribuée et cohérence éventuelle.</p>
+<p>Signaux d'architecture à revoir :</p>
+<ul>
+<li>contrôleurs contenant règles métier et SQL ;</li>
+<li>dépendances circulaires entre domaines ;</li>
+<li><code>shared</code> contenant des règles métier de tous les domaines ;</li>
+<li>interfaces créées sans besoin de substitution ni frontière claire ;</li>
+<li>services génériques avec de nombreux paramètres booléens ;</li>
+<li>exceptions techniques traduites en succès silencieux ;</li>
+<li>transactions et autorisations dispersées dans plusieurs couches.</li>
+</ul>
+<h2>9.2 ADR — Architecture Decision Record</h2>
+<p>Une ADR est une note courte qui conserve le contexte et la raison d'une décision. Modèle recommandé :</p>
+<pre><code class="language-md"># ADR-0001 — Organiser l'API en monolithe modulaire
+
+- Statut : accepté
+- Date : AAAA-MM-JJ
+
+## Contexte
+Quel problème et quelles contraintes motivent la décision ?
+
+## Décision
+Quelle option est retenue, avec quel périmètre ?
+
+## Alternatives considérées
+Quelles options réalistes ont été comparées et pourquoi écartées ?
+
+## Conséquences
+Quels bénéfices, coûts, risques et conditions de réévaluation ?
+</code></pre>
+<p>Une ADR n'est ni un document marketing ni une garantie que le choix sera éternel. Si le contexte change, une nouvelle ADR peut remplacer l'ancienne tout en gardant l'historique.</p>
+<p><strong>Exercice 9.</strong> Une équipe souhaite passer en microservices parce que son monolithe a 30 modules et que le déploiement est encore manuel. Que doit-elle analyser avant de décider ?</p>
+<p><strong>Corrigé.</strong> Identifier le problème réel : frontières mal définies, équipes en conflit, besoin de déploiements indépendants, charge différenciée, contraintes de sécurité ou limites techniques. Vérifier d'abord les modules, le pipeline et la propriété du code. Le nombre de modules seul ne justifie pas des services distribués ; documenter les options et coûts dans une ADR.</p>
+<hr />
+</body></html>

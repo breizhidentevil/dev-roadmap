@@ -1,0 +1,48 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tests de contrat HTTP et OpenAPI</title><style>
+:root{color-scheme:light dark}body{font:16px/1.72 system-ui,-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:clamp(16px,4vw,40px);color:CanvasText;background:Canvas}h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}h1{margin-top:0;font-size:2rem}h2{border-bottom:1px solid #8885;padding-bottom:.35em}p,li{max-width:82ch}a{overflow-wrap:anywhere}pre{overflow:auto;padding:16px;border-radius:8px;background:color-mix(in srgb,CanvasText 8%,Canvas)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}:not(pre)>code{padding:.15em .3em;border-radius:4px;background:color-mix(in srgb,CanvasText 8%,Canvas)}table{border-collapse:collapse;display:block;overflow:auto}th,td{border:1px solid #8888;padding:8px;text-align:left}blockquote{border-left:3px solid #888;padding-left:1em;margin-left:0}img{max-width:100%}hr{border:0;border-top:1px solid #8886;margin:2em 0}details{padding:.6em;border:1px solid #8886;border-radius:8px}summary{cursor:pointer;font-weight:600}.task-list-item{list-style:none}
+</style></head><body><h1>Tests de contrat HTTP et OpenAPI</h1>
+<h2>6.1 Tester les frontières publiques</h2>
+<p>Un test de contrat vérifie qu’un producteur respecte la forme et les règles promises à ses consommateurs. Pour une API, les contrats incluent notamment :</p>
+<ul>
+<li>méthodes et chemins ;</li>
+<li>paramètres et corps acceptés ;</li>
+<li>schémas de réponses ;</li>
+<li>statuts HTTP ;</li>
+<li>structure des erreurs ;</li>
+<li>règles de pagination ;</li>
+<li>authentification et en-têtes pertinents.</li>
+</ul>
+<p>Une interface TypeScript ne valide pas automatiquement un JSON reçu sur le réseau. Les données HTTP doivent être validées à l’exécution et la réponse doit respecter le schéma publié.</p>
+<h2>6.2 Test HTTP sans dépendre du texte de l’interface</h2>
+<p>Exemple conceptuel avec une fonction <code>createTestApp()</code> fournie par le projet :</p>
+<pre><code class="language-ts">it(&quot;retourne 400 si la durée est invalide&quot;, async () =&gt; {
+  const response = await request(createTestApp())
+    .post(&quot;/reservations&quot;)
+    .send({ startsAt: &quot;2030-04-01T11:00:00.000Z&quot;, durationMinutes: 10 });
+
+  expect(response.status).toBe(400);
+  expect(response.body).toMatchObject({
+    error: { code: &quot;VALIDATION_ERROR&quot; },
+  });
+});
+</code></pre>
+<p><code>request</code> représente ici une bibliothèque de test HTTP telle que Supertest. L’extrait ne fixe pas le choix de bibliothèque ; le projet doit adopter celle qui correspond à son serveur et à ses conventions.</p>
+<p>Ne pas seulement tester la fonction de validation : vérifier aussi que la route appelle bien cette validation et transforme le rejet en réponse HTTP correcte.</p>
+<h2>6.3 OpenAPI : cohérence, pas décoration</h2>
+<p>OpenAPI décrit les opérations, les paramètres, les corps, les réponses et les mécanismes de sécurité. Il peut être utilisé pour générer des clients ou vérifier des requêtes/réponses. Un document présent dans le dépôt n’est pas une garantie de conformité si personne ne vérifie sa cohérence avec l’application.</p>
+<p>Pratiques utiles :</p>
+<ol>
+<li>conserver le document OpenAPI dans le dépôt ou le générer de manière reproductible ;</li>
+<li>valider la syntaxe et la structure dans la CI ;</li>
+<li>tester les réponses réelles contre les schémas documentés ;</li>
+<li>traiter les changements incompatibles comme des modifications de contrat ;</li>
+<li>inclure les erreurs et les réponses d’authentification dans le contrat.</li>
+</ol>
+<h3>Exercice 6</h3>
+<p>L’API documente <code>201</code> lors de la création, mais renvoie <code>200</code> et un corps différent. Proposer une stratégie de correction.</p>
+<p><strong>Correction expliquée :</strong> déterminer le contrat intentionnel, puis aligner le code et la spécification. Si des clients utilisent déjà le comportement réel, mesurer le risque de rupture avant de modifier la réponse. Ajouter un test de contrat empêchant la divergence future, et documenter la décision de compatibilité.</p>
+<h3>Quiz 6</h3>
+<p><strong>Que prouve la validation du fichier OpenAPI seule ?</strong></p>
+<p><strong>Réponse :</strong> elle peut prouver que le document est structurellement valide selon le validateur utilisé, mais pas que l’application réelle renvoie les réponses décrites. Des tests contre l’application restent nécessaires.</p>
+<hr />
+</body></html>

@@ -78,7 +78,16 @@ describe('catalogue de migration', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Compétences' }));
     expect(screen.getByRole('status').textContent).toContain('169 entrée(s) affichée(s)');
-    expect(screen.getAllByRole('link')).toHaveLength(169);
+    const skillChapters = catalog.chapters.filter((chapter) => chapter.id !== '24-projets-pratiques');
+    expect(screen.getByRole('region', { name: 'Bibliothèque de compétences' })).toBeTruthy();
+    expect(document.querySelectorAll('.skills-sidebar-item')).toHaveLength(skillChapters.length);
+    expect(document.querySelectorAll('.skills-entry-row')).toHaveLength(skillChapters[0].lessons.length);
+    expect(screen.getByRole('heading', { name: skillChapters[0].title })).toBeTruthy();
+    const secondChapterButton = screen.getAllByRole('button').find((button) => button.classList.contains('skills-sidebar-item') && button.textContent?.includes(skillChapters[1].title));
+    expect(secondChapterButton).toBeTruthy();
+    fireEvent.click(secondChapterButton!);
+    expect(screen.getByRole('heading', { name: skillChapters[1].title })).toBeTruthy();
+    expect(document.querySelectorAll('.skills-entry-row')).toHaveLength(skillChapters[1].lessons.length);
   });
 
   it('bascule le thème et mémorise la préférence', () => {

@@ -54,6 +54,7 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
   const [kindFilter, setKindFilter] = useState<CatalogFilter>('all');
   const [selectedCourseId, setSelectedCourseId] = useState(courses[0]?.id ?? '');
+  const [selectedChapterId, setSelectedChapterId] = useState(catalog.chapters[0]?.id ?? '');
   useEffect(() => setQuery(searchParams.get('q') ?? ''), [searchParams]);
   const normalized = query.trim().toLocaleLowerCase('fr');
   const filtered = useMemo(() => catalog.chapters.map((chapter) => ({
@@ -76,6 +77,7 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
   })).filter((course) => course.modules.length > 0), [kindFilter, normalized]);
   const resultCount = filtered.reduce((total, chapter) => total + chapter.lessons.length, 0) + filteredCourses.reduce((total, course) => total + course.modules.length, 0);
   const activeCourse = filteredCourses.find((course) => course.id === selectedCourseId) ?? filteredCourses[0];
+  const activeSkillChapter = filtered.find((chapter) => chapter.id === selectedChapterId) ?? filtered[0];
   return <main className="container">
     <header className="hero">
       <div className="hero-top">
@@ -99,10 +101,37 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
           : normalized ? `${resultCount} résultat(s) pour « ${query.trim()} »` : `${resultCount} entrée(s) affichée(s)`}
       </p>
     </header>
-    <div className="catalogue">{filtered.map((chapter) => <section className="chapter" id={chapter.id} key={chapter.id}>
+    {kindFilter !== 'skill' && <div className="catalogue">{filtered.map((chapter) => <section className="chapter" id={chapter.id} key={chapter.id}>
       <div className="chapter-heading"><span className="chapter-number">{chapter.number}</span><div><h2>{chapter.title}</h2><p>{chapter.lessons.length} entrée(s)</p></div></div>
       <div className="lesson-grid">{chapter.lessons.map((lesson) => <Link className="lesson-card" to={`/lesson/${lesson.id}`} key={lesson.id}><strong>{lesson.title}</strong><span>{lesson.description}</span><span className="arrow" aria-hidden="true">↗</span></Link>)}</div>
-    </section>)}</div>
+    </section>)}</div>}
+    {kindFilter === 'skill' ? <section className="skills-library" aria-label="Bibliothèque de compétences">
+      <aside className="skills-sidebar">
+        <div className="skills-sidebar-heading"><h2>Chapitres</h2><span>{filtered.length}</span></div>
+        <nav className="skills-sidebar-list" aria-label="Choisir un chapitre de compétences">
+          {filtered.map((chapter) => <button className="skills-sidebar-item" type="button" key={chapter.id} aria-pressed={activeSkillChapter?.id === chapter.id} onClick={() => setSelectedChapterId(chapter.id)}>
+            <span className="skills-sidebar-item-title">{chapter.number}. {chapter.title}</span>
+            <span className="skills-sidebar-item-meta">{chapter.lessons.length} compétences</span>
+          </button>)}
+        </nav>
+      </aside>
+      <div className="skills-library-content">
+        {activeSkillChapter ? <>
+          <header className="skills-library-header">
+            <p className="course-kicker">Chapitre {activeSkillChapter.number}</p>
+            <h2>{activeSkillChapter.title}</h2>
+            <p>{activeSkillChapter.lessons.length} compétences dans ce chapitre</p>
+          </header>
+          <nav className="skills-entry-list" aria-label={`Compétences du chapitre ${activeSkillChapter.title}`}>
+            {activeSkillChapter.lessons.map((lesson, index) => <Link className="skills-entry-row" to={`/lesson/${lesson.id}`} key={lesson.id}>
+              <span className="skills-entry-index" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+              <span className="skills-entry-copy"><strong>{lesson.title}</strong><span>{lesson.description}</span></span>
+              <span className="skills-entry-arrow" aria-hidden="true">↗</span>
+            </Link>)}
+          </nav>
+        </> : <p className="empty-state">Aucune compétence ne correspond à cette recherche.</p>}
+      </div>
+    </section> : null}
     {kindFilter === 'course' ? <section className="course-library" aria-label="Bibliothèque de cours">
       <aside className="course-sidebar">
         <div className="course-sidebar-heading"><h2>Les cours</h2><span>{filteredCourses.length}</span></div>
@@ -134,7 +163,7 @@ function Home({ theme, onToggleTheme }: ThemeProps) {
       <div className="chapter-heading"><span className="chapter-number" aria-hidden="true">{course.title.slice(0, 2)}</span><div><h2 id={`course-${course.id}`}>{course.title}</h2><p>{course.modules.length} grand(s) concept(s) · {course.category}</p></div></div>
       <div className="lesson-grid course-grid">{course.modules.map((module) => <ConceptCard course={course} module={module} key={module.id} />)}</div>
     </section>)}
-    {resultCount === 0 && <p className="empty-state">Aucune entrée ne correspond à ces filtres.</p>}
+    {resultCount === 0 && kindFilter !== 'skill' && kindFilter !== 'course' && <p className="empty-state">Aucune entrée ne correspond à ces filtres.</p>}
     <footer>Catalogue migré depuis V41. Les tutoriels HTML sont conservés ; la validation fonctionnelle complète reste en cours.</footer>
   </main>;
 }
